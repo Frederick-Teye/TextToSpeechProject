@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% load i18n %}
-{% load allauth account %}
+{% load allauth account socialaccount %} {# Added socialaccount load tag #}
 
 {% block head_title %}
 {% trans "Sign In" %}
@@ -55,11 +55,21 @@
                     </div>
                 </form>
 
+                {# Social Account Integration - NEW BLOCK #}
+                {% if socialaccount.providers %}
+                <div class="mt-4 text-center">
+                    <hr class="my-4 border-secondary">
+                    <p class="text-muted">{% trans "Or sign in with:" %}</p>
+                    <ul class="socialaccount_providers list-unstyled d-flex justify-content-center gap-3">
+                        {% include "socialaccount/snippets/provider_list.html" with process="login" %} {#
+                        process="login" for login page #}
+                    </ul>
+                </div>
+                {% endif %}
+
                 <p class="text-center text-muted mt-4">
-                    {% trans "Don't have an account?" %}
-                    <a href="{% url 'account_signup' %}" class="text-decoration-none fw-bold">
-                        {% trans "Sign Up" %}
-                    </a>
+                    {% blocktrans %}Don't have an account? Then please <a href="{{ signup_url }}"
+                        class="text-decoration-none fw-bold">sign up</a>.{% endblocktrans %}
                 </p>
             </div>
         </div>

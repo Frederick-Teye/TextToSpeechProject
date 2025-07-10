@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.github",
     "storages",  # For django-storages (S3)
     # Your apps (add them as you create them)
     "core",

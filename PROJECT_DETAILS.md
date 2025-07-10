@@ -185,3 +185,73 @@ The project integrates with key AWS services for its core functionality and scal
   - Sensitive credentials (Access Key ID and Secret Access Key) are stored as environment variables (`.env` locally, Heroku Config Vars in production) and are never committed to Git.
 
 ---
+
+# UI/Design Principles
+
+This project's user interface is built with a focus on a modern, comfortable, and responsive dark theme, prioritizing readability and ease of use, especially for extended periods or in low-light conditions.
+
+---
+
+## Core Technologies
+
+- **CSS Framework**: Bootstrap 5.3.3 (via CDN)
+- **Font**: Inter (sans-serif)
+
+---
+
+## Color Palette and Theme
+
+The application employs a sophisticated dark theme with carefully chosen shades to ensure visual depth, separation, and optimal contrast for text.
+
+- **Body Background (`#1a1e24`)**:  
+  A deep, slightly desaturated blue-gray. This provides a rich, calming backdrop for the entire application, designed to be easy on the eyes during night use.
+
+- **Navbar & Footer Background (`#101216`)**:  
+  An almost black, very dark blue-gray. This color is intentionally darker than the body background to create a clear visual distinction for the header and footer, providing a strong structural anchor.
+
+- **Card/Form Background (`#242930`)**:  
+  A medium-dark blue-gray. This shade is distinct from the body background, making form containers (like login/signup cards) stand out subtly as interactive elements without being jarring.
+
+- **Primary Accent Color (`#007bff`)**:  
+  Standard Bootstrap primary blue. This vibrant blue is used for interactive elements such as buttons and links, providing clear calls to action and visual interest while maintaining good contrast against the dark backgrounds.
+
+- **Main Text Color (`#e0e6eb`)**:  
+  A soft, light blue-gray. This is used for general body text, offering a comfortable reading experience by avoiding the harshness of pure white on a dark background.
+
+- **Input Field Background (`#343a40`)**:  
+  A darker gray. This ensures input fields are clearly visible and distinguishable within the dark forms while blending harmoniously with the overall theme.
+
+---
+
+## Layout and Responsiveness
+
+- **Viewport Meta Tag**: Included in `base.html` to ensure proper scaling on all devices.
+- **Flexbox for Layout**:  
+  The body uses flexbox (`display: flex; flex-direction: column; min-height: 100vh;`) to push the footer to the bottom of the viewport, regardless of content height.
+- **Bootstrap Grid System**:  
+  Utilized for responsive content alignment and sizing, particularly for form containers (`.row`, `.col-md-6`, `.col-lg-5`) to ensure optimal display on various screen sizes.
+- **Container Centering**:  
+  `container` and `mx-auto` (or `justify-content-center`) classes are used to center main content and forms, providing a clean and organized layout.
+
+---
+
+## Component Styling
+
+- **Navigation Bar**:  
+  Uses Bootstrap's `navbar`, `navbar-dark`, and custom `navbar-custom-bg` classes for a distinct, dark, and responsive header with navigation links.
+
+- **Forms**:  
+  Styled with Bootstrap's `form-label`, `form-control`, `btn btn-primary`, and `card` components. Input fields, labels, help text, and error messages are all styled to be highly readable within the dark theme.
+
+- **Messages**:  
+  Django's messages framework output is styled to resemble Bootstrap alerts (`alert alert-success`, `alert-danger`, etc.), with custom colors optimized for the dark background.
+
+- **Links**:  
+  General links are styled with the primary accent blue for visibility and interactive feedback.
+
+- **Shadows and Rounded Corners**:  
+  Subtle shadows (`shadow-sm`, `shadow-lg`) and rounded corners (`rounded-lg`, `rounded-md`) are applied to elements like cards and buttons to add depth and a modern aesthetic.
+
+---
+
+This design approach aims to provide a visually pleasing, user-friendly, and accessible experience for the **TTS Document Converter** application.

@@ -31,3 +31,28 @@ DEFAULT_FROM_EMAIL = "webmaster@localhost"  # A dummy email for dev
 # INSTALLED_APPS += ['debug_toolbar']
 # MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
 # INTERNAL_IPS = ['127.0.0.1']
+
+# Social Account Providers (for local development)
+# Use empty string defaults if environment variables are not set.
+# This allows the app to start without crashing if keys are missing.
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": config("GOOGLE_CLIENT_ID", default=""),
+            "secret": config(
+                "GOOGLE_SECRET", default=""
+            ),  # Corrected 'SECRETE' to 'SECRET'
+            "key": "",
+        }
+    },
+    "github": {
+        "APP": {
+            "client_id": config("GITHUB_CLIENT_ID", default=""),
+            "secret": config(
+                "GITHUB_SECRET", default=""
+            ),  # Corrected 'SECRETE' to 'SECRET'
+            "key": "",
+        },
+        "VERIFIED_EMAIL": True,
+    },
+}

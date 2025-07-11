@@ -83,3 +83,24 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")  # Your SMTP password
 DEFAULT_FROM_EMAIL = config(
     "DEFAULT_FROM_EMAIL", default="no-reply@yourdomain.com"
 )  # Your actual sender email
+
+
+# Social Account Providers (for production)
+# These environment variables MUST be set in your production environment.
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": config("GOOGLE_CLIENT_ID"),
+            "secret": config("GOOGLE_SECRET"),
+            "key": "",
+        }
+    },
+    "github": {
+        "APP": {
+            "client_id": config("GITHUB_CLIENT_ID"),
+            "secret": config("GITHUB_SECRET"),
+            "key": "",
+        },
+        "VERIFIED_EMAIL": True,
+    },
+}

@@ -71,3 +71,15 @@ LOGGING = {
         },
     },
 }
+
+
+# Email settings for production (real SMTP server)
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = config("EMAIL_HOST")  # e.g., smtp.sendgrid.net, smtp.mailgun.org
+EMAIL_PORT = config("EMAIL_PORT", cast=int)  # e.g., 587 or 465
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", cast=bool, default=True)  # Use TLS for security
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")  # Your SMTP username
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")  # Your SMTP password
+DEFAULT_FROM_EMAIL = config(
+    "DEFAULT_FROM_EMAIL", default="no-reply@yourdomain.com"
+)  # Your actual sender email

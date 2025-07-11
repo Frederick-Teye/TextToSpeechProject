@@ -23,6 +23,10 @@ DATABASES = {
 DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
+# Email settings for local development (console backend)
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "webmaster@localhost"  # A dummy email for dev
+
 # Optionally, for Debug Toolbar (if you install it later)
 # INSTALLED_APPS += ['debug_toolbar']
 # MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']

@@ -2,6 +2,7 @@
 
 {% load i18n %}
 {% load allauth account socialaccount %}
+{% load widget_tweaks %} {# Add this line to load widget_tweaks filters #}
 
 {% block head_title %}
 {% trans "Sign Up" %}
@@ -27,7 +28,8 @@
                         <label for="{{ field.id_for_label }}" class="form-label">
                             {{ field.label }}
                         </label>
-                        {{ field|add_class:"form-control" }} {# Apply form-control class to input #}
+                        {# Changed from {{ field|add_class:"form-control" }} to render_field #}
+                        {% render_field field class="form-control" %}
                         {% if field.help_text %}
                         <div class="form-text">{{ field.help_text }}</div>
                         {% endif %}

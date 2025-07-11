@@ -3,6 +3,7 @@
 {% load i18n %}
 {% load allauth account socialaccount %}
 {% load widget_tweaks %} {# Add this line to load widget_tweaks filters #}
+{% load socialaccount %}
 
 {% block head_title %}
 {% trans "Sign Up" %}
@@ -94,7 +95,7 @@
                 {% if socialaccount.providers %}
                 <div class="mt-4 text-center">
                     <hr class="my-4 border-secondary">
-                    <p class="text-muted">{% trans "Or sign up with:" %}</p>
+                    <p class="text-muted">{% trans "Or sign in with:" %}</p>
                     <ul class="socialaccount_providers list-unstyled d-flex justify-content-center gap-3">
                         {% include "socialaccount/snippets/provider_list.html" with process="signup" %}
                     </ul>

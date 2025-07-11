@@ -25,7 +25,8 @@ STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
 # Email settings for local development (console backend)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = "webmaster@localhost"  # A dummy email for dev
+# DEFAULT_FROM_EMAIL = "webmaster@localhost"  # A dummy email for dev
+DEFAULT_FROM_EMAIL = "jay09peterson@gmail.com"
 
 # Optionally, for Debug Toolbar (if you install it later)
 # INSTALLED_APPS += ['debug_toolbar']
@@ -56,3 +57,14 @@ SOCIALACCOUNT_PROVIDERS = {
         "VERIFIED_EMAIL": True,
     },
 }
+
+
+# tts_project/settings/dev.py
+# ...
+print(
+    f"DEBUG: GOOGLE_CLIENT_ID loaded: '{config('GOOGLE_CLIENT_ID', default='NOT_SET')}'"
+)
+print(
+    f"DEBUG: GITHUB_CLIENT_ID loaded: '{config('GITHUB_CLIENT_ID', default='NOT_SET')}'"
+)
+# ...

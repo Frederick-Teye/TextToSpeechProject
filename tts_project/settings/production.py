@@ -27,9 +27,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Security Enhancements (Highly Recommended for Production)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = config(
-    "SECURE_SSL_REDIRECT", default=True, cast=bool
-)  # Redirect HTTP to HTTPS
+SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=True, cast=bool)
 CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=True, cast=bool)
 SECURE_HSTS_SECONDS = config(

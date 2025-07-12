@@ -12,7 +12,7 @@ services:
     # 1. Runs Django's collectstatic to gather all static files.
     # 2. Runs Django's migrate to apply database migrations.
     # 3. Starts the Gunicorn WSGI server.
-    command: bash -c "python manage.py collectstatic --noinput && python manage.py migrate --noinput && gunicorn tts_project.wsgi:application --bind 0.0.0.0:8000"
+    command: bash -c "python manage.py collectstatic --noinput && python manage.py migrate --noinput && gunicorn tts_project.wsgi:application --bind 0.0.0.0:8000 --timeout 120" 
     # Mount local directories into the container for development purposes.
     volumes:
       - .:/app # Mount the entire project root for live code changes.
@@ -28,6 +28,8 @@ services:
     depends_on:
       - db
       - redis
+    environment:
+      - DJANGO_SETTINGS_MODULE=tts_project.settings.dev
     # Connect this service to our custom Docker network.
     networks:
       - app_network
@@ -50,6 +52,8 @@ services:
     depends_on:
       - web
       - redis
+    environment:
+      - DJANGO_SETTINGS_MODULE=tts_project.settings.dev
     # Connect to the custom Docker network.
     networks:
       - app_network

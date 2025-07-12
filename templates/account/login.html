@@ -3,7 +3,6 @@
 {% load i18n %}
 {% load allauth account socialaccount %}
 {% load widget_tweaks %}
-{% load socialaccount %}
 
 {% block head_title %}
 {% trans "Sign In" %}
@@ -19,58 +18,58 @@
                 <form class="login" method="POST" action="{% url 'account_login' %}">
                     {% csrf_token %}
 
-                            {% for field in form %}
-                            {% if field.name == 'remember' %}
-                            <div class="form-check mb-3">
-                                {% render_field field class="form-check-input" %}
-                                <label class="form-check-label" for="{{ field.id_for_label }}">
-                                    {{ field.label }}
-                                </label>
-                                {% if field.help_text %}
-                                <div class="form-text">{{ field.help_text }}</div>
-                                {% endif %}
-                                {% if field.errors %}
-                                {% for error in field.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                                {% endfor %}
-                                {% endif %}
-                            </div>
-                            {% elif 'password' in field.id_for_label %} {# Check if it's a password field #}
-                            <div class="mb-3">
-                                <label for="{{ field.id_for_label }}" class="form-label">
-                                    {{ field.label }}
-                                    <button type="button" class="password-toggle-btn"
-                                        onclick="togglePasswordVisibility('{{ field.id_for_label }}')">
-                                        Show/Hide
-                                    </button>
-                                </label>
-                                {% render_field field class="form-control" %}
-                                {% if field.help_text %}
-                                <div class="form-text">{{ field.help_text }}</div>
-                                {% endif %}
-                                {% if field.errors %}
-                                {% for error in field.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                                {% endfor %}
-                                {% endif %}
-                            </div>
-                            {% else %} {# For all other non-password, non-remember fields #}
-                            <div class="mb-3">
-                                <label for="{{ field.id_for_label }}" class="form-label">
-                                    {{ field.label }}
-                                </label>
-                                {% render_field field class="form-control" %}
-                                {% if field.help_text %}
-                                <div class="form-text">{{ field.help_text }}</div>
-                                {% endif %}
-                                {% if field.errors %}
-                                {% for error in field.errors %}
-                                <div class="invalid-feedback d-block">{{ error }}</div>
-                                {% endfor %}
-                                {% endif %}
-                            </div>
-                            {% endif %}
-                            {% endfor %}
+                    {% for field in form %}
+                    {% if field.name == 'remember' %}
+                    <div class="form-check mb-3">
+                        {% render_field field class="form-check-input" %}
+                        <label class="form-check-label" for="{{ field.id_for_label }}">
+                            {{ field.label }}
+                        </label>
+                        {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% if field.errors %}
+                        {% for error in field.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                    {% elif 'password' in field.id_for_label %} {# Check if it's a password field #}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">
+                            {{ field.label }}
+                            <button type="button" class="password-toggle-btn"
+                                onclick="togglePasswordVisibility('{{ field.id_for_label }}')">
+                                Show/Hide
+                            </button>
+                        </label>
+                        {% render_field field class="form-control" %}
+                        {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% if field.errors %}
+                        {% for error in field.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                    {% else %} {# For all other non-password, non-remember fields #}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">
+                            {{ field.label }}
+                        </label>
+                        {% render_field field class="form-control" %}
+                        {% if field.help_text %}
+                        <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% if field.errors %}
+                        {% for error in field.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                    {% endif %} {# End of if field.name == 'remember' / elif 'password' / else #}
+                    {% endfor %} {# End of for field in form #}
 
                     {% if form.non_field_errors %}
                     {% for error in form.non_field_errors %}

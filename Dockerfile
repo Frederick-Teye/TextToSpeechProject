@@ -36,7 +36,8 @@ RUN pip install --upgrade pip
 
 # Install all Python dependencies from requirements.txt.
 # '--no-cache-dir' prevents pip from storing downloaded packages, further reducing image size.
-RUN pip install --no-cache-dir -r requirements.txt
+# Add --default-timeout and --retries for better network resilience
+RUN pip install --no-cache-dir --default-timeout=120 --retries=5 -r requirements.txt
 
 # Stage 2: Production/Runtime Stage
 # This stage creates the final, smaller image by only copying necessary artifacts from the builder stage.

@@ -59,4 +59,62 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 
+# Session cookie settings for local development (crucial for allauth password reset)
+# Use False for local HTTP development, True for HTTPS in production
+SESSION_COOKIE_SECURE = False
+# 'Lax' allows the cookie to be sent with top-level navigations, which is needed
+# for clicking links from emails. 'Strict' can prevent this.
+SESSION_COOKIE_SAMESITE = "Lax"
 
+APPEND_SLASH = True
+PREPEND_WWW = False
+
+
+# tts_project/settings/dev.py or base.py
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "level": "DEBUG",  # Set to DEBUG to see all messages, including INFO
+            "class": "logging.StreamHandler",
+            "formatter": "simple",  # Or 'verbose' for more detail
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",  # Ensure Django's default logger captures INFO
+            "propagate": False,
+        },
+        "core": {  # Add a logger for your 'core' app
+            "handlers": ["console"],
+            "level": "INFO",  # Set to INFO or DEBUG to see your custom logs
+            "propagate": False,
+        },
+        "allauth": {  # Optionally, add a logger for allauth if you want its internal logs
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+    "root": {  # Fallback for anything not caught by specific loggers
+        "handlers": ["console"],
+        "level": "WARNING",  # Default to WARNING for root to avoid too much noise
+    },
+}
+
+# Allauth settings
+# Set password reset timeout to a very large value for local debugging (e.g., 1 hour = 3600 seconds)
+# Default is 259200 seconds (3 days)
+ACCOUNT_PASSWORD_RESET_TIMEOUT = 3600  # 1 hour

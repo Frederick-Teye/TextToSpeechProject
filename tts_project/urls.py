@@ -16,13 +16,25 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path  # Import re_path
 from django.conf import settings
 from django.conf.urls.static import static
+from core.views import (
+    CustomPasswordResetFromKeyView,
+)  # Ensure this import path is correct
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("accounts/", include("allauth.urls")),  # Django-allauth URLs
+    # CRITICAL FIX: Place your custom password reset URL BEFORE allauth.urls
+    # This ensures your custom view is hit first for this specific pattern.
+    re_path(  # Use re_path for more precise regex matching
+        r"^accounts/password/reset/key/(?P<uidb36>[^/]+)-(?P<key>[^/]+)/$",
+        CustomPasswordResetFromKeyView.as_view(),
+        name="account_reset_password_from_key",
+    ),
+    path(
+        "accounts/", include("allauth.urls")
+    ),  # Django-allauth URLs (now comes after your override)
     # Add your app URLs here as you create them:
     path("", include("core.urls")),
     # path('documents/', include('document_processing.urls')),

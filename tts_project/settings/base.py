@@ -193,3 +193,6 @@ DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 AWS_HEADERS = {
     "Cache-Control": "public, max-age=2419200",  # Cache for 4 weeks (2,419,200 seconds)
 }
+
+
+AUTH_USER_MODEL = "users.CustomUser"

@@ -27,11 +27,11 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # CRITICAL FIX: Place your custom password reset URL BEFORE allauth.urls
     # This ensures your custom view is hit first for this specific pattern.
-    re_path(  # Use re_path for more precise regex matching
-        r"^accounts/password/reset/key/(?P<uidb36>[^/]+)-(?P<key>[^/]+)/$",
-        CustomPasswordResetFromKeyView.as_view(),
-        name="account_reset_password_from_key",
-    ),
+    # re_path(  # Use re_path for more precise regex matching
+    #     r"^accounts/password/reset/key/(?P<uidb36>[^/]+)-(?P<key>[^/]+)/$",
+    #     CustomPasswordResetFromKeyView.as_view(),
+    #     name="account_reset_password_from_key",
+    # ),
     path(
         "accounts/", include("allauth.urls")
     ),  # Django-allauth URLs (now comes after your override)

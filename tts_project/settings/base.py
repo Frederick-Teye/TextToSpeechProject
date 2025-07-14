@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "storages",  # For django-storages (S3)
     # Your apps (add them as you create them)
     "core",
+    "users.apps.UsersConfig",
     # 'accounts',
     # 'document_processing',
     # 'audio_playback',
@@ -114,7 +115,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 
 # Internationalization

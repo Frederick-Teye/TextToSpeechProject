@@ -30,6 +30,7 @@ services:
       - redis
     environment:
       - DJANGO_SETTINGS_MODULE=tts_project.settings.dev
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY} 
     # Connect this service to our custom Docker network.
     networks:
       - app_network
@@ -54,6 +55,7 @@ services:
       - redis
     environment:
       - DJANGO_SETTINGS_MODULE=tts_project.settings.dev
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
     # Connect to the custom Docker network.
     networks:
       - app_network

@@ -15,6 +15,7 @@ venv/
 *.sqlite3
 /media/ # Directory for user-uploaded files (these should be stored on S3 in production)
 /static_cdn/ # Directory for collected static files (these will also be on S3 in production)
+migrations/
 
 # Operating System Files
 .DS_Store # macOS

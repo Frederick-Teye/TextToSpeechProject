@@ -1,114 +1,102 @@
 {% extends "base.html" %}
-
 {% load i18n %}
-{% load allauth account socialaccount %}
-{% load widget_tweaks %}
-
-{% block head_title %}
-{% trans "Sign In" %}
-{% endblock head_title %}
+{% load socialaccount %} <!-- Load the specific social account tags -->
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
-        <div class="card shadow-lg p-4 mt-5">
-            <div class="card-body">
-                <h1 class="card-title text-center mb-4 display-5">{% trans "Sign In" %}</h1>
+<style>
+    /* Add some basic styling for our custom buttons */
+    .btn-social {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        margin-bottom: 0.5rem;
+        transition: opacity 0.2s;
+    }
 
-                <form class="login" method="POST" action="{% url 'account_login' %}">
-                    {% csrf_token %}
+    .btn-social:hover {
+        opacity: 0.9;
+        color: white;
+    }
 
-                    {% for field in form %}
-                    {% if field.name == 'remember' %}
-                    <div class="form-check mb-3">
-                        {% render_field field class="form-check-input" %}
-                        <label class="form-check-label" for="{{ field.id_for_label }}">
-                            {{ field.label }}
-                        </label>
-                        {% if field.help_text %}
-                        <div class="form-text">{{ field.help_text }}</div>
-                        {% endif %}
-                        {% if field.errors %}
-                        {% for error in field.errors %}
-                        <div class="invalid-feedback d-block">{{ error }}</div>
-                        {% endfor %}
-                        {% endif %}
-                    </div>
-                    {% elif 'password' in field.id_for_label %} {# Check if it's a password field #}
-                    <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label">
-                            {{ field.label }}
-                            <button type="button" class="password-toggle-btn"
-                                onclick="togglePasswordVisibility('{{ field.id_for_label }}')">
-                                Show/Hide
-                            </button>
-                        </label>
-                        {% render_field field class="form-control" %}
-                        {% if field.help_text %}
-                        <div class="form-text">{{ field.help_text }}</div>
-                        {% endif %}
-                        {% if field.errors %}
-                        {% for error in field.errors %}
-                        <div class="invalid-feedback d-block">{{ error }}</div>
-                        {% endfor %}
-                        {% endif %}
-                    </div>
-                    {% else %} {# For all other non-password, non-remember fields #}
-                    <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label">
-                            {{ field.label }}
-                        </label>
-                        {% render_field field class="form-control" %}
-                        {% if field.help_text %}
-                        <div class="form-text">{{ field.help_text }}</div>
-                        {% endif %}
-                        {% if field.errors %}
-                        {% for error in field.errors %}
-                        <div class="invalid-feedback d-block">{{ error }}</div>
-                        {% endfor %}
-                        {% endif %}
-                    </div>
-                    {% endif %} {# End of if field.name == 'remember' / elif 'password' / else #}
-                    {% endfor %} {# End of for field in form #}
+    .btn-social svg {
+        margin-right: 0.75rem;
+        width: 20px;
+        height: 20px;
+    }
 
-                    {% if form.non_field_errors %}
-                    {% for error in form.non_field_errors %}
-                    <div class="alert alert-danger">{{ error }}</div>
-                    {% endfor %}
-                    {% endif %}
+    .btn-google {
+        background-color: #4285F4;
+    }
 
-                    {% if redirect_field_value %}
-                    <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
-                    {% endif %}
+    .btn-github {
+        background-color: #333;
+    }
+</style>
 
-                    <button type="submit" class="btn btn-primary w-100 mt-3">
-                        {% trans "Sign In" %}
-                    </button>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card bg-dark text-white border-secondary">
+                <div class="card-body p-4">
+                    <h2 class="card-title text-center mb-4">{% trans "Log In" %}</h2>
 
-                    <div class="text-center mt-3">
-                        <a class="text-decoration-none" href="{% url 'account_reset_password' %}">
-                            {% trans "Forgot Password?" %}
+                    <form class="login" method="POST" action="{% url 'account_login' %}">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        {% if redirect_field_value %}
+                        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+                        {% endif %}
+                        <div class="d-grid mt-4">
+                            <button class="btn btn-primary" type="submit">{% trans "Sign In" %}</button>
+                        </div>
+                    </form>
+
+                    {# --- NEW MANUAL BUTTON SECTION --- #}
+                    <div class="mt-4 text-center">
+                        <div class="d-flex align-items-center my-3">
+                            <hr class="flex-grow-1 border-secondary"><span class="px-2 text-muted">{% trans "Or"
+                                %}</span>
+                            <hr class="flex-grow-1 border-secondary">
+                        </div>
+
+                        <!-- Manual Google Button -->
+                        <a href="{% provider_login_url 'google' %}" class="btn-social btn-google">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                                <path fill="#FFC107"
+                                    d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z">
+                                </path>
+                                <path fill="#FF3D00"
+                                    d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z">
+                                </path>
+                                <path fill="#4CAF50"
+                                    d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z">
+                                </path>
+                                <path fill="#1976D2"
+                                    d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571l6.19,5.238C42.012,36.494,44,30.638,44,24C44,22.659,43.862,21.35,43.611,20.083z">
+                                </path>
+                            </svg>
+                            {% trans "Sign in with Google" %}
+                        </a>
+
+                        <!-- Manual GitHub Button -->
+                        <a href="{% provider_login_url 'github' %}" class="btn-social btn-github">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+                                <path
+                                    d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+                                </path>
+                            </svg>
+                            {% trans "Sign in with GitHub" %}
                         </a>
                     </div>
-                </form>
+                    {# --- END NEW SECTION --- #}
 
-                {# Social Account Integration #}
-                {% if socialaccount.providers %}
-                <div class="mt-4 text-center">
-                    <hr class="my-4 border-secondary">
-                    <p class="text-muted">{% trans "Or sign in with:" %}</p>
-                    <ul class="socialaccount_providers list-unstyled d-flex justify-content-center gap-3">
-                        {% include "socialaccount/snippets/provider_list.html" with process="login" %}
-                    </ul>
                 </div>
-                {% endif %}
-
-                <p class="text-center text-muted mt-4">
-                    {% blocktrans %}Don't have an account? Then please <a href="{{ signup_url }}"
-                        class="text-decoration-none fw-bold">sign up</a>.{% endblocktrans %}
-                </p>
             </div>
         </div>
     </div>
 </div>
-{% endblock content %}
+{% endblock %}

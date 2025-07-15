@@ -19,6 +19,13 @@ class AudioStatus(models.TextChoices):
     AUDIO_FAILED = "AUDIO_FAILED", "Audio Failed"
 
 
+# This class define the different types of document sources we can handle.
+class SourceType(models.TextChoices):
+    FILE = "FILE", "File Upload"
+    URL = "URL", "Webpage URL"
+    TEXT = "TEXT", "Raw Text Input"  # Added for future flexibility!
+
+
 class Document(models.Model):
     """
     Represents an uploaded document file. This is the master record for each upload.
@@ -34,12 +41,19 @@ class Document(models.Model):
         help_text="The user who uploaded the document.",
     )
     title = models.CharField(max_length=255, help_text="The title of the document.")
-    # We will store the path to the original file in S3 here.
-    # `blank=True` allows this field to be empty initially.
-    original_file_s3_path = models.CharField(
+
+    source_type = models.CharField(
+        max_length=10,
+        choices=SourceType.choices,
+        default=SourceType.FILE,
+        help_text="The type of the source content (File, URL, etc.).",
+    )
+
+    # This field now generically stores the source, either an S3 path or a URL.
+    source_content = models.CharField(
         max_length=1024,
         blank=True,
-        help_text="The path to the original document file in AWS S3.",
+        help_text="The path to the original document file in S3 or the URL of the webpage.",
     )
 
     status = models.CharField(

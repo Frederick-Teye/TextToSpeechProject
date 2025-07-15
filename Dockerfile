@@ -1,7 +1,7 @@
 # Stage 1: Builder Stage
 # This stage is used to install build-time dependencies and Python packages.
 # Using a slim-bookworm image for a smaller footprint.
-FROM python:3.11-slim-bookworm as builder
+FROM python:3.11-slim-bookworm AS builder
 
 # Set environment variables to prevent Python from writing .pyc files
 # and to ensure unbuffered output for immediate logging.

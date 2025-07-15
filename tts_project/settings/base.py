@@ -46,8 +46,8 @@ INSTALLED_APPS = [
     # Your apps (add them as you create them)
     "core",
     "users.apps.UsersConfig",
+    "document_processing",
     # 'accounts',
-    # 'document_processing',
     # 'audio_playback',
 ]
 

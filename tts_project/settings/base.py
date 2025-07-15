@@ -153,7 +153,7 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
-SITE_ID = config("SITE_ID", cast=int, default=1)
+SITE_ID = 1
 LOGIN_REDIRECT_URL = "/"
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"
 ACCOUNT_EMAIL_REQUIRED = True
@@ -162,6 +162,26 @@ ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 SOCIALACCOUNT_QUERY_EMAIL = ACCOUNT_EMAIL_REQUIRED
 SOCIALACCOUNT_AUTO_SIGNUP = True
+
+
+# Social Account Providers
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": config("GOOGLE_CLIENT_ID", default=""),
+            "secret": config("GOOGLE_SECRET", default=""),
+            "key": "",
+        }
+    },
+    "github": {
+        "APP": {
+            "client_id": config("GITHUB_CLIENT_ID", default=""),
+            "secret": config("GITHUB_SECRET", default=""),
+            "key": "",
+        },
+        "VERIFIED_EMAIL": True,
+    },
+}
 
 
 # Celery Settings

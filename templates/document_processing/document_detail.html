@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ document.title }}</h1>
+<p id="status">Status: {{ document.get_status_display }}</p>
+
+<div id="pages">
+    {% if pages %}
+    <ul>
+        {% for p in pages %}
+        <li>
+            <a href="{% url 'document_processing:page_detail' document.id p.page_number %}">
+                Page {{ p.page_number }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No pages yet. Waiting for processing…</p>
+    {% endif %}
+</div>
+
+<script>
+    // Poll every 2 seconds until status becomes COMPLETED or FAILED
+    const docId = {{ document.id }};
+    const statusEl = document.getElementById("status");
+    const pagesEl = document.getElementById("pages");
+
+    function checkStatus() {
+        fetch("{% url 'document_processing:status_api' document.id %}")
+            .then(r => r.json())
+            .then(data => {
+                statusEl.textContent = "Status: " + data.status;
+                if (data.status === "COMPLETED") {
+                    // Reload the page to fetch pages list
+                    window.location.reload();
+                }
+                else if (data.status === "FAILED") {
+                    pagesEl.innerHTML = "<p class='text-danger'>Processing failed. Please try again.</p>";
+                }
+                // else keep polling
+            })
+            .catch(console.error);
+    }
+
+    {% if document.status == 'PROCESSING' %}
+    setInterval(checkStatus, 2000);
+    {% endif %}
+</script>
+{% endblock %}

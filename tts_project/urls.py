@@ -25,7 +25,10 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
     path("", include("core.urls")),
-    # path('documents/', include('document_processing.urls')),
+    path(
+        "documents/",
+        include("document_processing.urls", namespace="document_processing"),
+    ),
     # path('audio/', include('audio_playback.urls')),
 ]
 

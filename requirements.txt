@@ -34,3 +34,8 @@ vine==5.1.0
 whitenoise==6.9.0
 django-widget-tweaks==1.4.12
 pip-audit==2.9.0
+
+# New dependencies for multi-format & URL scraping:
+python-docx==0.8.11
+markdownify==0.16.0
+pypandoc-binary==0.2.8

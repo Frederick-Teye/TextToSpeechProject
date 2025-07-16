@@ -100,8 +100,8 @@ class DocumentPage(models.Model):
         help_text="The page number in the original document."
     )
     # `TextField` is used for storing large amounts of text.
-    text_content = models.TextField(
-        blank=True, help_text="The extracted text content of this page."
+    markdown_content = models.TextField(
+        blank=True, help_text="The extracted text(markdown) content of this page."
     )
     audio_status = models.CharField(
         max_length=20,

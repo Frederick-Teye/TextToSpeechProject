@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     "core",
     "users.apps.UsersConfig",
     "document_processing",
+    "crispy_forms",
+    "crispy_bootstrap5",
     # 'accounts',
     # 'audio_playback',
 ]
@@ -216,3 +218,6 @@ AWS_HEADERS = {
 
 
 AUTH_USER_MODEL = "users.CustomUser"
+
+CRISPY_TEMPLATE_PACK = "bootstrap5"
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"

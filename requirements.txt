@@ -37,5 +37,8 @@ pip-audit==2.9.0
 
 # New dependencies for multi-format & URL scraping:
 python-docx==0.8.11
-markdownify==0.16.0
-pypandoc-binary==0.2.8
+markdownify>=0.14.0,<2.0.0
+pypandoc-binary>=1.10,<2.0
+pymupdf4llm>=0.0.26,<1.0.0
+django-crispy-forms>=1.14.0,<2.0.0
+crispy-bootstrap5

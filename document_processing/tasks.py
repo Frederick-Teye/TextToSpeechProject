@@ -1,22 +1,26 @@
-import io, os, tempfile, logging, requests
+import io
+import os
+import tempfile
+import logging
+import requests
+import boto3
+
 from celery import shared_task
 from django.conf import settings
-import boto3
+from django.db import transaction
+
 import pymupdf4llm
-import pypandoc  # pip install pypandoc
-from markdownify import markdownify  # pip install markdownify
-from .models import Document, DocumentPage, TextStatus
+import pypandoc
+from markdownify import markdownify
+
+from .models import Document, DocumentPage, TextStatus, SourceType
 
 logger = logging.getLogger(__name__)
 MIN_CONTENT_LENGTH = 100
 
-# -------------------------------------------------------------------
-# PER-FORMAT PROCESSORS → return List[{"page_number": int, "markdown": str}]
-# -------------------------------------------------------------------
 
-
-def _process_pdf_bytes(buf: io.BytesIO):
-    logger.info("Processing PDF via PyMuPDF4LLM.page_chunks")
+def _process_pdf(buf: io.BytesIO):
+    logger.info("→ PDF: extracting pages via PyMuPDF4LLM")
     pages = pymupdf4llm.to_markdown(buf, page_chunks=True)
     return [
         {"page_number": p["page_number"], "markdown": p["markdown"].strip()}
@@ -25,8 +29,8 @@ def _process_pdf_bytes(buf: io.BytesIO):
     ]
 
 
-def _process_docx_bytes(buf: io.BytesIO):
-    logger.info("Processing DOCX via Pandoc")
+def _process_docx(buf: io.BytesIO):
+    logger.info("→ DOCX: converting via Pandoc")
     with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
         tmp.write(buf.getvalue())
         tmp.flush()
@@ -35,29 +39,23 @@ def _process_docx_bytes(buf: io.BytesIO):
     return [{"page_number": 1, "markdown": md.strip()}]
 
 
-def _process_md_bytes(buf: io.BytesIO):
-    logger.info("Processing Markdown file directly")
+def _process_md(buf: io.BytesIO):
+    logger.info("→ MD: reading raw Markdown")
     text = buf.read().decode("utf-8", errors="ignore")
     return [{"page_number": 1, "markdown": text.strip()}]
 
 
 def _process_url(url: str):
-    logger.info(f"Fetching URL → HTML → Markdown: {url}")
+    logger.info(f"→ URL: fetching and markdownifying {url}")
     resp = requests.get(url, timeout=10)
     resp.raise_for_status()
-    md_text = markdownify(resp.text, heading_style="ATX")
-    return [{"page_number": 1, "markdown": md_text.strip()}]
-
-
-# -------------------------------------------------------------------
-# MAIN TASK: download → route → validate → save pages
-# -------------------------------------------------------------------
+    md = markdownify(resp.text, heading_style="ATX")
+    return [{"page_number": 1, "markdown": md.strip()}]
 
 
 @shared_task(bind=True)
 def parse_document_task(self, document_id):
-    logger.info(f"Start parsing Document #{document_id}")
-
+    logger.info(f"[{self.request.id}] Start processing Document {document_id}")
     try:
         doc = Document.objects.get(id=document_id)
     except Document.DoesNotExist:
@@ -68,39 +66,45 @@ def parse_document_task(self, document_id):
     doc.save()
 
     try:
-        src = doc.source_content
+        # 1) Branch on source_type
+        stype = doc.source_type
 
-        # 1. URL content?
-        if src.startswith(("http://", "https://")):
-            pages = _process_url(src)
+        if stype == SourceType.URL:
+            pages = _process_url(doc.source_content)
 
-        # 2. S3 file content
-        else:
-            # Download raw bytes
+        elif stype == SourceType.TEXT:
+            # Raw text is already Markdown-ish
+            raw = doc.source_content.strip()
+            pages = [{"page_number": 1, "markdown": raw}]
+
+        else:  # FILE
+            # Download from S3
             buf = io.BytesIO()
             s3 = boto3.client("s3", region_name=settings.AWS_S3_REGION_NAME)
-            s3.download_fileobj(settings.AWS_STORAGE_BUCKET_NAME, src, buf)
+            s3.download_fileobj(
+                settings.AWS_STORAGE_BUCKET_NAME, doc.source_content, buf
+            )
             buf.seek(0)
 
-            # Route by extension
-            _, ext = os.path.splitext(src.lower())
+            # Dispatch by extension
+            _, ext = os.path.splitext(doc.source_content.lower())
             processors = {
-                ".pdf": _process_pdf_bytes,
-                ".docx": _process_docx_bytes,
-                ".md": _process_md_bytes,
-                ".markdown": _process_md_bytes,
+                ".pdf": _process_pdf,
+                ".docx": _process_docx,
+                ".md": _process_md,
+                ".markdown": _process_md,
             }
-            processor = processors.get(ext)
-            if not processor:
-                raise NotImplementedError(f"No processor for '{ext}' files.")
-            pages = processor(buf)
+            proc = processors.get(ext)
+            if not proc:
+                raise NotImplementedError(f"No processor for '{ext}' files")
+            pages = proc(buf)
 
-        # 3. Smart Check: total content length
+        # 2) Smart check
         total_len = sum(len(p["markdown"]) for p in pages)
         if total_len < MIN_CONTENT_LENGTH:
-            raise ValueError("No extractable text or empty document.")
+            raise ValueError("No readable text found")
 
-        # 4. Persist each page
+        # 3) Bulk save each page
         objs = [
             DocumentPage(
                 document=doc,
@@ -111,10 +115,9 @@ def parse_document_task(self, document_id):
         ]
         DocumentPage.objects.bulk_create(objs)
 
-        # 5. Mark success
+        # 4) Mark success
         doc.status = TextStatus.COMPLETED
         doc.error_message = None
-        logger.info(f"Saved {len(objs)} pages for Document #{document_id}")
 
     except NotImplementedError as e:
         logger.error(e, exc_info=True)
@@ -124,18 +127,18 @@ def parse_document_task(self, document_id):
     except requests.RequestException as e:
         logger.error("URL fetch error", exc_info=True)
         doc.status = TextStatus.FAILED
-        doc.error_message = "Failed to fetch URL."
+        doc.error_message = "Failed to fetch URL content"
 
     except ValueError as e:
         logger.error(e, exc_info=True)
         doc.status = TextStatus.FAILED
-        doc.error_message = str(e)
+        doc.error_message = "Processing failed: no readable text"
 
     except Exception as e:
-        logger.error("Processing error", exc_info=True)
+        logger.exception("Unexpected processing error")
         doc.status = TextStatus.FAILED
-        doc.error_message = "Unsupported or corrupted content."
+        doc.error_message = "Processing failed: unsupported or corrupted content"
 
     finally:
         doc.save()
-        logger.info(f"Finished Document #{document_id} with status {doc.status}")
+        logger.info(f"Finished Document {document_id} with status {doc.status}")

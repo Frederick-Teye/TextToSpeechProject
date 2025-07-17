@@ -17,7 +17,7 @@ class ParseDocumentTaskSuccessTests(TestCase):
 
     def test_text_source_creates_one_page(self):
         # Arrange
-        long_text = "This is some raw text that is long enough to pass the minimum content length check."
+        long_text = "This is some raw text that is definitely long enough to pass the minimum content length check we have implemented in our Celery task."
         doc = Document.objects.create(
             user=self.user,
             title="Raw Text Doc",
@@ -36,7 +36,7 @@ class ParseDocumentTaskSuccessTests(TestCase):
     def test_url_source_is_markdownified(self, mock_get):
         # Arrange
         mock_get.return_value.status_code = 200
-        mock_get.return_value.text = "<h1>A Webpage Title</h1><p>Some content.</p>"
+        mock_get.return_value.text = "<h1>A Webpage Title</h1><p>This is the content of the webpage, and we are making sure it is long enough to satisfy the MIN_CONTENT_LENGTH requirement in our task.</p>"
         doc = Document.objects.create(
             user=self.user,
             title="Web Doc",
@@ -93,7 +93,10 @@ class ParseDocumentTaskFailureTests(TestCase):
         # Assert
         doc.refresh_from_db()
         self.assertEqual(doc.status, TextStatus.FAILED)
-        self.assertIn("corrupted or invalid file", doc.error_message)
+        # self.assertIn("corrupted or invalid file", doc.error_message)
+        self.assertEqual(
+            doc.error_message, "Processing failed: unsupported or corrupted content"
+        )
 
     @patch("document_processing.tasks.boto3.client")
     @patch("document_processing.tasks._process_pdf")

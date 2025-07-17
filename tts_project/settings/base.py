@@ -187,18 +187,15 @@ SOCIALACCOUNT_PROVIDERS = {
 
 
 # Celery Settings
-CELERY_BROKER_URL = config(
-    "REDIS_URL",
-    default=f"redis://{config('REDIS_HOST')}:{config('REDIS_PORT')}/{config('REDIS_DB')}",
-)
-CELERY_RESULT_BACKEND = config(
-    "REDIS_URL",
-    default=f"redis://{config('REDIS_HOST')}:{config('REDIS_PORT')}/{config('REDIS_DB')}",
-)
+CELERY_BROKER_URL = config("REDIS_URL", default="redis://redis:6379/0")
+CELERY_RESULT_BACKEND = config("REDIS_URL", default="redis://redis:6379/0")
+
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = "UTC"
+CELERY_TIMEZONE = "Africa/Accra"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
 
 
 # AWS S3 / Polly Settings (using django-storages and boto3)

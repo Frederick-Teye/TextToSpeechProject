@@ -1,109 +1,78 @@
-# Specify the Docker Compose file format version.
-# version: '3.8'   # I had to comment this to stop warning
-
-# Define the services (containers) that make up your application.
+# The 'version' tag is obsolete in newer Docker Compose versions, so we can remove it.
 services:
   # Django Web Application Service
   web:
-    # Build the Docker image for this service using the Dockerfile in the current directory.
     build: .
-    # Override the default command in the Dockerfile.
-    # This command:
-    # 1. Runs Django's collectstatic to gather all static files.
-    # 2. Runs Django's migrate to apply database migrations.
-    # 3. Starts the Gunicorn WSGI server.
     command: /app/entrypoint.sh
-    # Mount local directories into the container for development purposes.
     volumes:
-      - .:/app # Mount the entire project root for live code changes.
-      - media_data:/app/media # Persistent volume for user-uploaded media files.
-      - static_data:/app/static_cdn # Persistent volume for collected static files.
-    # Map port 8000 on the host machine to port 8000 inside the container.
+      - .:/app
+      - media_data:/app/media
+      - static_data:/app/static_cdn
     ports:
       - "8000:8000"
-    # Load environment variables from the .env file in the project root.
+    # We use env_file to load the bulk of our settings like SECRET_KEY, DEBUG, etc.
     env_file:
       - .env
-    # Define dependencies: 'web' service will start only after 'db' and 'redis' are healthy.
+    # --- THIS IS THE FINAL FIX ---
+    # We add an 'environment' block to EXPLICITLY set the REDIS_URL.
+    # An explicitly set variable in 'environment' takes precedence over 'env_file'.
+    # This guarantees the web container uses the correct address to connect to the Redis service.
+    environment:
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       - db
       - redis
-    environment:
-      - DJANGO_SETTINGS_MODULE=tts_project.settings.dev
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY} 
-    # Connect this service to our custom Docker network.
     networks:
       - app_network
 
   # Celery Worker Service
   celery_worker:
-    # Build from the same Dockerfile as the 'web' service.
     build: .
-    # Command to start the Celery worker, pointing to tts_project.settings.celery instead of the Django project.
-    # OLD: command: celery -A tts_project worker -l info
-    command: celery -A tts_project.settings.celery worker -l info # <--- UPDATED LINE HERE
-    # Mount local directories for the worker to access code and media.
+    command: celery -A tts_project.settings.celery worker -l info
     volumes:
       - .:/app
       - media_data:/app/media
-    # Load environment variables.
+    # The celery worker correctly loads its settings from the env_file, so we leave it.
     env_file:
       - .env
-    # Celery worker depends on the web service (to ensure migrations are run first) and Redis (as broker).
     depends_on:
       - web
       - redis
-    environment:
-      - DJANGO_SETTINGS_MODULE=tts_project.settings.dev
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-    # Connect to the custom Docker network.
     networks:
       - app_network
 
-  # Redis Service (Used as Celery Message Broker and for Caching)
+  # Redis Service
   redis:
-    # Use the official Redis image (version 7, based on Alpine for small size).
     image: redis:7-alpine
-    # Map Redis's default port 6379 on the host to the container.
     ports:
       - "6379:6379"
-    # Persistent volume for Redis data.
     volumes:
       - redis_data:/data
-    # Connect to the custom Docker network.
     networks:
       - app_network
 
-  # PostgreSQL Database Service (for local development)
+  # PostgreSQL Database Service
   db:
-    # Use the official PostgreSQL image (version 15, based on Alpine for small size).
     image: postgres:15-alpine
-    # Persistent volume for PostgreSQL database files.
     volumes:
       - pg_data:/var/lib/postgresql/data
-    # Set environment variables for PostgreSQL configuration (pulled from .env via 'web' and 'celery_worker' services).
-    # These are specific to the postgres image for initial database setup.
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-    # Map PostgreSQL's default port 5432 on the host to the container.
     ports:
       - "5432:5432"
-    # Connect to the custom Docker network.
     networks:
       - app_network
 
 # Define named volumes for persistent data storage.
-# Data in these volumes will persist even if containers are removed.
 volumes:
-  pg_data:    # For PostgreSQL database files
-  redis_data: # For Redis data
-  media_data: # For user-uploaded media files
-  static_data: # For Django collected static files
+  pg_data:
+  redis_data:
+  media_data:
+  static_data:
 
-# Define a custom bridge network for internal communication between services.
-# This allows services to refer to each other by their service names (e.g., 'db', 'redis').
+# Define a custom bridge network for internal communication.
 networks:
   app_network:
     driver: bridge

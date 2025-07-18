@@ -5,7 +5,7 @@ import logging
 import requests
 import boto3
 
-from celery import shared_task
+from tts_project.settings.celery import app
 from django.conf import settings
 from django.db import transaction
 
@@ -53,7 +53,8 @@ def _process_url(url: str):
     return [{"page_number": 1, "markdown": md.strip()}]
 
 
-@shared_task(bind=True)
+# @ shared_task(bind=True)
+@app.task(bind=True)
 def parse_document_task(self, document_id):
     logger.info(f"[{self.request.id}] Start processing Document {document_id}")
     try:

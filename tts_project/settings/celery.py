@@ -1,15 +1,15 @@
+from __future__ import absolute_import, unicode_literals
 import os
 from celery import Celery
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tts_project.settings.dev")
+# Set the default Django settings module
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tts_project.settings")
 
+# Create a Celery instance named 'tts_project'
 app = Celery("tts_project")
 
+# Load configuration from Django settings
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
+# Autodiscover tasks
 app.autodiscover_tasks()
-
-
-@app.task(bind=True, ignore_result=True)
-def debug_task(self):
-    print(f"Request: {self.request!r}")

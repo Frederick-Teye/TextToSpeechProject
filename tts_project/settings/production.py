@@ -41,35 +41,6 @@ X_FRAME_OPTIONS = "DENY"  # Protects against clickjacking
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
-# Logging configuration for production
-# Directs logs to console (Heroku collects these)
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-        },
-    },
-    "loggers": {
-        "django": {
-            "handlers": ["console"],
-            "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
-        },
-        # Add specific loggers for your apps here if needed
-        "document_processing": {
-            "handlers": ["console"],
-            "level": "INFO",  # Or 'DEBUG' if you want more verbose logs for your app
-            "propagate": False,
-        },
-        "celery": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
-    },
-}
-
 
 # Email settings for production (real SMTP server)
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -81,4 +52,3 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")  # Your SMTP password
 DEFAULT_FROM_EMAIL = config(
     "DEFAULT_FROM_EMAIL", default="no-reply@yourdomain.com"
 )  # Your actual sender email
-

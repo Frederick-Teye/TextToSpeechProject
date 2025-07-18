@@ -218,3 +218,44 @@ AUTH_USER_MODEL = "users.CustomUser"
 
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+
+LOGGING = {
+    "version": 1,
+    # This setting is crucial. It ensures that loggers defined by Django
+    # or other third-party apps are not disabled.
+    "disable_existing_loggers": False,
+    # Formatters define the layout of your log messages.
+    "formatters": {
+        "verbose": {
+            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s",
+        },
+        "simple": {
+            "format": "[%(levelname)s] %(message)s",
+        },
+    },
+    # Handlers decide what to do with a log message (e.g., print to console, write to file).
+    "handlers": {
+        "console": {
+            "level": "DEBUG",  # Capture all messages from DEBUG level and up.
+            "class": "logging.StreamHandler",  # Prints to standard output/error.
+            "formatter": "simple",
+        },
+    },
+    # Loggers are the entry point into the logging system.
+    "loggers": {
+        # This is the "root" logger. It catches messages from all loggers
+        # that don't have a more specific configuration.
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",  # For Django's own logs, INFO is usually enough.
+            "propagate": True,
+        },
+        # This will catch logs from your `document_processing` app.
+        "document_processing": {
+            "handlers": ["console"],
+            "level": "DEBUG",  # Show all debug messages from your app.
+            "propagate": True,
+        },
+        # You can add other apps here as your project grows.
+    },
+}

@@ -13,12 +13,10 @@ services:
     # We use env_file to load the bulk of our settings like SECRET_KEY, DEBUG, etc.
     env_file:
       - .env
-    # --- THIS IS THE FINAL FIX ---
-    # We add an 'environment' block to EXPLICITLY set the REDIS_URL.
-    # An explicitly set variable in 'environment' takes precedence over 'env_file'.
-    # This guarantees the web container uses the correct address to connect to the Redis service.
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - SITE_DOMAIN=localhost:8000
+      - SITE_NAME=TTS_Project Dev
     depends_on:
       - db
       - redis
@@ -44,10 +42,16 @@ services:
   # Redis Service
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - app_network
 

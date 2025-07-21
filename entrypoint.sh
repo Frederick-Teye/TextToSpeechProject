@@ -1,27 +1,25 @@
 #!/bin/sh
 
-# entrypoint.sh
-
 # This script waits for the database to be ready and then runs the main application command.
 
 # The host and port for the database are read from environment variables.
-# We use the values from your .env file.
 DB_HOST=${DB_HOST:-db}
 DB_PORT=${DB_PORT:-5432}
+REDIS_HOST=${REDIS_HOST:-redis}
+REDIS_PORT=${REDIS_PORT:-6379}
 
 echo "Waiting for database at $DB_HOST:$DB_PORT..."
 
-# We use netcat (nc) to check if the port is open.
-# The Dockerfile already installs netcat-traditional for us.
-while ! nc -z $DB_HOST $DB_PORT; do
-  sleep 0.1 # wait for 1/10 of a second before check again
+# Use Python to check port availability
+while ! python -c "import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.settimeout(1); result = s.connect_ex(('$DB_HOST', $DB_PORT)); s.close(); exit(result)"; do
+  sleep 0.1
 done
 
 echo "Database started"
 
 # Wait for Redis
-echo "Waiting for Redis at redis:6379..."
-while ! nc -z redis ${REDIS_PORT}; do
+echo "Waiting for Redis at $REDIS_HOST:$REDIS_PORT..."
+while ! python -c "import socket; s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.settimeout(1); result = s.connect_ex(('$REDIS_HOST', $REDIS_PORT)); s.close(); exit(result)"; do
   sleep 0.1
 done
 echo "Redis started"

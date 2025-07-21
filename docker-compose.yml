@@ -6,7 +6,6 @@ services:
     command: /app/entrypoint.sh
     volumes:
       - .:/app
-      - media_data:/app/media
       - static_data:/app/static_cdn
     ports:
       - "8000:8000"
@@ -17,6 +16,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - SITE_DOMAIN=localhost:8000
       - SITE_NAME=TTS_Project Dev
+      - DJANGO_SETTINGS_MODULE=tts_project.settings.dev
     depends_on:
       - db
       - redis
@@ -30,15 +30,16 @@ services:
     volumes:
       - .:/app
       - media_data:/app/media
-    # The celery worker correctly loads its settings from the env_file, so we leave it.
     env_file:
       - .env
+    # Add the user directive
+    user: "appuser:appgroup"
     depends_on:
       - web
       - redis
     networks:
       - app_network
-
+      
   # Redis Service
   redis:
     image: redis:7-alpine

@@ -18,9 +18,7 @@ DATABASES = {
     )
 }
 
-# Static and Media files for local development (saved to local disk)
-# This will use local file system storage rather than S3 during development
-DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+# Static on disk (fast local reloads)
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
 # Email settings for local development (console backend)

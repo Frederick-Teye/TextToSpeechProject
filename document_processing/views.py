@@ -5,6 +5,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
 from django.http import JsonResponse
+from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .forms import DocumentUploadForm
 from .models import SourceType, TextStatus, Document, DocumentPage
@@ -12,6 +14,27 @@ from .utils import upload_to_s3
 from .tasks import parse_document_task
 
 logger = logging.getLogger(__name__)
+
+
+class DocumentListView(LoginRequiredMixin, ListView):
+    """
+    A view to display a list of documents uploaded by the current user.
+    """
+
+    model = Document
+    template_name = "document_processing/document_list.html"
+    context_object_name = "documents"
+
+    def get_queryset(self):
+        """
+        Overrides the default queryset to return only the documents
+        belonging to the currently logged-in user, ordered by the
+        most recently created.
+        """
+        return Document.objects.filter(user=self.request.user).order_by("-created_at")
+
+
+document_list_view = DocumentListView.as_view()
 
 
 @login_required

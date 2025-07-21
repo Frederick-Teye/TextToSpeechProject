@@ -9,7 +9,7 @@ from tts_project.settings.celery import app
 from django.conf import settings
 from django.db import transaction
 
-import pymupdf4llm
+import pdfplumber
 import pypandoc
 from markdownify import markdownify
 
@@ -20,13 +20,21 @@ MIN_CONTENT_LENGTH = 100
 
 
 def _process_pdf(buf: io.BytesIO):
-    logger.info("→ PDF: extracting pages via PyMuPDF4LLM")
-    pages = pymupdf4llm.to_markdown(buf, page_chunks=True)
-    return [
-        {"page_number": p["page_number"], "markdown": p["markdown"].strip()}
-        for p in pages
-        if p.get("markdown", "").strip()
-    ]
+    buf.seek(0)
+    pages = []
+
+    with pdfplumber.open(buf) as pdf:
+        for i, page in enumerate(pdf.pages):
+            text = page.extract_text()
+            if not text:
+                continue
+            md = markdownify(
+                text, heading_style="ATX", bullets="-", strong_em_symbol="**"
+            )
+            if md.strip():
+                pages.append({"page_number": i + 1, "markdown": md.strip()})
+
+    return pages
 
 
 def _process_docx(buf: io.BytesIO):

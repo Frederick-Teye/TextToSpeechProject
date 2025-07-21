@@ -4,6 +4,7 @@ from . import views
 app_name = "document_processing"
 
 urlpatterns = [
+    path("", views.document_list_view, name="document_list"),
     path("upload/", views.document_upload, name="upload"),
     path("docs/<int:pk>/", views.document_detail, name="detail"),
     path("docs/<int:doc_id>/pages/<int:page>/", views.page_detail, name="page_detail"),

@@ -139,9 +139,9 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "static_cdn"
 
 
-# Media files (user uploads)
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# # Media files (user uploads)
+# MEDIA_URL = "/media/"
+# MEDIA_ROOT = BASE_DIR / "media"
 
 
 # Default primary key field type
@@ -207,7 +207,7 @@ AWS_S3_FILE_OVERWRITE = False
 AWS_DEFAULT_ACL = None
 AWS_QUERYSTRING_AUTH = False
 
-DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+DEFAULT_FILE_STORAGE = "document_processing.storage_backends.MediaStorage"
 
 AWS_HEADERS = {
     "Cache-Control": "public, max-age=2419200",  # Cache for 4 weeks (2,419,200 seconds)

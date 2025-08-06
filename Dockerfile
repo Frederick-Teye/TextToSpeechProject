@@ -2,7 +2,7 @@
 
 # --- Builder Stage ---
 # This stage installs dependencies and builds the application
-FROM python:3.11-slim-bookworm as builder
+FROM python:3.11-slim-bookworm AS builder
 
 # Set the working directory
 WORKDIR /app

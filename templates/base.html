@@ -173,11 +173,31 @@
                         <a class="nav-link" href="/">Home</a>
                     </li>
                     {% if user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'account_change_password' %}">Change Password</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Documents
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'document_processing:upload' %}">Upload Document</a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'document_processing:document_list' %}">List Document</a>
+                            </li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'account_email' %}">Manage Emails</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Account Settings
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'account_change_password' %}">Change Password</a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'account_email' %}">Manage Emails</a>
+                            </li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'account_logout' %}">Logout</a>

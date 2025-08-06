@@ -1,7 +1,8 @@
 {% extends "base.html" %}
+{% load custom_tags %}
 {% block content %}
 <h2>Page {{ page.page_number }} of {{ page.document.title }}</h2>
 <div class="markdown-content">
-    {{ page.markdown_content }}
+    {{ page.markdown_content|markdown|safe }}
 </div>
 {% endblock %}

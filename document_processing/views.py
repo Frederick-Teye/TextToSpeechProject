@@ -49,6 +49,9 @@ def document_upload(request):
 
         if form.is_valid():
             try:
+                # This is to avoid error when what the user uploads is not raw text
+                raw_text = ""
+
                 # Start building the document (but don’t save just yet)
                 document = Document(
                     user=request.user,
@@ -70,13 +73,19 @@ def document_upload(request):
                     document.source_content = form.cleaned_data["url"]
 
                 elif stype == SourceType.TEXT:
-                    document.source_content = form.cleaned_data["text"]
+                    if len(form.cleaned_data["text"]) > 1024:
+                        document.source_content = form.cleaned_data["text"][:1024]
+                    else:
+                        document.source_content = form.cleaned_data["text"]
+                    raw_text = form.cleaned_data["text"]
 
                 # Final save after source_content is set
                 document.save()
 
                 # Schedule background parsing
-                transaction.on_commit(lambda: parse_document_task.delay(document.id))
+                transaction.on_commit(
+                    lambda: parse_document_task.delay(document.id, raw_text=raw_text)
+                )
 
                 messages.success(
                     request, "Your document has been submitted and is now processing."

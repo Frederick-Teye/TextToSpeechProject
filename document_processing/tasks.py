@@ -63,7 +63,7 @@ def _process_url(url: str):
 
 # @ shared_task(bind=True)
 @app.task(bind=True)
-def parse_document_task(self, document_id):
+def parse_document_task(self, document_id, raw_text=""):
     logger.info(f"[{self.request.id}] Start processing Document {document_id}")
     try:
         doc = Document.objects.get(id=document_id)
@@ -83,7 +83,7 @@ def parse_document_task(self, document_id):
 
         elif stype == SourceType.TEXT:
             # Raw text is already Markdown-ish
-            raw = doc.source_content.strip()
+            raw = raw_text.strip()
             pages = [{"page_number": 1, "markdown": raw}]
 
         else:  # FILE

@@ -6,12 +6,14 @@ import tempfile
 import logging
 import requests
 import boto3
+import fitz  # PyMuPDF
 
 from tts_project.settings.celery import app
 from django.conf import settings
 from django.db import transaction
+from pymupdf4llm import to_markdown
 
-import pdfplumber
+# import pdfplumber
 import pypandoc
 from markdownify import markdownify
 
@@ -21,22 +23,49 @@ logger = logging.getLogger(__name__)
 MIN_CONTENT_LENGTH = 100
 
 
-def _process_pdf(buf: io.BytesIO):
-    buf.seek(0)
-    pages = []
+def _process_pdf(buf: io.BytesIO) -> list[dict]:
+    """
+    Uses PyMuPDF and pymupdf4llm to convert each PDF page into Markdown.
+    Returns a list of dicts: [{"page_number": n, "markdown": "..."}].
+    """
+    # Dump incoming BytesIO to a temp file
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+        tmp.write(buf.getvalue())
+        tmp.flush()
+        pdf_path = tmp.name
 
-    with pdfplumber.open(buf) as pdf:
-        for i, page in enumerate(pdf.pages):
-            text = page.extract_text()
-            if not text:
-                continue
-            md = markdownify(
-                text, heading_style="ATX", bullets="-", strong_em_symbol="**"
-            )
-            if md.strip():
-                pages.append({"page_number": i + 1, "markdown": md.strip()})
+    try:
+        # Open the PDF file using PyMuPDF
+        logger.info("→ PDF→MD: Processing with PyMuPDF4LLM")
+        doc = fitz.open(pdf_path)
 
-    return pages
+        pages = []
+        for page_index in range(len(doc)):
+            # Convert single page to markdown
+            markdown_text = to_markdown(doc, pages=[page_index])
+            clean_md = markdown_text.strip()
+
+            if clean_md:
+                pages.append(
+                    {
+                        "page_number": page_index + 1,  # 1-indexed page numbers
+                        "markdown": clean_md,
+                    }
+                )
+
+        logger.info(f"Converted {len(pages)}/{len(doc)} pages with content")
+        return pages
+
+    except Exception as e:
+        logger.exception("PyMuPDF4LLM processing error")
+        raise RuntimeError(f"PDF processing failed: {str(e)}")
+
+    finally:
+        # Clean up temp file
+        try:
+            os.unlink(pdf_path)
+        except OSError:
+            logger.warning("Could not delete temp file: %s", pdf_path)
 
 
 def _process_docx(buf: io.BytesIO):

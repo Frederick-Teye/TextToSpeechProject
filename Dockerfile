@@ -16,7 +16,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy the requirements file and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --default-timeout=260 --no-cache-dir -r requirements.txt \
+    -i https://pypi.org/simple
 
 # --- Final Stage ---
 # This stage creates the final, lean image for production

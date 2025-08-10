@@ -43,9 +43,10 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.github",
     "widget_tweaks",
     "storages",  # For django-storages (S3)
-    # Your apps (add them as you create them)
+    # This project apps
     "core",
     "users.apps.UsersConfig",
+    "speech_processing.apps.SpeechProcessingConfig",
     "document_processing",
     "crispy_forms",
     "crispy_bootstrap5",

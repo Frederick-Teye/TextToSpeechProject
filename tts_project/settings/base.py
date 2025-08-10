@@ -251,8 +251,14 @@ LOGGING = {
             "level": "INFO",  # For Django's own logs, INFO is usually enough.
             "propagate": True,
         },
-        # This will catch logs from your `document_processing` app.
+        # This will catch logs from `document_processing` app.
         "document_processing": {
+            "handlers": ["console"],
+            "level": "DEBUG",  # Show all debug messages from your app.
+            "propagate": True,
+        },
+        # This will catch logs from `speech_processing` app.
+        "speech_processing": {
             "handlers": ["console"],
             "level": "DEBUG",  # Show all debug messages from your app.
             "propagate": True,

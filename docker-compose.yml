@@ -1,6 +1,4 @@
-# The 'version' tag is obsolete in newer Docker Compose versions, so we can remove it.
 services:
-  # Django Web Application Service
   web:
     build: .
     command: /app/entrypoint.sh
@@ -9,7 +7,6 @@ services:
       - static_data:/app/static_cdn
     ports:
       - "8000:8000"
-    # We use env_file to load the bulk of our settings like SECRET_KEY, DEBUG, etc.
     env_file:
       - .env
     environment:
@@ -23,7 +20,6 @@ services:
     networks:
       - app_network
 
-  # Celery Worker Service
   celery_worker:
     build: .
     command: celery -A tts_project.settings.celery worker -l info
@@ -32,7 +28,6 @@ services:
       - media_data:/app/media
     env_file:
       - .env
-    # Add the user directive
     user: "appuser:appgroup"
     depends_on:
       - web
@@ -40,7 +35,6 @@ services:
     networks:
       - app_network
       
-  # Redis Service
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -56,7 +50,6 @@ services:
     networks:
       - app_network
 
-  # PostgreSQL Database Service
   db:
     image: postgres:15-alpine
     volumes:
@@ -70,14 +63,12 @@ services:
     networks:
       - app_network
 
-# Define named volumes for persistent data storage.
 volumes:
   pg_data:
   redis_data:
   media_data:
   static_data:
 
-# Define a custom bridge network for internal communication.
 networks:
   app_network:
     driver: bridge

@@ -1,10 +1,5 @@
-# Dockerfile
-
-# --- Builder Stage ---
-# This stage installs dependencies and builds the application
 FROM python:3.11-slim-bookworm AS builder
 
-# Set the working directory
 WORKDIR /app
 
 # Install system dependencies required for building Python packages
@@ -45,5 +40,4 @@ USER appuser
 # Expose the port the app runs on
 EXPOSE 8000
 
-# Run the entrypoint script
 CMD ["/app/entrypoint.sh"]

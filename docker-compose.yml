@@ -4,7 +4,6 @@ services:
     command: /app/entrypoint.sh
     volumes:
       - .:/app
-      - static_data:/app/static_cdn
     ports:
       - "8000:8000"
     env_file:
@@ -25,7 +24,6 @@ services:
     command: celery -A tts_project.settings.celery worker -l info
     volumes:
       - .:/app
-      - media_data:/app/media
     env_file:
       - .env
     user: "appuser:appgroup"
@@ -66,8 +64,6 @@ services:
 volumes:
   pg_data:
   redis_data:
-  media_data:
-  static_data:
 
 networks:
   app_network:

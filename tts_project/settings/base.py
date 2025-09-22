@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     "widget_tweaks",
     "storages",  # For django-storages (S3)
     # This project apps
-    "core",
+    "landing",
     "users.apps.UsersConfig",
     "speech_processing.apps.SpeechProcessingConfig",
     "document_processing",

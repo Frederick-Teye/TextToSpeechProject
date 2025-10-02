@@ -40,3 +40,7 @@ Dockerfile # We will keep this in git
 # Celery
 celerybeat-schedule # Celery Beat scheduler file
 celeryd.pid # Celery worker PID file
+
+
+# Static CDN folder
+static_cdn/

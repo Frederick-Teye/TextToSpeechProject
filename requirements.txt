@@ -18,7 +18,7 @@ lxml==6.0.0
 mammoth==1.9.1
 Markdown==3.8.2
 pillow==10.4.0
-psycopg2-binary==2.9.10
+psycopg2-binary==2.9.10 # for heroku postgres add-on
 # pypdf==4.3.1
 python-dateutil==2.9.0.post0
 python-decouple==3.8
@@ -46,3 +46,7 @@ crispy-bootstrap5
 # psutil>=7.0.0
 pymupdf4llm>=0.0.26,<1.0.0
 pymupdf
+
+# for audio merging
+pydub
+# pydub require ffmpeg to be installed on server: sudo apt install ffmpeg

@@ -1,0 +1,84 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: /app/entrypoint-dev.sh
+    volumes:
+      - .:/app
+      - /app/static_cdn
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - SITE_DOMAIN=localhost:8000
+      - SITE_NAME=TTS_Project Dev
+      - DJANGO_SETTINGS_MODULE=tts_project.settings.dev
+      - PYTHONUNBUFFERED=1
+      - DEBUG=True
+    depends_on:
+      - db
+      - redis
+    networks:
+      - app_network
+    stdin_open: true
+    tty: true
+
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    command: celery -A tts_project.settings.celery worker -l info --pool=solo
+    volumes:
+      - .:/app
+      - /app/static_cdn
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DJANGO_SETTINGS_MODULE=tts_project.settings.dev
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - web
+      - redis
+    networks:
+      - app_network
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    networks:
+      - app_network
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  redis_data:
+
+networks:
+  app_network:
+    driver: bridge

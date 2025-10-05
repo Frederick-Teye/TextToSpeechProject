@@ -1,49 +1,176 @@
 {% extends "base.html" %}
-{% block content %}
-<h1>{{ document.title }}</h1>
-<p id="status">Status: {{ document.get_status_display }}</p>
 
-<div id="pages">
-    {% if pages %}
-    <ul>
-        {% for p in pages %}
-        <li>
-            <a href="{% url 'document_processing:page_detail' document.id p.page_number %}">
-                Page {{ p.page_number }}
-            </a>
-        </li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <p>No pages yet. Waiting for processing…</p>
-    {% endif %}
+{% block head_title %}{{ document.title }}{% endblock head_title %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Document Header -->
+    <div class="card bg-secondary mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div class="flex-grow-1">
+                    <h2 class="card-title mb-2">
+                        <i class="bi bi-file-earmark-text"></i> {{ document.title|default:"Untitled Document" }}
+                    </h2>
+                    <div class="d-flex gap-3 flex-wrap">
+                        <span id="status-badge">
+                            Status: 
+                            <span class="badge rounded-pill 
+                                        {% if document.status == 'PROCESSING' %}text-bg-warning
+                                        {% elif document.status == 'COMPLETED' %}text-bg-success
+                                        {% elif document.status == 'FAILED' %}text-bg-danger
+                                        {% else %}text-bg-secondary{% endif %}">
+                                {{ document.get_status_display }}
+                            </span>
+                        </span>
+                        <small class="text-muted">
+                            <i class="bi bi-calendar"></i> {{ document.created_at|date:"F d, Y" }}
+                        </small>
+                        <small class="text-muted">
+                            <i class="bi bi-file-text"></i> Source: {{ document.get_source_display }}
+                        </small>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'document_processing:document_list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </a>
+                    <button class="btn btn-outline-info" 
+                            onclick="openShareModal({{ document.id }}, '{{ document.title|escapejs }}')"
+                            type="button">
+                        <i class="bi bi-share"></i> Share
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3"></div>
+
+    <!-- Pages List -->
+    <div id="pages">
+        {% if document.status == 'COMPLETED' %}
+            {% if pages %}
+            <div class="row">
+                {% for p in pages %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card bg-secondary h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="bi bi-file-earmark"></i> Page {{ p.page_number }}
+                            </h5>
+                            <p class="card-text text-muted small">
+                                {% if p.markdown_content %}
+                                    {{ p.markdown_content|truncatewords:20 }}
+                                {% else %}
+                                    No content available
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="card-footer bg-dark border-secondary">
+                            <a href="{% url 'document_processing:page_detail' document.id p.page_number %}" 
+                               class="btn btn-sm btn-primary w-100">
+                                <i class="bi bi-eye"></i> View Page
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i> No pages found in this document.
+            </div>
+            {% endif %}
+        {% elif document.status == 'PROCESSING' %}
+            <div class="alert alert-info">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border text-primary me-3" role="status">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                    <div>
+                        <strong>Processing document...</strong>
+                        <p class="mb-0 small">This may take a few moments. The page will automatically refresh when ready.</p>
+                    </div>
+                </div>
+            </div>
+        {% elif document.status == 'FAILED' %}
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle"></i> 
+                <strong>Processing failed.</strong> 
+                {% if document.error_message %}
+                    <p class="mb-0">{{ document.error_message }}</p>
+                {% else %}
+                    Please try uploading the document again.
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="alert alert-secondary">
+                <i class="bi bi-hourglass-split"></i> Document is pending processing.
+            </div>
+        {% endif %}
+    </div>
 </div>
+
+<!-- Include Share Modal -->
+{% include "document_processing/document_share_modal.html" %}
 
 <script>
     // Poll every 2 seconds until status becomes COMPLETED or FAILED
     const docId = {{ document.id }};
-    const statusEl = document.getElementById("status");
+    const statusBadge = document.getElementById("status-badge");
     const pagesEl = document.getElementById("pages");
 
     function checkStatus() {
         fetch("{% url 'document_processing:status_api' document.id %}")
             .then(r => r.json())
             .then(data => {
-                statusEl.textContent = "Status: " + data.status;
+                // Update status badge
+                let badgeClass = 'text-bg-secondary';
+                if (data.status === 'COMPLETED') {
+                    badgeClass = 'text-bg-success';
+                } else if (data.status === 'PROCESSING') {
+                    badgeClass = 'text-bg-warning';
+                } else if (data.status === 'FAILED') {
+                    badgeClass = 'text-bg-danger';
+                }
+                
+                statusBadge.innerHTML = `Status: <span class="badge rounded-pill ${badgeClass}">${data.status}</span>`;
+                
                 if (data.status === "COMPLETED") {
                     // Reload the page to fetch pages list
                     window.location.reload();
                 }
                 else if (data.status === "FAILED") {
-                    pagesEl.innerHTML = "<p class='text-danger'>Processing failed. Please try again.</p>";
+                    pagesEl.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-x-circle"></i> 
+                            <strong>Processing failed.</strong> 
+                            ${data.error ? '<p class="mb-0">' + data.error + '</p>' : 'Please try uploading the document again.'}
+                        </div>
+                    `;
                 }
-                // else keep polling
             })
             .catch(console.error);
     }
 
-    {% if document.status == 'PROCESSING' %}
-    setInterval(checkStatus, 2000);
+    {% if document.status == 'PROCESSING' or document.status == 'PENDING' %}
+    // Poll for status updates
+    const pollInterval = setInterval(checkStatus, 2000);
+    
+    // Stop polling after 5 minutes (failsafe)
+    setTimeout(() => clearInterval(pollInterval), 300000);
     {% endif %}
 </script>
-{% endblock %}
+
+<style>
+    .card {
+        transition: transform 0.2s;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock content %}

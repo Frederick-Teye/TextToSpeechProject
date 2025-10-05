@@ -147,3 +147,11 @@ def document_status_api(request, pk):
             "error": doc.error_message,  # Optional: if you have an error_message field
         }
     )
+
+
+@login_required
+def shared_with_me_view(request):
+    """
+    Render the 'Shared with Me' page showing all documents shared with the user.
+    """
+    return render(request, "document_processing/shared_with_me.html")

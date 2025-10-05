@@ -1,0 +1,280 @@
+<!-- Share Document Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="shareModalLabel">
+                    <i class="bi bi-share"></i> Share Document: <span id="shareDocumentTitle"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Share Form -->
+                <div class="card bg-secondary mb-4">
+                    <div class="card-body">
+                        <h6 class="card-title">Share with new user</h6>
+                        <form id="shareForm">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="shareEmail" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control bg-dark text-light border-secondary"
+                                        id="shareEmail" placeholder="user@example.com" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="sharePermission" class="form-label">Permission Level</label>
+                                    <select class="form-select bg-dark text-light border-secondary"
+                                        id="sharePermission" required>
+                                        <option value="VIEW_ONLY">View Only</option>
+                                        <option value="COLLABORATOR">Collaborator</option>
+                                        <option value="CAN_SHARE">Can Share</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="bi bi-plus-circle"></i> Share
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block mt-2">
+                                <strong>View Only:</strong> Can play & download audios<br>
+                                <strong>Collaborator:</strong> Can also generate new audios<br>
+                                <strong>Can Share:</strong> Collaborator + can share with others
+                            </small>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Existing Shares List -->
+                <div class="card bg-secondary">
+                    <div class="card-body">
+                        <h6 class="card-title">Shared with (<span id="shareCount">0</span>)</h6>
+                        <div id="sharesList">
+                            <!-- Shares will be loaded here via JavaScript -->
+                            <div class="text-center text-muted py-3">
+                                <div class="spinner-border spinner-border-sm" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                Loading shares...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Share Management JavaScript -->
+<script>
+    let currentDocumentId = null;
+
+    // Function to open share modal
+    function openShareModal(documentId, documentTitle) {
+        currentDocumentId = documentId;
+        document.getElementById('shareDocumentTitle').textContent = documentTitle;
+        document.getElementById('shareEmail').value = '';
+        document.getElementById('sharePermission').value = 'VIEW_ONLY';
+        loadShares(documentId);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('shareModal'));
+        modal.show();
+    }
+
+    // Load existing shares
+    async function loadShares(documentId) {
+        const sharesList = document.getElementById('sharesList');
+        sharesList.innerHTML = '<div class="text-center text-muted py-3"><div class="spinner-border spinner-border-sm"></div> Loading...</div>';
+
+        try {
+            const response = await fetch(`/speech/document/${documentId}/shares/`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                document.getElementById('shareCount').textContent = data.total;
+
+                if (data.shares.length === 0) {
+                    sharesList.innerHTML = '<p class="text-muted mb-0">No shares yet. Use the form above to share this document.</p>';
+                } else {
+                    sharesList.innerHTML = data.shares.map(share => `
+                        <div class="d-flex justify-content-between align-items-center border-bottom border-secondary py-2">
+                            <div>
+                                <strong>${share.shared_with.name}</strong>
+                                <small class="text-muted d-block">${share.shared_with.email}</small>
+                                <small class="text-muted">Shared by: ${share.shared_by.name}</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <select class="form-select form-select-sm bg-dark text-light border-secondary"
+                                    style="width: auto;"
+                                    onchange="updatePermission(${share.id}, this.value)"
+                                    ${!data.is_owner ? 'disabled' : ''}>
+                                    <option value="VIEW_ONLY" ${share.permission === 'VIEW_ONLY' ? 'selected' : ''}>View Only</option>
+                                    <option value="COLLABORATOR" ${share.permission === 'COLLABORATOR' ? 'selected' : ''}>Collaborator</option>
+                                    <option value="CAN_SHARE" ${share.permission === 'CAN_SHARE' ? 'selected' : ''}>Can Share</option>
+                                </select>
+                                ${data.is_owner ? `
+                                    <button class="btn btn-sm btn-danger" onclick="removeShare(${share.id})">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } else {
+                sharesList.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            }
+        } catch (error) {
+            console.error('Error loading shares:', error);
+            sharesList.innerHTML = '<div class="alert alert-danger">Failed to load shares</div>';
+        }
+    }
+
+    // Handle share form submission
+    document.getElementById('shareForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const email = document.getElementById('shareEmail').value;
+        const permission = document.getElementById('sharePermission').value;
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+
+        // Disable button and show loading
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sharing...';
+
+        try {
+            const response = await fetch(`/speech/share/${currentDocumentId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ email, permission })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Show success message
+                showToast('success', data.message);
+                // Reset form
+                document.getElementById('shareEmail').value = '';
+                // Reload shares list
+                loadShares(currentDocumentId);
+            } else {
+                showToast('error', data.error);
+            }
+        } catch (error) {
+            console.error('Error sharing document:', error);
+            showToast('error', 'Failed to share document');
+        } finally {
+            // Re-enable button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-plus-circle"></i> Share';
+        }
+    });
+
+    // Update share permission
+    async function updatePermission(sharingId, newPermission) {
+        try {
+            const response = await fetch(`/speech/share/${sharingId}/permission/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ permission: newPermission })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast('success', data.message);
+            } else {
+                showToast('error', data.error);
+                // Reload shares to reset dropdown
+                loadShares(currentDocumentId);
+            }
+        } catch (error) {
+            console.error('Error updating permission:', error);
+            showToast('error', 'Failed to update permission');
+            loadShares(currentDocumentId);
+        }
+    }
+
+    // Remove share
+    async function removeShare(sharingId) {
+        if (!confirm('Are you sure you want to remove this user\'s access?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/speech/unshare/${sharingId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast('success', data.message);
+                loadShares(currentDocumentId);
+            } else {
+                showToast('error', data.error);
+            }
+        } catch (error) {
+            console.error('Error removing share:', error);
+            showToast('error', 'Failed to remove share');
+        }
+    }
+
+    // Utility: Get CSRF token from cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Utility: Show toast notification
+    function showToast(type, message) {
+        // Use Bootstrap toast or simple alert
+        const toastContainer = document.getElementById('toastContainer');
+        if (toastContainer) {
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            toastContainer.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            setTimeout(() => toast.remove(), 5000);
+        } else {
+            alert(message);
+        }
+    }
+</script>

@@ -13,4 +13,18 @@ urlpatterns = [
     path("audio/<int:audio_id>/delete/", views.delete_audio, name="delete_audio"),
     # Page audios list
     path("page/<int:page_id>/audios/", views.page_audios, name="page_audios"),
+    # Sharing and permissions
+    path("share/<int:document_id>/", views.share_document, name="share_document"),
+    path("unshare/<int:sharing_id>/", views.unshare_document, name="unshare_document"),
+    path(
+        "document/<int:document_id>/shares/",
+        views.document_shares,
+        name="document_shares",
+    ),
+    path("shared-with-me/", views.shared_with_me, name="shared_with_me"),
+    path(
+        "share/<int:sharing_id>/permission/",
+        views.update_share_permission,
+        name="update_share_permission",
+    ),
 ]

@@ -350,3 +350,373 @@ def page_audios(request, page_id):
         return JsonResponse(
             {"success": False, "error": "An error occurred"}, status=500
         )
+
+
+# ============================================================================
+# SHARING AND PERMISSIONS VIEWS
+# ============================================================================
+
+
+@require_http_methods(["POST"])
+@login_required
+def share_document(request, document_id):
+    """
+    Share a document with another user.
+    POST /speech/share/<document_id>/
+    Body: {
+        "email": "user@example.com",
+        "permission": "VIEW_ONLY|COLLABORATOR|CAN_SHARE"
+    }
+    """
+    from document_processing.models import Document
+    from django.contrib.auth import get_user_model
+    from speech_processing.models import SharingPermission
+
+    User = get_user_model()
+
+    try:
+        data = json.loads(request.body)
+        email = data.get("email")
+        permission = data.get("permission", "VIEW_ONLY")
+
+        if not email:
+            return JsonResponse(
+                {"success": False, "error": "Email is required"}, status=400
+            )
+
+        # Get the document
+        document = get_object_or_404(Document, id=document_id)
+
+        # Check if user has permission to share
+        if document.user != request.user:
+            # Check if user has CAN_SHARE permission
+            try:
+                sharing = DocumentSharing.objects.get(
+                    document=document, shared_with=request.user
+                )
+                if not sharing.can_share():
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": "You don't have permission to share this document",
+                        },
+                        status=403,
+                    )
+            except DocumentSharing.DoesNotExist:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": "You don't have access to this document",
+                    },
+                    status=403,
+                )
+
+        # Get the user to share with
+        try:
+            user_to_share = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": f"User with email '{email}' not found"},
+                status=404,
+            )
+
+        # Check if trying to share with self
+        if user_to_share == document.user:
+            return JsonResponse(
+                {"success": False, "error": "Cannot share document with yourself"},
+                status=400,
+            )
+
+        # Validate permission level
+        valid_permissions = [p.value for p in SharingPermission]
+        if permission not in valid_permissions:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": f"Invalid permission. Must be one of: {', '.join(valid_permissions)}",
+                },
+                status=400,
+            )
+
+        # Create or update sharing
+        sharing, created = DocumentSharing.objects.update_or_create(
+            document=document,
+            shared_with=user_to_share,
+            defaults={"permission": permission, "shared_by": request.user},
+        )
+
+        action = "shared" if created else "updated"
+        return JsonResponse(
+            {
+                "success": True,
+                "message": f"Document {action} successfully with {email}",
+                "sharing_id": sharing.id,
+                "permission": sharing.permission,
+                "created": created,
+            }
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"success": False, "error": "Invalid JSON data"}, status=400
+        )
+    except Exception as e:
+        logger.error(f"Share document error: {str(e)}")
+        return JsonResponse(
+            {"success": False, "error": "An error occurred while sharing"},
+            status=500,
+        )
+
+
+@require_http_methods(["DELETE", "POST"])
+@login_required
+def unshare_document(request, sharing_id):
+    """
+    Remove document sharing.
+    DELETE /speech/unshare/<sharing_id>/
+    Only document owner or the person who shared can unshare.
+    """
+    try:
+        sharing = get_object_or_404(DocumentSharing, id=sharing_id)
+
+        # Check permissions: owner or person who shared can unshare
+        if sharing.document.user != request.user and sharing.shared_by != request.user:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "You don't have permission to remove this share",
+                },
+                status=403,
+            )
+
+        document_title = sharing.document.title
+        shared_with_email = sharing.shared_with.email
+
+        sharing.delete()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": f"Removed access for {shared_with_email} to '{document_title}'",
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Unshare document error: {str(e)}")
+        return JsonResponse(
+            {"success": False, "error": "An error occurred"}, status=500
+        )
+
+
+@require_http_methods(["GET"])
+@login_required
+def document_shares(request, document_id):
+    """
+    Get all shares for a document.
+    GET /speech/document/<document_id>/shares/
+    """
+    from document_processing.models import Document
+
+    try:
+        document = get_object_or_404(Document, id=document_id)
+
+        # Check if user has access
+        if document.user != request.user:
+            # Check if user has CAN_SHARE permission
+            try:
+                sharing = DocumentSharing.objects.get(
+                    document=document, shared_with=request.user
+                )
+                if not sharing.can_share():
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": "You don't have permission to view shares",
+                        },
+                        status=403,
+                    )
+            except DocumentSharing.DoesNotExist:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": "You don't have access to this document",
+                    },
+                    status=403,
+                )
+
+        # Get all shares
+        shares = DocumentSharing.objects.filter(document=document).select_related(
+            "shared_with", "shared_by"
+        )
+
+        shares_data = []
+        for share in shares:
+            shares_data.append(
+                {
+                    "id": share.id,
+                    "shared_with": {
+                        "id": share.shared_with.id,
+                        "email": share.shared_with.email,
+                        "name": share.shared_with.get_full_name()
+                        or share.shared_with.email,
+                    },
+                    "permission": share.permission,
+                    "can_generate_audio": share.can_generate_audio(),
+                    "can_share": share.can_share(),
+                    "shared_by": {
+                        "email": share.shared_by.email,
+                        "name": share.shared_by.get_full_name()
+                        or share.shared_by.email,
+                    },
+                    "created_at": share.created_at.isoformat(),
+                }
+            )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "document": {
+                    "id": document.id,
+                    "title": document.title,
+                    "owner": {
+                        "email": document.user.email,
+                        "name": document.user.get_full_name() or document.user.email,
+                    },
+                },
+                "shares": shares_data,
+                "total": len(shares_data),
+                "is_owner": document.user == request.user,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Document shares error: {str(e)}")
+        return JsonResponse(
+            {"success": False, "error": "An error occurred"}, status=500
+        )
+
+
+@require_http_methods(["GET"])
+@login_required
+def shared_with_me(request):
+    """
+    Get all documents shared with the current user.
+    GET /speech/shared-with-me/
+    """
+    try:
+        # Get all documents shared with user
+        shares = (
+            DocumentSharing.objects.filter(shared_with=request.user)
+            .select_related("document", "document__user", "shared_by")
+            .order_by("-created_at")
+        )
+
+        documents_data = []
+        for share in shares:
+            document = share.document
+            documents_data.append(
+                {
+                    "sharing_id": share.id,
+                    "document": {
+                        "id": document.id,
+                        "title": document.title,
+                        "status": document.status,
+                        "created_at": document.created_at.isoformat(),
+                        "owner": {
+                            "email": document.user.email,
+                            "name": document.user.get_full_name()
+                            or document.user.email,
+                        },
+                    },
+                    "permission": share.permission,
+                    "can_generate_audio": share.can_generate_audio(),
+                    "can_share": share.can_share(),
+                    "shared_by": {
+                        "email": share.shared_by.email,
+                        "name": share.shared_by.get_full_name()
+                        or share.shared_by.email,
+                    },
+                    "shared_at": share.created_at.isoformat(),
+                }
+            )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "documents": documents_data,
+                "total": len(documents_data),
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Shared with me error: {str(e)}")
+        return JsonResponse(
+            {"success": False, "error": "An error occurred"}, status=500
+        )
+
+
+@require_http_methods(["PATCH", "POST"])
+@login_required
+def update_share_permission(request, sharing_id):
+    """
+    Update permission level for an existing share.
+    PATCH /speech/share/<sharing_id>/permission/
+    Body: {"permission": "VIEW_ONLY|COLLABORATOR|CAN_SHARE"}
+    """
+    from speech_processing.models import SharingPermission
+
+    try:
+        data = json.loads(request.body)
+        new_permission = data.get("permission")
+
+        if not new_permission:
+            return JsonResponse(
+                {"success": False, "error": "Permission is required"}, status=400
+            )
+
+        sharing = get_object_or_404(DocumentSharing, id=sharing_id)
+
+        # Check if user has permission to modify
+        if sharing.document.user != request.user and sharing.shared_by != request.user:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "You don't have permission to modify this share",
+                },
+                status=403,
+            )
+
+        # Validate permission level
+        valid_permissions = [p.value for p in SharingPermission]
+        if new_permission not in valid_permissions:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": f"Invalid permission. Must be one of: {', '.join(valid_permissions)}",
+                },
+                status=400,
+            )
+
+        old_permission = sharing.permission
+        sharing.permission = new_permission
+        sharing.save()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": f"Permission updated from {old_permission} to {new_permission}",
+                "sharing_id": sharing.id,
+                "permission": sharing.permission,
+                "shared_with": sharing.shared_with.email,
+            }
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"success": False, "error": "Invalid JSON data"}, status=400
+        )
+    except Exception as e:
+        logger.error(f"Update share permission error: {str(e)}")
+        return JsonResponse(
+            {"success": False, "error": "An error occurred"}, status=500
+        )

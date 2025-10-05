@@ -30,7 +30,7 @@ urlpatterns = [
         "documents/",
         include("document_processing.urls", namespace="document_processing"),
     ),
-    # path('audio/', include('audio_playback.urls')),
+    path("speech/", include("speech_processing.urls", namespace="speech_processing")),
 ]
 
 if settings.DEBUG:

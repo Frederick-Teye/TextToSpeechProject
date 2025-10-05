@@ -6,9 +6,16 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 
 from document_processing.models import DocumentPage
-from speech_processing.models import Audio, SiteSettings, DocumentSharing
+from speech_processing.models import Audio, SiteSettings, DocumentSharing, AudioAction
 from speech_processing.services import AudioGenerationService
 from speech_processing.tasks import generate_audio_task, check_audio_generation_status
+from speech_processing.logging_utils import (
+    audit_log,
+    log_generation_start,
+    log_share_action,
+    get_client_ip,
+    get_user_agent,
+)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -46,6 +53,15 @@ def generate_audio(request, page_id):
 
         # Create audio record
         audio = service.create_audio_record(page, voice_id, request.user)
+
+        # Log generation start
+        log_generation_start(
+            user=request.user,
+            page=page,
+            voice=voice_id,
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request),
+        )
 
         # Trigger async generation task
         generate_audio_task.delay(audio.id)
@@ -121,6 +137,7 @@ def audio_status(request, audio_id):
 
 @require_http_methods(["GET"])
 @login_required
+@audit_log(AudioAction.DOWNLOAD, extract_audio=lambda kwargs: kwargs.get("audio_id"))
 def download_audio(request, audio_id):
     """
     Get a presigned URL for downloading audio.
@@ -186,6 +203,7 @@ def download_audio(request, audio_id):
 
 @require_http_methods(["POST"])
 @login_required
+@audit_log(AudioAction.PLAY, extract_audio=lambda kwargs: kwargs.get("audio_id"))
 def play_audio(request, audio_id):
     """
     Mark audio as played (update last_played_at).
@@ -228,6 +246,7 @@ def play_audio(request, audio_id):
 
 @require_http_methods(["DELETE", "POST"])
 @login_required
+@audit_log(AudioAction.DELETE, extract_audio=lambda kwargs: kwargs.get("audio_id"))
 def delete_audio(request, audio_id):
     """
     Delete an audio file (soft delete).
@@ -445,6 +464,15 @@ def share_document(request, document_id):
             defaults={"permission": permission, "shared_by": request.user},
         )
 
+        # Log the share action
+        log_share_action(
+            user=request.user,
+            document=document,
+            action=AudioAction.SHARE,
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request),
+        )
+
         action = "shared" if created else "updated"
         return JsonResponse(
             {
@@ -491,8 +519,18 @@ def unshare_document(request, sharing_id):
 
         document_title = sharing.document.title
         shared_with_email = sharing.shared_with.email
+        document = sharing.document
 
         sharing.delete()
+
+        # Log the unshare action
+        log_share_action(
+            user=request.user,
+            document=document,
+            action=AudioAction.UNSHARE,
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request),
+        )
 
         return JsonResponse(
             {

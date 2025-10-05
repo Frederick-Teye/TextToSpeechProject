@@ -31,7 +31,9 @@ urlpatterns = [
         include("document_processing.urls", namespace="document_processing"),
     ),
     path("speech/", include("speech_processing.urls", namespace="speech_processing")),
-    path("dashboard/", include("speech_processing.dashboard_urls", namespace="dashboard")),
+    path(
+        "dashboard/", include("speech_processing.dashboard_urls", namespace="dashboard")
+    ),
 ]
 
 if settings.DEBUG:

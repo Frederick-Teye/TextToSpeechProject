@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block head_title %}Admin Dashboard{% endblock head_title %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1><i class="bi bi-speedometer2"></i> Admin Dashboard</h1>
+            <p class="text-muted">Audio generation and usage analytics</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'dashboard:settings' %}" class="btn btn-primary">
+                <i class="bi bi-gear"></i> Settings
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2 opacity-75">Total Audios</h6>
+                            <h2 class="card-title mb-0">{{ total_audios }}</h2>
+                        </div>
+                        <i class="bi bi-music-note-beamed" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                    </div>
+                    <small class="opacity-75">
+                        {{ active_audios }} active, {{ deleted_audios }} deleted
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2 opacity-75">Success Rate</h6>
+                            <h2 class="card-title mb-0">{{ success_rate }}%</h2>
+                        </div>
+                        <i class="bi bi-check-circle" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                    </div>
+                    <small class="opacity-75">
+                        {{ completed_audios }} completed, {{ failed_audios }} failed
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2 opacity-75">Active Users</h6>
+                            <h2 class="card-title mb-0">{{ active_users_month }}</h2>
+                        </div>
+                        <i class="bi bi-people" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                    </div>
+                    <small class="opacity-75">
+                        {{ active_users_week }} this week, {{ total_users }} total
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2 opacity-75">Today's Activity</h6>
+                            <h2 class="card-title mb-0">{{ audios_today }}</h2>
+                        </div>
+                        <i class="bi bi-calendar-day" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                    </div>
+                    <small class="opacity-75">
+                        {{ plays_today }} plays, {{ downloads_today }} downloads
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link active" href="{% url 'dashboard:home' %}">
+                <i class="bi bi-house"></i> Overview
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'dashboard:analytics' %}">
+                <i class="bi bi-graph-up"></i> Analytics
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'dashboard:errors' %}">
+                <i class="bi bi-exclamation-triangle"></i> Errors
+                {% if failed_audios > 0 %}
+                <span class="badge bg-danger">{{ failed_audios }}</span>
+                {% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'dashboard:activity' %}">
+                <i class="bi bi-activity"></i> User Activity
+            </a>
+        </li>
+    </ul>
+
+    <div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- Top Voices -->
+            <div class="card bg-secondary mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-mic"></i> Most Popular Voices</h5>
+                </div>
+                <div class="card-body">
+                    {% if top_voices %}
+                    <div class="row">
+                        {% for voice in top_voices %}
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ voice.voice }}</strong>
+                                </div>
+                                <div>
+                                    <span class="badge bg-primary">{{ voice.count }} audios</span>
+                                </div>
+                            </div>
+                            <div class="progress mt-2" style="height: 8px;">
+                                {% widthratio voice.count active_audios 100 as percentage %}
+                                <div class="progress-bar" style="width: {{ percentage }}%"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No voice data available</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Errors -->
+            <div class="card bg-secondary">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-bug"></i> Recent Errors</h5>
+                    <a href="{% url 'dashboard:errors' %}" class="btn btn-sm btn-outline-danger">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if recent_errors %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>User</th>
+                                    <th>Document</th>
+                                    <th>Voice</th>
+                                    <th>Error</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for error in recent_errors %}
+                                <tr>
+                                    <td>{{ error.created_at|timesince }} ago</td>
+                                    <td>{{ error.generated_by.email }}</td>
+                                    <td>{{ error.page.document.title|truncatewords:5 }}</td>
+                                    <td><span class="badge bg-secondary">{{ error.voice }}</span></td>
+                                    <td>
+                                        <small class="text-danger">{{ error.error_message|truncatewords:10 }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-success mb-0">
+                        <i class="bi bi-check-circle"></i> No recent errors!
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- System Settings Status -->
+            <div class="card bg-secondary mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> System Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Audio Generation</span>
+                            {% if settings.audio_generation_enabled %}
+                            <span class="badge bg-success">Enabled</span>
+                            {% else %}
+                            <span class="badge bg-danger">Disabled</span>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span>Document Sharing</span>
+                            {% if settings.sharing_enabled %}
+                            <span class="badge bg-success">Enabled</span>
+                            {% else %}
+                            <span class="badge bg-danger">Disabled</span>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Max Audios per Page</span>
+                            <span class="badge bg-info">{{ settings.max_audios_per_page }}</span>
+                        </div>
+                    </div>
+                    <a href="{% url 'dashboard:settings' %}" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-pencil"></i> Modify Settings
+                    </a>
+                </div>
+            </div>
+
+            <!-- Documents Stats -->
+            <div class="card bg-secondary mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Documents</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>Total Documents</span>
+                        <strong>{{ total_documents }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Shared Documents</span>
+                        <strong>{{ shared_documents }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generation Status -->
+            <div class="card bg-secondary">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-hourglass-split"></i> Generation Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span><i class="bi bi-check-circle text-success"></i> Completed</span>
+                            <strong>{{ completed_audios }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span><i class="bi bi-x-circle text-danger"></i> Failed</span>
+                            <strong>{{ failed_audios }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-hourglass text-warning"></i> Generating</span>
+                            <strong>{{ generating_audios }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .nav-tabs .nav-link {
+        color: #e0e6eb;
+    }
+    
+    .nav-tabs .nav-link.active {
+        background-color: #212529;
+        color: #fff;
+        border-color: #495057 #495057 #212529;
+    }
+    
+    .table-dark {
+        --bs-table-bg: transparent;
+    }
+</style>
+{% endblock content %}

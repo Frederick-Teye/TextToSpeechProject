@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block head_title %}Settings Control{% endblock head_title %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1><i class="bi bi-gear"></i> Settings Control</h1>
+            <p class="text-muted">Manage system-wide feature flags and configurations</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'dashboard:home' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card bg-secondary">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-sliders"></i> Feature Toggles</h5>
+                </div>
+                <div class="card-body">
+                    <form id="settingsForm" method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Audio Generation Toggle -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h6 class="mb-1">Audio Generation</h6>
+                                    <small class="text-muted">
+                                        Allow users to generate TTS audio from document pages
+                                    </small>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input 
+                                        class="form-check-input" 
+                                        type="checkbox" 
+                                        id="audio_generation_enabled" 
+                                        name="audio_generation_enabled"
+                                        {% if settings.audio_generation_enabled %}checked{% endif %}
+                                        style="width: 3em; height: 1.5em;">
+                                </div>
+                            </div>
+                            <div class="alert alert-info mb-0">
+                                <small>
+                                    <i class="bi bi-info-circle"></i>
+                                    When disabled, users cannot generate new audio files. Existing audios remain playable.
+                                </small>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Document Sharing Toggle -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h6 class="mb-1">Document Sharing</h6>
+                                    <small class="text-muted">
+                                        Allow users to share documents with other users
+                                    </small>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input 
+                                        class="form-check-input" 
+                                        type="checkbox" 
+                                        id="sharing_enabled" 
+                                        name="sharing_enabled"
+                                        {% if settings.sharing_enabled %}checked{% endif %}
+                                        style="width: 3em; height: 1.5em;">
+                                </div>
+                            </div>
+                            <div class="alert alert-info mb-0">
+                                <small>
+                                    <i class="bi bi-info-circle"></i>
+                                    When disabled, users cannot create new shares. Existing shares remain active.
+                                </small>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Max Audios per Page -->
+                        <div class="mb-4">
+                            <div class="mb-2">
+                                <h6 class="mb-1">Max Audios per Page</h6>
+                                <small class="text-muted">
+                                    Maximum number of audio files allowed per document page (lifetime)
+                                </small>
+                            </div>
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <input 
+                                        type="number" 
+                                        class="form-control bg-dark text-light border-secondary" 
+                                        id="max_audios_per_page" 
+                                        name="max_audios_per_page"
+                                        value="{{ settings.max_audios_per_page }}"
+                                        min="1"
+                                        max="10">
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        Current: <strong>{{ settings.max_audios_per_page }}</strong> audios
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="alert alert-warning mt-2 mb-0">
+                                <small>
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    This includes deleted audios. Reducing this may prevent users from generating new audios.
+                                </small>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Submit Button -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Settings
+                            </button>
+                            <button type="reset" class="btn btn-secondary">
+                                <i class="bi bi-x"></i> Reset
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Current Status -->
+            <div class="card bg-secondary mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Current Status</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Last Updated:</strong>
+                        <div class="text-muted">{{ settings.updated_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    <div>
+                        <strong>Settings ID:</strong>
+                        <div class="text-muted">#{{ settings.id }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Impact Warning -->
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Important</h6>
+                </div>
+                <div class="card-body bg-secondary">
+                    <p class="mb-2"><strong>Feature toggles take effect immediately</strong></p>
+                    <ul class="mb-0 small">
+                        <li>All users affected instantly</li>
+                        <li>No server restart required</li>
+                        <li>Changes are logged</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3"></div>
+
+<script>
+    // Handle form submission
+    document.getElementById('settingsForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        try {
+            const response = await fetch('{% url "dashboard:settings" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showToast('success', data.message);
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showToast('error', data.message || 'Failed to update settings');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showToast('error', 'An error occurred while updating settings');
+        }
+    });
+    
+    // CSRF token helper
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Toast notification
+    function showToast(type, message) {
+        const toastContainer = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0`;
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        toastContainer.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+        setTimeout(() => toast.remove(), 5000);
+    }
+</script>
+
+<style>
+    .form-check-input:checked {
+        background-color: #198754;
+        border-color: #198754;
+    }
+</style>
+{% endblock content %}

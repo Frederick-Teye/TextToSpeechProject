@@ -26,4 +26,11 @@ app.conf.beat_schedule = {
             "expires": 3600 * 12,  # Expire after 12 hours if not run
         },
     },
+    "check-expired-audios-daily": {
+        "task": "speech_processing.tasks.check_expired_audios",
+        "schedule": crontab(hour="0", minute="0"),  # Daily at midnight
+        "options": {
+            "expires": 3600 * 6,  # Expire after 6 hours if not run
+        },
+    },
 }

@@ -170,6 +170,21 @@ class Audio(models.Model):
         days_left = (expiry_date - timezone.now()).days
         return max(0, days_left)
 
+    def needs_expiry_warning(self):
+        """Check if audio needs expiry warning (30 days before expiry)."""
+        days_left = self.days_until_expiry()
+        return 0 < days_left <= 30
+
+    def get_expiry_date(self):
+        """Get the exact expiry date for this audio."""
+        from speech_processing.models import SiteSettings
+
+        settings_obj = SiteSettings.get_settings()
+        retention_days = settings_obj.audio_retention_months * 30
+
+        reference_date = self.last_played_at or self.created_at
+        return reference_date + timedelta(days=retention_days)
+
     def get_s3_url(self):
         """Get the full S3 URL for this audio file."""
         if self.s3_key:

@@ -1,0 +1,45 @@
+AUDIO FILES EXPIRING SOON - ACTION REQUIRED
+============================================
+
+Hello {{ user.first_name|default:user.email }},
+
+⚠️ IMPORTANT NOTICE ⚠️
+
+You have {{ audios|length }} audio file{{ audios|length|pluralize }} that will expire in the next 30 days due to inactivity.
+
+EXPIRING AUDIO FILES
+--------------------
+
+{% for audio in audios %}
+{{ forloop.counter }}. {{ audio.page.document.title }} - Page {{ audio.page.page_number }}
+   Voice: {{ audio.get_voice_display }}
+   Last Played: {% if audio.last_played_at %}{{ audio.last_played_at|date:"F d, Y g:i A" }}{% else %}Never{% endif %}
+   Created: {{ audio.created_at|date:"F d, Y" }}
+   ⏰ EXPIRES IN: {{ audio.days_until_expiry }} DAY{{ audio.days_until_expiry|pluralize|upper }}
+
+{% endfor %}
+
+HOW TO PREVENT DELETION
+-----------------------
+
+To keep these audio files active and reset their expiry timer:
+
+✓ Simply play any of these audio files
+✓ This will reset the 6-month retention period
+✓ You can access your documents and audios anytime
+
+Visit your documents: {{ request.scheme }}://{{ request.get_host }}/documents/
+
+ABOUT AUDIO RETENTION
+---------------------
+
+Audio files are automatically deleted after 6 months of inactivity (no playback). 
+This helps manage storage and keeps your workspace organized. Playing an audio 
+file resets the 6-month timer.
+
+If you have any questions or concerns, please don't hesitate to contact our 
+support team.
+
+---
+This is an automated message from the Text-to-Speech Document Processing System.
+© {% now "Y" %} Text-to-Speech Project. All rights reserved.

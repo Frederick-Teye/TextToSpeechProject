@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Files Expiring Soon</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #ffc107;
+        }
+        .header h1 {
+            color: #ff9800;
+            margin: 0;
+            font-size: 24px;
+        }
+        .warning-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .greeting {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .message {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .audio-list {
+            margin: 20px 0;
+        }
+        .audio-item {
+            background-color: #f8f9fa;
+            border-left: 3px solid #007bff;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        .audio-item h3 {
+            margin: 0 0 10px 0;
+            color: #007bff;
+            font-size: 16px;
+        }
+        .audio-details {
+            font-size: 14px;
+            color: #666;
+            margin: 5px 0;
+        }
+        .audio-details strong {
+            color: #333;
+        }
+        .expiry-date {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .action-box {
+            background-color: #e7f3ff;
+            border: 2px solid #007bff;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        .action-box h2 {
+            color: #007bff;
+            margin-top: 0;
+            font-size: 18px;
+        }
+        .action-box p {
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #007bff;
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .cta-button:hover {
+            background-color: #0056b3;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            font-size: 12px;
+            color: #6c757d;
+            text-align: center;
+        }
+        .info-box {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="warning-icon">⚠️</div>
+            <h1>Audio Files Expiring Soon</h1>
+        </div>
+
+        <div class="content">
+            <p class="greeting">Hello {{ user.first_name|default:user.email }},</p>
+
+            <div class="message">
+                <strong>Action Required:</strong> You have {{ audios|length }} audio file{{ audios|length|pluralize }} that will expire in the next 30 days due to inactivity.
+            </div>
+
+            <p>The following audio files have not been played recently and will be automatically deleted if not accessed soon:</p>
+
+            <div class="audio-list">
+                {% for audio in audios %}
+                <div class="audio-item">
+                    <h3>📄 {{ audio.page.document.title }} - Page {{ audio.page.page_number }}</h3>
+                    <div class="audio-details">
+                        <strong>Voice:</strong> {{ audio.get_voice_display }}<br>
+                        <strong>Last Played:</strong> {% if audio.last_played_at %}{{ audio.last_played_at|date:"F d, Y g:i A" }}{% else %}Never{% endif %}<br>
+                        <strong>Created:</strong> {{ audio.created_at|date:"F d, Y" }}<br>
+                        <strong class="expiry-date">⏰ Expires in: {{ audio.days_until_expiry }} day{{ audio.days_until_expiry|pluralize }}</strong>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="action-box">
+                <h2>🎯 How to Prevent Deletion</h2>
+                <p>To keep these audio files active and reset their expiry timer:</p>
+                <ul style="text-align: left; display: inline-block;">
+                    <li>Simply play any of these audio files</li>
+                    <li>This will reset the 6-month retention period</li>
+                    <li>You can access your documents and audios anytime</li>
+                </ul>
+                <a href="{{ request.scheme }}://{{ request.get_host }}/documents/" class="cta-button">
+                    View My Documents
+                </a>
+            </div>
+
+            <div class="info-box">
+                <strong>ℹ️ About Audio Retention:</strong><br>
+                Audio files are automatically deleted after 6 months of inactivity (no playback). This helps manage storage and keeps your workspace organized. Playing an audio file resets the 6-month timer.
+            </div>
+
+            <p>If you have any questions or concerns, please don't hesitate to contact our support team.</p>
+        </div>
+
+        <div class="footer">
+            <p>This is an automated message from the Text-to-Speech Document Processing System.</p>
+            <p>© {% now "Y" %} Text-to-Speech Project. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

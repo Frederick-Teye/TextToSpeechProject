@@ -40,7 +40,7 @@ def generate_audio_task(self, audio_id):
 
         # Generate audio
         s3_key = service.polly_service.generate_audio(
-            text=audio.page.markdown_content,
+            text=pypandoc.convert_text(audio.page.markdown_content, to='plain', format='md'),
             voice_id=audio.voice,
             document_id=audio.page.document.id,
             page_number=audio.page.page_number,

@@ -230,35 +230,34 @@
 
     // Load all audios for this page
     async function loadPageAudios() {
-        try {
-            const response = await fetch(`/speech/page/${pageId}/audios/`);
-            const data = await response.json();
+            try {
+                const response = await fetch(`/speech/page/${pageId}/audios/`);
+                const data = await response.json();
 
-            if (data.success) {
-                availableAudios = data.audios;
-                isOwner = data.is_owner;
-                
-                // Update quota display
-                updateQuotaDisplay(data.quota);
-                
-                // Update voice selector with available voices
-                updateVoiceSelector(data.voices.available, data.quota.available);
-                
-                // Update audios list
-                updateAudiosList(data.audios);
-                
-                // If there are audios, load the first one
-                if (data.audios.length > 0) {
-                    loadAudio(data.audios[0]);
+                if (data.success) {
+                    availableAudios = data.audios;
+                    isOwner = data.is_owner;
+
+                    // Update quota display
+                    updateQuotaDisplay(data.quota);
+
+                    // Update voice selector with available voices
+                    updateVoiceSelector(data.voices.available, data.quota.available);
+
+                    // Update audios list
+                    updateAudiosList(data.audios);
+
+                    // If there are audios, load the first one
+                    if (data.audios.length > 0) {
+                        loadAudio(data.audios[0]);
+                    }
+                } else {
+                    showToast('error', data.error || 'Failed to load audios');
                 }
-            } else {
-                showToast('error', data.error || 'Failed to load audios');
+            } catch (error) {
+                showToast('error', 'Failed to load audios');
             }
-        } catch (error) {
-            console.error('Error loading page audios:', error);
-            showToast('error', 'Failed to load audios');
         }
-    }
 
     // Update quota display
     function updateQuotaDisplay(quota) {
@@ -390,7 +389,7 @@
         // Highlight active audio in list
         document.querySelectorAll('.audio-item').forEach(item => {
             item.classList.remove('active');
-            if (parseInt(item.dataset.audioId) === audioId) {
+            if (parseInt(item.dataset.audioId) === currentAudioId) {
                 item.classList.add('active');
             }
         });

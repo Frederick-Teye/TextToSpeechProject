@@ -320,6 +320,8 @@ def page_audios(request, page_id):
         # Get site settings for quota
         settings_obj = SiteSettings.get_settings()
 
+        service = AudioGenerationService()
+
         # Calculate available voices
         used_voices = list(audios.values_list("voice", flat=True))
         from speech_processing.models import TTSVoice
@@ -343,7 +345,9 @@ def page_audios(request, page_id):
                         else None
                     ),
                     "s3_url": (
-                        audio.get_s3_url() if audio.status == "COMPLETED" else None
+                        service.get_presigned_url(audio)
+                        if audio.status == "COMPLETED"
+                        else None
                     ),
                     "days_until_expiry": audio.days_until_expiry(),
                     "error_message": audio.error_message,

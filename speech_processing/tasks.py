@@ -8,6 +8,7 @@ from speech_processing.services import AudioGenerationService
 from speech_processing.models import Audio, AudioGenerationStatus
 from speech_processing.logging_utils import log_generation_complete
 import logging
+import pypandoc
 
 logger = logging.getLogger(__name__)
 User = get_user_model()

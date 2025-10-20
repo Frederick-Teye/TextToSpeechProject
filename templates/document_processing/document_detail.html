@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load custom_tags %}
 
 {% block head_title %}{{ document.title }}{% endblock head_title %}
 
@@ -32,7 +33,7 @@
                     </div>
                 </div>
                 <div class="btn-group">
-                    <a href="{% url 'document_processing:document_list' %}" class="btn btn-outline-secondary">
+                    <a href="{% url 'document_processing:document_list' %}" class="btn btn-outline-info">
                         <i class="bi bi-arrow-left"></i> Back
                     </a>
                     <button class="btn btn-outline-info" 
@@ -62,7 +63,7 @@
                             </h5>
                             <p class="card-text text-muted small">
                                 {% if p.markdown_content %}
-                                    {{ p.markdown_content|truncatewords:20 }}
+                                    {{ p.markdown_content|truncatewords:20|md_to_html }}
                                 {% else %}
                                     No content available
                                 {% endif %}

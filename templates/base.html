@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -11,6 +12,7 @@
 
     <!-- Bootstrap Icons CSS - ADD THIS LINE -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'landing/css/pygments.css' %}">
 
     <style>
         /* Custom styles for Inter font and general body */
@@ -156,6 +158,11 @@
 
         .password-toggle-btn:hover {
             text-decoration: underline;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+            padding: 3px;
         }
     </style>
 </head>

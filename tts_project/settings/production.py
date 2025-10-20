@@ -16,6 +16,10 @@ ALLOWED_HOSTS = config(
 # Production Database (Heroku Postgres Add-on)
 DATABASES = {"default": dj_database_url.parse(config("DATABASE_URL"))}
 
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.2/howto/static-files/
+STATIC_ROOT = BASE_DIR / "static_cdn"
+
 # Static files storage for production (WhiteNoise for efficiency)
 # WhiteNoise will serve static files directly from your Django app
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"

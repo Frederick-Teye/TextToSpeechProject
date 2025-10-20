@@ -18,6 +18,12 @@ DATABASES = {
     )
 }
 
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.2/howto/static-files/
+STATICFILES_DIRS = [
+    BASE_DIR / "static_cdn",
+]
+
 # Static on disk (fast local reloads)
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 

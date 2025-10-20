@@ -21,7 +21,7 @@
                             </h5>
                         </div>
                         <a href="{% url 'document_processing:document_detail' page.document.id %}" 
-                           class="btn btn-outline-secondary">
+                           class="btn btn-outline-info">
                             <i class="bi bi-arrow-left"></i> Back to Document
                         </a>
                     </div>
@@ -34,7 +34,7 @@
                     <h5 class="mb-0"><i class="bi bi-text-paragraph"></i> Content</h5>
                 </div>
                 <div class="card-body markdown-content">
-                    {{ page.markdown_content|markdown|safe }}
+                    {{ page.markdown_content|md_to_html }}
                 </div>
             </div>
         </div>

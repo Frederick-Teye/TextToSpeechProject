@@ -365,6 +365,7 @@ def page_audios(request, page_id):
                 },
                 "voices": {"used": used_voices, "available": available_voices},
                 "is_owner": document.user == request.user,
+                "preferred_voice": request.user.preferred_voice_id or "", 
             }
         )
 

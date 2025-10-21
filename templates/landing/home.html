@@ -94,36 +94,25 @@
 
 {% block extra_js %}
 <script>
-// Voice selection and preview functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const voiceSelect = document.getElementById('voiceSelect');
-    const previewVoiceBtn = document.getElementById('previewVoiceBtn');
-    const voiceForm = document.getElementById('voiceSelectionForm');
-    const voiceStatusMessage = document.getElementById('voiceStatusMessage');
-    
-    // Standard voices configuration
-    const STANDARD_VOICES = {
+    // Voice selection and preview functionality
+    document.addEventListener('DOMContentLoaded', function () {
+        const voiceSelect = document.getElementById('voiceSelect');
+        const previewVoiceBtn = document.getElementById('previewVoiceBtn');
+        const voiceForm = document.getElementById('voiceSelectionForm');
+        const voiceStatusMessage = document.getElementById('voiceStatusMessage');
+
+        // Standard voices configuration
+        const STANDARD_VOICES = {
         {% for voice_id, voice_name in standard_voices %}
         '{{ voice_id }}': '{{ voice_name }}',
-        {% endfor %}
+            {% endfor %}
     };
-    
-    // Load saved voice preference from localStorage
-    function loadVoicePreference() {
-        const savedVoice = localStorage.getItem('preferredVoice');
-        if (savedVoice && STANDARD_VOICES[savedVoice]) {
-            voiceSelect.value = savedVoice;
-        }
-        return voiceSelect.value;
-    }
-    
-    // Save voice preference to localStorage and profile (if authenticated)
+
+    // Save voice preference to profile (if authenticated) - removed localStorage
     function saveVoicePreference(voiceId) {
-        localStorage.setItem('preferredVoice', voiceId);
-        
         // Show success message
         showStatusMessage(`Voice preference saved: ${STANDARD_VOICES[voiceId]}`, 'success');
-        
+
         // If user is authenticated, save to profile via AJAX
         {% if user.is_authenticated %}
         fetch('{% url "users:update_voice_preference" %}', {
@@ -134,20 +123,20 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({ voice_id: voiceId })
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                console.log('Voice preference saved to profile');
-                showStatusMessage(`Voice preference saved to your profile: ${STANDARD_VOICES[voiceId]}`, 'success');
-            }
-        })
-        .catch(error => {
-            console.error('Error saving voice preference:', error);
-            showStatusMessage('Error saving to profile, but saved locally', 'warning');
-        });
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Voice preference saved to profile');
+                    showStatusMessage(`Voice preference saved to your profile: ${STANDARD_VOICES[voiceId]}`, 'success');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving voice preference:', error);
+                showStatusMessage('Error saving to profile', 'warning');
+            });
         {% endif %}
     }
-    
+
     // Audio file mapping for voice previews
     const VOICE_AUDIO_FILES = {
         'Ivy': 'Ivy.mp3',
@@ -159,25 +148,25 @@ document.addEventListener('DOMContentLoaded', function() {
         'Matthew': 'Matthew.mp3',
         'Salli': 'Salli.mp3'
     };
-    
+
     // Preview voice functionality
-    previewVoiceBtn.addEventListener('click', function() {
+    previewVoiceBtn.addEventListener('click', function () {
         const selectedVoice = voiceSelect.value;
-        
+
         if (VOICE_AUDIO_FILES[selectedVoice]) {
             playVoicePreview(selectedVoice);
         } else {
             showStatusMessage(`Audio preview not available for ${STANDARD_VOICES[selectedVoice]}`, 'warning');
         }
     });
-    
+
     // Form submission
-    voiceForm.addEventListener('submit', function(e) {
+    voiceForm.addEventListener('submit', function (e) {
         e.preventDefault();
         const selectedVoice = voiceSelect.value;
         saveVoicePreference(selectedVoice);
     });
-    
+
     // Utility function to get CSRF token
     function getCSRFToken() {
         const cookieValue = document.cookie
@@ -186,36 +175,36 @@ document.addEventListener('DOMContentLoaded', function() {
             ?.split('=')[1];
         return cookieValue || '';
     }
-    
+
     // Utility function to show status messages
     function showStatusMessage(message, type) {
         voiceStatusMessage.textContent = message;
         voiceStatusMessage.className = `alert alert-${type}`;
         voiceStatusMessage.style.display = 'block';
-        
+
         setTimeout(() => {
             voiceStatusMessage.style.display = 'none';
         }, 5000);
     }
-    
+
     // Play voice preview with actual audio files
     function playVoicePreview(voiceId) {
         showStatusMessage(`Playing preview of ${STANDARD_VOICES[voiceId]}...`, 'info');
-        
+
         // Stop any currently playing preview first
         let existingAudio = document.getElementById('backgroundPreviewAudio');
         if (existingAudio) {
             existingAudio.pause();
             existingAudio.currentTime = 0;
         }
-        
+
         const audioFile = VOICE_AUDIO_FILES[voiceId];
-        const audioUrl = `/static/landing/audio/${audioFile}`;
-        
+        const audioUrl = `/static_cdn/landing/audio/${audioFile}`;
+
         console.log('Attempting to play audio from:', audioUrl); // Debug log
         console.log('Selected voice:', voiceId);
         console.log('Audio file mapping:', audioFile);
-        
+
         // Create a hidden audio element for background playback
         let backgroundAudio = document.getElementById('backgroundPreviewAudio');
         if (!backgroundAudio) {
@@ -228,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.appendChild(backgroundAudio);
             console.log('Created new audio element');
         }
-        
+
         // Add event listeners for debugging
         backgroundAudio.addEventListener('loadstart', () => console.log('Audio loading started'));
         backgroundAudio.addEventListener('loadeddata', () => console.log('Audio data loaded'));
@@ -238,15 +227,15 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Audio error details:', backgroundAudio.error);
             showStatusMessage(`Audio error: ${backgroundAudio.error?.message || 'Unknown error'}`, 'danger');
         });
-        
+
         // Set up the new audio
         backgroundAudio.src = audioUrl;
         console.log('Audio src set to:', backgroundAudio.src);
         backgroundAudio.load();
-        
+
         // Try to play the audio with better error handling
         const playPromise = backgroundAudio.play();
-        
+
         if (playPromise !== undefined) {
             playPromise
                 .then(() => {
@@ -262,9 +251,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
         }
-        
+
         // Clean up message when audio ends
-        backgroundAudio.addEventListener('ended', function() {
+        backgroundAudio.addEventListener('ended', function () {
             console.log('Audio playback ended');
             showStatusMessage(`${STANDARD_VOICES[voiceId]} preview completed`, 'info');
             setTimeout(() => {
@@ -272,9 +261,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 2000);
         }, { once: true });
     }
-    
-    // Initialize voice preference on page load
-    loadVoicePreference();
+
+    // No need to load from localStorage - template preselects server value
 });
 </script>
 {% endblock extra_js %}

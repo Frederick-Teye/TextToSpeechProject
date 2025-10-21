@@ -242,7 +242,7 @@
                     updateQuotaDisplay(data.quota);
 
                     // Update voice selector with available voices
-                    updateVoiceSelector(data.voices.available, data.quota.available);
+                    updateVoiceSelector(data.voices.available, data.quota.available, data.preferred_voice);
 
                     // Update audios list
                     updateAudiosList(data.audios);
@@ -282,7 +282,7 @@
     }
 
     // Update voice selector
-    function updateVoiceSelector(availableVoices, quotaAvailable) {
+    function updateVoiceSelector(availableVoices, quotaAvailable, preferredVoice = '') {
         const select = document.getElementById('voiceSelect');
         const generateBtn = document.getElementById('generateBtn');
         
@@ -305,14 +305,34 @@
             const option = document.createElement('option');
             option.value = voice;
             option.textContent = voice;
+            if (voice == preferredVoice) {
+                option.selected = true;  // Preselect if available and not used
+            }
             select.appendChild(option);
         });
         
-        generateBtn.disabled = false;
+        // generateBtn.disabled = false;
+        generateBtn.disabled = !select.value;
         
         // Enable generate button when voice selected
-        select.addEventListener('change', function() {
+        select.addEventListener('change', async function() {
             generateBtn.disabled = !this.value;
+
+            // Save preference if changed
+            if (this.value) {
+                try {
+                    await fetch('/users/update-voice-preference/', {
+                        method: 'POST',
+                        headers: {
+                            'Context-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({voice_id: this.value})
+                    });
+                } catch (error) {
+                    console.error('Failed to save preference:', error);
+                }
+            }
         });
     }
 

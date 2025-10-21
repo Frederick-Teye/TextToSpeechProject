@@ -9,9 +9,46 @@ from speech_processing.models import Audio, AudioGenerationStatus
 from speech_processing.logging_utils import log_generation_complete
 import logging
 import pypandoc
+import re
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
+
+def normalize_text_for_tts(markdown_or_plain_text: str) -> str:
+    """
+    Normalize text for TTS to reduce unnatural pauses from line breaks.
+    Assumes input is plain text (from pypandoc or similar).
+
+    - Merges single newlines (likely artifacts) into spaces.
+    - Keeps double newlines (real paragraphs) as short pauses.
+    - Strips Markdown remnants and collapses extra spaces.
+    """
+    # Strip any leftover Markdown (e.g., if pypandoc missed something)
+    clean_text = re.sub(r"\*\*(.*?)\*\*", r"\1", markdown_or_plain_text)  # Bold
+    clean_text = re.sub(r"\*(.*?)\*", r"\1", clean_text)  # Italic
+    clean_text = re.sub(r"`(.*?)`", r"\1", clean_text)  # Inline code
+    clean_text = re.sub(r"#+\s*", "", clean_text)  # Headings
+    clean_text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", clean_text)  # Links
+    clean_text = re.sub(r"^\s*[-*+]\s+", "", clean_text, flags=re.MULTILINE)  # Bullets
+    # Add table cleanup if needed (e.g., remove | separators)
+    clean_text = re.sub(r"\|", " ", clean_text)  # Replace | with spaces for flow
+    # Replace two or more consecutive underscores with empty string
+    clean_text = re.sub(r"_{2,}", "", clean_text)
+
+    # Replace two or more consecutive dashes (table borders) with empty string
+    clean_text = re.sub(r"-{2,}", "", clean_text)
+
+    # Normalize line breaks
+    clean_text = re.sub(
+        r"(?<!\n)\n(?!\n)", " ", clean_text
+    )  # Merge single newlines to spaces
+    clean_text = re.sub(r"\n{3,}", "\n\n", clean_text)  # Collapse 3+ newlines to double
+
+    # Collapse multiple spaces into single spaces for clean flow
+    clean_text = re.sub(r" +", " ", clean_text)
+
+    return clean_text.strip()
 
 
 @shared_task(bind=True, max_retries=3)
@@ -38,9 +75,15 @@ def generate_audio_task(self, audio_id):
         # Initialize service
         service = AudioGenerationService()
 
+        # Convert Markdown to plain text and normalize for TTS
+        plain_text = pypandoc.convert_text(
+            audio.page.markdown_content, to="plain", format="md"
+        )
+        normalized_text = normalize_text_for_tts(plain_text)  # New normalization step
+
         # Generate audio
         s3_key = service.polly_service.generate_audio(
-            text=pypandoc.convert_text(audio.page.markdown_content, to='plain', format='md'),
+            text=normalized_text,
             voice_id=audio.voice,
             document_id=audio.page.document.id,
             page_number=audio.page.page_number,

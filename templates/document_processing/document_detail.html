@@ -129,17 +129,17 @@
             .then(data => {
                 // Update status badge
                 let badgeClass = 'text-bg-secondary';
-                if (data.status === 'COMPLETED') {
+                if (data.status === 'Text Ready') {
                     badgeClass = 'text-bg-success';
-                } else if (data.status === 'PROCESSING') {
+                } else if (data.status === 'Processing Text') {
                     badgeClass = 'text-bg-warning';
-                } else if (data.status === 'FAILED') {
+                } else if (data.status === 'Failed') {
                     badgeClass = 'text-bg-danger';
                 }
                 
                 statusBadge.innerHTML = `Status: <span class="badge rounded-pill ${badgeClass}">${data.status}</span>`;
                 
-                if (data.status === "COMPLETED") {
+                if (data.status === "Text Ready") {
                     // Reload the page to fetch pages list
                     window.location.reload();
                 }

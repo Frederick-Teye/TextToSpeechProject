@@ -6,9 +6,9 @@
 {% block content %}
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0">My Documents</h1>
+        <h1 class="h3 mb-0 me-2">My Documents</h1>
         <div>
-            <a href="{% url 'document_processing:shared_with_me' %}" class="btn btn-outline-primary me-2">
+            <a href="{% url 'document_processing:shared_with_me' %}" class="btn btn-outline-primary me-2 mb-2">
                 <i class="bi bi-people-fill me-2"></i>Shared with Me
             </a>
             <a href="{% url 'document_processing:document_upload' %}" class="btn btn-primary">

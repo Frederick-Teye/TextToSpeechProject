@@ -155,3 +155,62 @@ def shared_with_me_view(request):
     Render the 'Shared with Me' page showing all documents shared with the user.
     """
     return render(request, "document_processing/shared_with_me.html")
+
+
+@login_required
+def document_delete(request, pk):
+    """
+    Delete a document after title confirmation.
+    Only the document owner can delete it.
+    """
+    if request.method != "POST":
+        return JsonResponse(
+            {"success": False, "message": "Invalid request method"}, status=405
+        )
+
+    doc = get_object_or_404(Document, pk=pk)
+
+    # Permission check
+    if request.user != doc.user:
+        return JsonResponse(
+            {"success": False, "message": "Permission denied"}, status=403
+        )
+
+    # Get the confirmed title from request
+    import json
+
+    try:
+        data = json.loads(request.body)
+        confirmed_title = data.get("title", "").strip()
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"success": False, "message": "Invalid JSON data"}, status=400
+        )
+
+    # Verify title matches
+    if confirmed_title != doc.title:
+        return JsonResponse(
+            {"success": False, "message": "Document title does not match"}, status=400
+        )
+
+    try:
+        document_title = doc.title
+        doc.delete()
+        logger.info(
+            f"Document '{document_title}' (ID: {pk}) deleted by user {request.user.id}"
+        )
+        return JsonResponse(
+            {
+                "success": True,
+                "message": f'Document "{document_title}" has been successfully deleted',
+            }
+        )
+    except Exception as e:
+        logger.exception(f"Failed to delete document {pk}")
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "An error occurred while deleting the document",
+            },
+            status=500,
+        )

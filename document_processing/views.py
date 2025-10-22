@@ -90,7 +90,7 @@ def document_upload(request):
                 messages.success(
                     request, "Your document has been submitted and is now processing."
                 )
-                return redirect("document_processing:detail", pk=document.id)
+                return redirect("document_processing:document_detail", pk=document.id)
 
             except Exception as e:
                 logger.exception("Failed during document upload process.")

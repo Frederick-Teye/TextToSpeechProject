@@ -1,70 +1,265 @@
 {% extends "base.html" %}
+{% load static %}
+
+{% block head_title %}My Documents{% endblock head_title %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2><i class="bi bi-file-earmark-text"></i> My Documents</h2>
-        <div class="btn-group">
-            <a href="{% url 'document_processing:shared_with_me' %}" class="btn btn-outline-info">
-                <i class="bi bi-people-fill"></i> Shared with Me
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">My Documents</h1>
+        <div>
+            <a href="{% url 'document_processing:shared_with_me' %}" class="btn btn-outline-primary me-2">
+                <i class="bi bi-people-fill me-2"></i>Shared with Me
             </a>
-            <a href="{% url 'document_processing:upload' %}" class="btn btn-primary">
-                <i class="bi bi-upload"></i> Upload New Document
+            <a href="{% url 'document_processing:document_upload' %}" class="btn btn-primary">
+                <i class="bi bi-cloud-upload me-2"></i>Upload New Document
             </a>
         </div>
     </div>
-    
-    <!-- Toast Container -->
-    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3"></div>
-    
-    <hr>
+
     {% if documents %}
-    <div class="list-group">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         {% for document in documents %}
-        <div class="list-group-item flex-column align-items-start">
-            <div class="d-flex w-100 justify-content-between align-items-start">
-                <div class="flex-grow-1">
-                    <h5 class="mb-1">
-                        <a href="{% url 'document_processing:document_detail' document.pk %}" class="text-decoration-none">
-                            {{ document.title|default:"Untitled Document" }}
-                        </a>
-                    </h5>
-                    <p class="mb-1">
-                        Status:
-                        <span class="badge rounded-pill 
-                                    {% if document.status == 'PROCESSING' %}text-bg-warning
-                                    {% elif document.status == 'COMPLETED' %}text-bg-success
-                                    {% elif document.status == 'FAILED' %}text-bg-danger
-                                    {% else %}text-bg-secondary{% endif %}">
-                            {{ document.get_status_display }}
-                        </span>
+        <div class="col" id="document-card-{{ document.id }}">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title">{{ document.title }}</h5>
+                    <p class="card-text text-muted small">
+                        <i class="bi bi-calendar3 me-1"></i>{{ document.created_at|date:"M d, Y" }}
                     </p>
-                    <small class="text-muted d-block">Source: {{ document.get_source_display }}</small>
-                    <small class="text-muted">{{ document.created_at|date:"F d, Y" }}</small>
+                    <span class="badge 
+                        {% if document.status == 'completed' %}bg-success
+                        {% elif document.status == 'processing' %}bg-warning
+                        {% elif document.status == 'pending' %}bg-info
+                        {% else %}bg-danger
+                        {% endif %} mb-3">
+                        {{ document.get_status_display }}
+                    </span>
                 </div>
-                <div class="btn-group">
-                    <a href="{% url 'document_processing:document_detail' document.pk %}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-eye"></i> View
-                    </a>
-                    <button class="btn btn-sm btn-outline-info" 
-                            onclick="openShareModal({{ document.pk }}, '{{ document.title|escapejs }}')"
-                            type="button">
-                        <i class="bi bi-share"></i> Share
-                    </button>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'document_processing:document_detail' document.id %}"
+                            class="btn btn-sm btn-outline-primary flex-fill">
+                            <i class="bi bi-eye me-1"></i>View
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-secondary flex-fill share-btn"
+                            data-document-id="{{ document.id }}" data-document-title="{{ document.title }}">
+                            <i class="bi bi-share me-1"></i>Share
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger delete-btn"
+                            data-document-id="{{ document.id }}" data-document-title="{{ document.title }}">
+                            <i class="bi bi-trash me-1"></i>Delete
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <div class="alert alert-info" role="alert">
-        You haven't uploaded any documents yet. Why not
-        <a href="{% url 'document_processing:upload' %}" class="alert-link">upload your first one</a>?
+    <div class="alert alert-info text-center py-5">
+        <i class="bi bi-inbox display-1 d-block mb-3"></i>
+        <h4>No documents yet</h4>
+        <p>Upload your first document to get started.</p>
+        <a href="{% url 'document_processing:document_upload' %}" class="btn btn-primary mt-3">
+            <i class="bi bi-cloud-upload me-2"></i>Upload Document
+        </a>
     </div>
     {% endif %}
 </div>
 
-<!-- Include Share Modal -->
-{% include "document_processing/document_share_modal.html" %}
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    <span class="text-black">Delete Document</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger" role="alert">
+                    <strong>Warning:</strong> This action cannot be undone. All pages and associated data will be
+                    permanently deleted.
+                </div>
+                <p class="text-body-tertiary">To confirm deletion, please enter the document title:</p>
+                <p class="fw-bold text-primary" id="documentTitleDisplay"></p>
+                <div class="mb-3">
+                    <label for="titleConfirmation" class="form-label text-body-tertiary">Enter document title:</label>
+                    <input type="text" class="form-control" id="titleConfirmation"
+                        placeholder="Type document title here" autocomplete="off">
+                    <div class="form-text text-danger d-none" id="titleMismatchError">
+                        The title you entered does not match.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" disabled>
+                    <span class="spinner-border spinner-border-sm d-none" id="deleteSpinner"></span>
+                    <i class="bi bi-trash me-1"></i>Delete Document
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
+<!-- Include share modal -->
+{% include 'document_processing/document_share_modal.html' %}
 {% endblock content %}
+
+{% block extra_js %}
+<script>
+    let deleteDocumentId = null;
+    let deleteDocumentTitle = null;
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+    // Handle delete button click
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            deleteDocumentId = this.dataset.documentId;
+            deleteDocumentTitle = this.dataset.documentTitle;
+
+            // Update modal with document title
+            document.getElementById('documentTitleDisplay').textContent = deleteDocumentTitle;
+            document.getElementById('titleConfirmation').value = '';
+            document.getElementById('confirmDeleteBtn').disabled = true;
+            document.getElementById('titleMismatchError').classList.add('d-none');
+
+            // Show modal
+            deleteModal.show();
+        });
+    });
+
+    // Enable delete button only when title matches
+    document.getElementById('titleConfirmation').addEventListener('input', function () {
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        const errorMsg = document.getElementById('titleMismatchError');
+
+        if (this.value.trim() === deleteDocumentTitle) {
+            confirmBtn.disabled = false;
+            errorMsg.classList.add('d-none');
+        } else {
+            confirmBtn.disabled = true;
+            if (this.value.trim() !== '') {
+                errorMsg.classList.remove('d-none');
+            } else {
+                errorMsg.classList.add('d-none');
+            }
+        }
+    });
+
+    // Handle delete confirmation
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function () {
+        const spinner = document.getElementById('deleteSpinner');
+        const btn = this;
+
+        // Show loading state
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+
+        // Get CSRF token
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+            document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+
+        // Send delete request
+        fetch(`/documents/${deleteDocumentId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                title: deleteDocumentTitle
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success toast
+                    showToast('success', data.message);
+
+                    // Remove document card from UI with animation
+                    const card = document.getElementById(`document-card-${deleteDocumentId}`);
+                    card.style.transition = 'opacity 0.3s, transform 0.3s';
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.9)';
+
+                    setTimeout(() => {
+                        card.remove();
+
+                        // Check if there are no documents left
+                        const remainingCards = document.querySelectorAll('[id^="document-card-"]');
+                        if (remainingCards.length === 0) {
+                            // Reload page to show "no documents" message
+                            location.reload();
+                        }
+                    }, 300);
+
+                    // Hide modal
+                    deleteModal.hide();
+                } else {
+                    showToast('error', data.message || 'Failed to delete document');
+                    btn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Delete error:', error);
+                showToast('error', 'An error occurred while deleting the document');
+                btn.disabled = false;
+            })
+            .finally(() => {
+                spinner.classList.add('d-none');
+            });
+    });
+
+    // Toast notification function
+    function showToast(type, message) {
+        // Create toast container if it doesn't exist
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            toastContainer.style.zIndex = '9999';
+            document.body.appendChild(toastContainer);
+        }
+
+        // Create toast
+        const toastId = 'toast-' + Date.now();
+        const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
+        const icon = type === 'success' ? 'bi-check-circle' : 'bi-exclamation-circle';
+
+        const toastHTML = `
+            <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi ${icon} me-2"></i>${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+
+        toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+        const toastElement = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastElement, { delay: 5000 });
+        toast.show();
+
+        // Remove from DOM after hidden
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
+        });
+    }
+
+    // Reset modal when closed
+    document.getElementById('deleteModal').addEventListener('hidden.bs.modal', function () {
+        deleteDocumentId = null;
+        deleteDocumentTitle = null;
+        document.getElementById('titleConfirmation').value = '';
+        document.getElementById('confirmDeleteBtn').disabled = true;
+        document.getElementById('titleMismatchError').classList.add('d-none');
+    });
+</script>
+{% endblock extra_js %}

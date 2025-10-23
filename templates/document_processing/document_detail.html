@@ -10,14 +10,14 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-start mb-3">
                 <div class="flex-grow-1">
-                    <h1 class="h3 mb-2"> 
-                        <i class="bi bi-file-earmark-text me-2"></i> 
-                        {{ document.title|default:"Untitled Document" }} 
+                    <h1 class="h3 mb-2">
+                        <i class="bi bi-file-earmark-text me-2"></i>
+                        {{ document.title|default:"Untitled Document" }}
                     </h1>
-                    <div class="d-flex gap-3 flex-wrap align-items-center"> 
+                    <div class="d-flex gap-3 flex-wrap align-items-center" id="status-badge">
+                        <!-- Added id="status-badge" here -->
                         Status:
-                        <span
-                            class="badge 
+                        <span class="badge 
                             {% if document.status == 'COMPLETED' %}
                                 bg-success 
                             {% elif document.status == 'PROCESSING' %}
@@ -26,27 +26,26 @@
                                 bg-info 
                             {% else %}
                                 bg-danger 
-                            {% endif %}"> 
-                            {{ document.get_status_display }} 
+                            {% endif %}">
+                            {{ document.get_status_display }}
                         </span>
-                        <p class="text-white-50 small mb-0"> 
+                        <p class="text-white-50 small mb-0">
                             <i class="bi bi-calendar3 me-1"></i>
-                            {{ document.created_at|date:"M d, Y" }} 
+                            {{ document.created_at|date:"M d, Y" }}
                         </p>
-                        <p class="text-white-50 small mb-0"> <i class="bi bi-file-text me-1"></i> 
-                            Source: {{ document.get_source_display }} 
+                        <p class="text-white-50 small mb-0"> <i class="bi bi-file-text me-1"></i>
+                            Source: {{ document.get_source_display }}
                         </p>
                     </div>
                 </div>
                 <div>
-                    <a href="{% url 'document_processing:document_list' %}" class="btn btn-outline-primary me-2 mb-2"> 
-                        <i class="bi bi-arrow-left me-1"></i>Back to Documents 
-                    </a> 
-                    <button
-                        class="btn btn-outline-primary"
-                        onclick="openShareModal({{ document.id }}, '{{ document.title|escapejs }}')" type="button"> 
-                        <i class="bi bi-share me-1"></i>Share 
-                    </button> 
+                    <a href="{% url 'document_processing:document_list' %}" class="btn btn-outline-primary me-2 mb-2">
+                        <i class="bi bi-arrow-left me-1"></i>Back to Documents
+                    </a>
+                    <button class="btn btn-outline-primary"
+                        onclick="openShareModal({{ document.id }}, '{{ document.title|escapejs }}')" type="button">
+                        <i class="bi bi-share me-1"></i>Share
+                    </button>
                 </div>
             </div>
         </div>
@@ -139,22 +138,24 @@
             .then(r => r.json())
             .then(data => {
                 // Update status badge
-                let badgeClass = 'text-bg-secondary';
+                let badgeClass = 'bg-secondary';  // Changed to 'bg-' classes to match theme
                 if (data.status === 'Text Ready') {
-                    badgeClass = 'text-bg-success';
+                    badgeClass = 'bg-success';
                 } else if (data.status === 'Processing Text') {
-                    badgeClass = 'text-bg-warning';
+                    badgeClass = 'bg-warning';
                 } else if (data.status === 'Failed') {
-                    badgeClass = 'text-bg-danger';
+                    badgeClass = 'bg-danger';
+                } else if (data.status === 'Pending') {  // Added for consistency
+                    badgeClass = 'bg-info';
                 }
-                
+
                 statusBadge.innerHTML = `Status: <span class="badge rounded-pill ${badgeClass}">${data.status}</span>`;
-                
+
                 if (data.status === "Text Ready") {
                     // Reload the page to fetch pages list
                     window.location.reload();
                 }
-                else if (data.status === "FAILED") {
+                else if (data.status === "Failed") {  // Fixed: was "FAILED", now "Failed"
                     pagesEl.innerHTML = `
                         <div class="alert alert-danger">
                             <i class="bi bi-x-circle"></i> 
@@ -170,7 +171,7 @@
     {% if document.status == 'PROCESSING' or document.status == 'PENDING' %}
     // Poll for status updates
     const pollInterval = setInterval(checkStatus, 2000);
-    
+
     // Stop polling after 5 minutes (failsafe)
     setTimeout(() => clearInterval(pollInterval), 300000);
     {% endif %}

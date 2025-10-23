@@ -4,34 +4,34 @@
 {% block head_title %}Page {{ page.page_number }} - {{ page.document.title }}{% endblock head_title %}
 
 {% block content %}
-<div class="container-fluid mt-4">
+<div class="container-fluid py-4">
     <div class="row">
         <!-- Main Content Area (Left Side) -->
         <div class="col-lg-8">
             <!-- Page Header -->
-            <div class="card bg-secondary mb-4">
+            <div class="card shadow-sm border-0 mb-4">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h2 class="card-title mb-2">
-                                <i class="bi bi-file-earmark-text"></i> {{ page.document.title }}
-                            </h2>
-                            <h5 class="text-muted">
-                                <i class="bi bi-file-earmark"></i> Page {{ page.page_number }}
+                            <h1 class="h3 mb-2">
+                                <i class="bi bi-file-earmark-text me-2"></i> {{ page.document.title }}
+                            </h1>
+                            <h5 class="text-white-50">
+                                <i class="bi bi-file-earmark me-2"></i> Page {{ page.page_number }}
                             </h5>
                         </div>
-                        <a href="{% url 'document_processing:document_detail' page.document.id %}" 
-                           class="btn btn-outline-info">
-                            <i class="bi bi-arrow-left"></i> Back to Document
+                        <a href="{% url 'document_processing:document_detail' page.document.id %}"
+                            class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-left me-1"></i> Back to Document
                         </a>
                     </div>
                 </div>
             </div>
 
             <!-- Markdown Content -->
-            <div class="card bg-secondary">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-text-paragraph"></i> Content</h5>
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-transparent border-0">
+                    <h5 class="mb-0"><i class="bi bi-text-paragraph me-2"></i> Content</h5>
                 </div>
                 <div class="card-body markdown-content">
                     {{ page.markdown_content|md_to_html }}
@@ -43,45 +43,49 @@
         <div class="col-lg-4">
             <div class="position-sticky" style="top: 20px;">
                 <!-- Audio Player Card -->
-                <div class="card bg-secondary mb-3">
-                    <div class="card-header">
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-header bg-transparent border-0">
                         <h5 class="mb-0">
-                            <i class="bi bi-music-note-beamed"></i> Audio Player
+                            <i class="bi bi-music-note-beamed me-2"></i> Audio Player
                         </h5>
                     </div>
                     <div class="card-body">
                         <!-- Audio Player Component -->
                         <div id="audioPlayerContainer" class="mb-3">
-                            <div id="noAudioMessage" class="text-center text-muted py-4">
-                                <i class="bi bi-speaker" style="font-size: 2rem;"></i>
+                            <div id="noAudioMessage" class="text-center text-white-50 py-4">
+                                <i class="bi bi-speaker display-6 d-block mb-2"></i>
                                 <p class="mt-2 mb-0">No audio available yet</p>
                                 <small>Generate audio to listen to this page</small>
                             </div>
-                            
+
                             <!-- Audio Player (Hidden initially) -->
                             <div id="audioPlayer" class="d-none">
                                 <div class="mb-3">
-                                    <label class="form-label small text-muted">
-                                        <i class="bi bi-mic"></i> Playing: <strong id="currentVoice"></strong>
+                                    <label class="form-label small text-white-50">
+                                        <i class="bi bi-mic me-1"></i> Playing: <strong id="currentVoice"></strong>
                                     </label>
                                     <audio id="audioElement" class="w-100" controls>
                                         Your browser does not support the audio element.
                                     </audio>
                                 </div>
-                                
+
                                 <div class="d-flex gap-2">
-                                    <button id="downloadBtn" class="btn btn-sm btn-primary flex-fill" title="Download">
-                                        <i class="bi bi-download"></i> Download
+                                    <button id="downloadBtn" class="btn btn-sm btn-outline-primary flex-fill"
+                                        title="Download">
+                                        <i class="bi bi-download me-1"></i> Download
                                     </button>
-                                    <button id="deleteBtn" class="btn btn-sm btn-danger" title="Delete (Owner Only)">
-                                        <i class="bi bi-trash"></i>
+                                    <button id="deleteBtn" class="btn btn-sm btn-outline-danger"
+                                        title="Delete (Owner Only)">
+                                        <i class="bi bi-trash me-1"></i>
                                     </button>
                                 </div>
-                                
-                                <div class="mt-2 small text-muted">
-                                    <div><i class="bi bi-person"></i> Generated by: <span id="generatedBy"></span></div>
-                                    <div><i class="bi bi-clock"></i> Created: <span id="createdAt"></span></div>
-                                    <div id="expiryInfo"><i class="bi bi-hourglass"></i> Expires in: <span id="expiresIn"></span> days</div>
+
+                                <div class="mt-2 small text-white-50">
+                                    <div><i class="bi bi-person me-1"></i> Generated by: <span id="generatedBy"></span>
+                                    </div>
+                                    <div><i class="bi bi-clock me-1"></i> Created: <span id="createdAt"></span></div>
+                                    <div id="expiryInfo"><i class="bi bi-hourglass me-1"></i> Expires in: <span
+                                            id="expiresIn"></span> days</div>
                                 </div>
                             </div>
                         </div>
@@ -89,16 +93,16 @@
                         <!-- Voice Selector -->
                         <div id="voiceSelector" class="mb-3">
                             <label for="voiceSelect" class="form-label">
-                                <i class="bi bi-mic-fill"></i> Select Voice
+                                <i class="bi bi-mic-fill me-1"></i> Select Voice
                             </label>
-                            <select id="voiceSelect" class="form-select bg-dark text-light border-secondary">
+                            <select id="voiceSelect" class="form-select border-0 shadow-sm">
                                 <option value="">Loading voices...</option>
                             </select>
                         </div>
 
                         <!-- Generate Button -->
-                        <button id="generateBtn" class="btn btn-success w-100 mb-3" disabled>
-                            <i class="bi bi-play-circle"></i> Generate Audio
+                        <button id="generateBtn" class="btn btn-primary w-100 mb-3" disabled>
+                            <i class="bi bi-play-circle me-2"></i> Generate Audio
                         </button>
 
                         <!-- Generation Progress -->
@@ -117,37 +121,37 @@
                 </div>
 
                 <!-- Quota Card -->
-                <div class="card bg-secondary mb-3">
-                    <div class="card-header">
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-header bg-transparent border-0">
                         <h6 class="mb-0">
-                            <i class="bi bi-speedometer2"></i> Audio Quota
+                            <i class="bi bi-speedometer2 me-2"></i> Audio Quota
                         </h6>
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted">Used:</span>
+                            <span class="text-white-50">Used:</span>
                             <strong><span id="quotaUsed">-</span> / <span id="quotaMax">-</span></strong>
                         </div>
                         <div class="progress mb-2" style="height: 10px;">
-                            <div id="quotaProgress" class="progress-bar" role="progressbar" 
-                                 style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            <div id="quotaProgress" class="progress-bar" role="progressbar" style="width: 0%"
+                                aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                             </div>
                         </div>
-                        <small class="text-muted">
+                        <small class="text-white-50">
                             <span id="quotaAvailable">-</span> audio(s) remaining
                         </small>
                     </div>
                 </div>
 
                 <!-- Available Audios List -->
-                <div class="card bg-secondary">
-                    <div class="card-header">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-transparent border-0">
                         <h6 class="mb-0">
-                            <i class="bi bi-collection"></i> Available Audios (<span id="audioCount">0</span>)
+                            <i class="bi bi-collection me-2"></i> Available Audios (<span id="audioCount">0</span>)
                         </h6>
                     </div>
                     <div class="card-body" id="audiosList">
-                        <div class="text-center text-muted py-2">
+                        <div class="text-center text-white-50 py-2">
                             <div class="spinner-border spinner-border-sm" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
@@ -344,7 +348,7 @@
         countEl.textContent = audios.length;
         
         if (audios.length === 0) {
-            container.innerHTML = '<p class="text-muted small mb-0">No audios generated yet</p>';
+            container.innerHTML = '<p class="text-white-50 small mb-0">No audios generated yet</p>';
             return;
         }
         
@@ -359,7 +363,7 @@
                     </div>
                     ${audio.status === 'COMPLETED' ? '<i class="bi bi-play-circle"></i>' : ''}
                 </div>
-                <small class="text-muted d-block mt-1">
+                <small class="text-white-50 d-block mt-1">
                     ${audio.generated_by}
                 </small>
             </div>

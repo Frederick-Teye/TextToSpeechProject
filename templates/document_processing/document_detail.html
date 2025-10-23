@@ -4,117 +4,128 @@
 {% block head_title %}{{ document.title }}{% endblock head_title %}
 
 {% block content %}
-<div class="container mt-4">
-    <!-- Document Header -->
-    <div class="card bg-secondary mb-4">
+
+<div class="container-fluid py-4"> <!-- Document Header -->
+    <div class="card shadow-sm border-0 mb-4">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-start mb-3">
                 <div class="flex-grow-1">
-                    <h2 class="card-title mb-2">
-                        <i class="bi bi-file-earmark-text"></i> {{ document.title|default:"Untitled Document" }}
-                    </h2>
-                    <div class="d-flex gap-3 flex-wrap">
-                        <span id="status-badge">
-                            Status: 
-                            <span class="badge rounded-pill 
-                                        {% if document.status == 'PROCESSING' %}text-bg-warning
-                                        {% elif document.status == 'COMPLETED' %}text-bg-success
-                                        {% elif document.status == 'FAILED' %}text-bg-danger
-                                        {% else %}text-bg-secondary{% endif %}">
-                                {{ document.get_status_display }}
-                            </span>
+                    <h1 class="h3 mb-2"> 
+                        <i class="bi bi-file-earmark-text me-2"></i> 
+                        {{ document.title|default:"Untitled Document" }} 
+                    </h1>
+                    <div class="d-flex gap-3 flex-wrap align-items-center"> 
+                        Status:
+                        <span
+                            class="badge 
+                            {% if document.status == 'COMPLETED' %}
+                                bg-success 
+                            {% elif document.status == 'PROCESSING' %}
+                                bg-warning 
+                            {% elif document.status == 'PENDING' %}
+                                bg-info 
+                            {% else %}
+                                bg-danger 
+                            {% endif %}"> 
+                            {{ document.get_status_display }} 
                         </span>
-                        <small class="text-muted">
-                            <i class="bi bi-calendar"></i> {{ document.created_at|date:"F d, Y" }}
-                        </small>
-                        <small class="text-muted">
-                            <i class="bi bi-file-text"></i> Source: {{ document.get_source_display }}
-                        </small>
+                        <p class="text-white-50 small mb-0"> 
+                            <i class="bi bi-calendar3 me-1"></i>
+                            {{ document.created_at|date:"M d, Y" }} 
+                        </p>
+                        <p class="text-white-50 small mb-0"> <i class="bi bi-file-text me-1"></i> 
+                            Source: {{ document.get_source_display }} 
+                        </p>
                     </div>
                 </div>
-                <div class="btn-group">
-                    <a href="{% url 'document_processing:document_list' %}" class="btn btn-outline-info">
-                        <i class="bi bi-arrow-left"></i> Back
-                    </a>
-                    <button class="btn btn-outline-info" 
-                            onclick="openShareModal({{ document.id }}, '{{ document.title|escapejs }}')"
-                            type="button">
-                        <i class="bi bi-share"></i> Share
-                    </button>
+                <div>
+                    <a href="{% url 'document_processing:document_list' %}" class="btn btn-outline-primary me-2 mb-2"> 
+                        <i class="bi bi-arrow-left me-1"></i>Back to Documents 
+                    </a> 
+                    <button
+                        class="btn btn-outline-primary"
+                        onclick="openShareModal({{ document.id }}, '{{ document.title|escapejs }}')" type="button"> 
+                        <i class="bi bi-share me-1"></i>Share 
+                    </button> 
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Toast Container -->
-    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3"></div>
-
     <!-- Pages List -->
     <div id="pages">
         {% if document.status == 'COMPLETED' %}
-            {% if pages %}
-            <div class="row">
-                {% for p in pages %}
-                <div class="col-md-6 col-lg-4 mb-3">
-                    <div class="card bg-secondary h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">
-                                <i class="bi bi-file-earmark"></i> Page {{ p.page_number }}
-                            </h5>
-                            <p class="card-text text-muted small">
-                                {% if p.markdown_content %}
-                                    {{ p.markdown_content|truncatewords:20|md_to_html }}
-                                {% else %}
-                                    No content available
-                                {% endif %}
-                            </p>
-                        </div>
-                        <div class="card-footer bg-dark border-secondary">
-                            <a href="{% url 'document_processing:page_detail' document.id p.page_number %}" 
-                               class="btn btn-sm btn-primary w-100">
-                                <i class="bi bi-eye"></i> View Page
-                            </a>
-                        </div>
+        {% if pages %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for p in pages %}
+            <div class="col">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="bi bi-file-earmark me-2"></i>Page {{ p.page_number }}
+                        </h5>
+                        <p class="card-text text-white-50 small">
+                            {% if p.markdown_content %}
+                            {{ p.markdown_content|truncatewords:20|md_to_html|striptags }}
+                            {% else %}
+                            No content available
+                            {% endif %}
+                        </p>
                     </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="alert alert-warning">
-                <i class="bi bi-exclamation-triangle"></i> No pages found in this document.
-            </div>
-            {% endif %}
-        {% elif document.status == 'PROCESSING' %}
-            <div class="alert alert-info">
-                <div class="d-flex align-items-center">
-                    <div class="spinner-border text-primary me-3" role="status">
-                        <span class="visually-hidden">Processing...</span>
-                    </div>
-                    <div>
-                        <strong>Processing document...</strong>
-                        <p class="mb-0 small">This may take a few moments. The page will automatically refresh when ready.</p>
+                    <div class="card-footer bg-transparent border-0">
+                        <a href="{% url 'document_processing:page_detail' document.id p.page_number %}"
+                            class="btn btn-sm btn-outline-primary w-100">
+                            <i class="bi bi-eye me-1"></i>View Page
+                        </a>
                     </div>
                 </div>
             </div>
-        {% elif document.status == 'FAILED' %}
-            <div class="alert alert-danger">
-                <i class="bi bi-x-circle"></i> 
-                <strong>Processing failed.</strong> 
-                {% if document.error_message %}
-                    <p class="mb-0">{{ document.error_message }}</p>
-                {% else %}
-                    Please try uploading the document again.
-                {% endif %}
-            </div>
+            {% endfor %}
+        </div>
         {% else %}
-            <div class="alert alert-secondary">
-                <i class="bi bi-hourglass-split"></i> Document is pending processing.
+        <div class="alert alert-info text-center py-5">
+            <i class="bi bi-exclamation-triangle display-1 d-block mb-3"></i>
+            <h4>No pages found</h4>
+            <p class="mb-0">This document doesn't contain any pages.</p>
+        </div>
+        {% endif %}
+        {% elif document.status == 'PROCESSING' %}
+        <div class="alert alert-info text-center py-5">
+            <div class="d-flex align-items-center justify-content-center">
+                <div class="spinner-border text-primary me-3" role="status">
+                    <span class="visually-hidden">Processing...</span>
+                </div>
+                <div class="text-start">
+                    <strong>Processing document...</strong>
+                    <p class="mb-0 small">
+                        This may take a few moments. The page will automatically refresh when ready.
+                    </p>
+                </div>
             </div>
+        </div>
+        {% elif document.status == 'FAILED' %}
+        <div class="alert alert-info text-center py-5">
+            <i class="bi bi-x-circle display-1 d-block mb-3"></i>
+            <h4>Processing failed</h4>
+            <p class="mb-3">
+                {% if document.error_message %}
+                {{ document.error_message }}
+                {% else %}
+                Please try uploading the document again.
+                {% endif %}
+            </p>
+            <a href="{% url 'document_processing:document_list' %}" class="btn btn-primary">
+                <i class="bi bi-arrow-left me-2"></i>Back to Documents
+            </a>
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center py-5">
+            <i class="bi bi-hourglass-split display-1 d-block mb-3"></i>
+            <h4>Document pending</h4>
+            <p class="mb-0">Document is pending processing.</p>
+        </div>
         {% endif %}
     </div>
-</div>
-
-<!-- Include Share Modal -->
+</div><!-- Include Share Modal -->
 {% include "document_processing/document_share_modal.html" %}
 
 <script>

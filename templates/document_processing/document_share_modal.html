@@ -1,30 +1,28 @@
 <!-- Share Document Modal -->
 <div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content bg-dark text-light">
-            <div class="modal-header border-secondary">
+        <div class="modal-content shadow-sm border-0">
+            <div class="modal-header bg-transparent border-0 text-dark">
                 <h5 class="modal-title" id="shareModalLabel">
-                    <i class="bi bi-share"></i> Share Document: <span id="shareDocumentTitle"></span>
+                    <i class="bi bi-share me-2"></i>Share Document: <span id="shareDocumentTitle"></span>
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <!-- Share Form -->
-                <div class="card bg-secondary mb-4">
+                <div class="card shadow-sm border-0 mb-4">
                     <div class="card-body">
-                        <h6 class="card-title">Share with new user</h6>
+                        <h6 class="card-title mb-3"><i class="bi bi-person-plus me-2"></i>Share with new user</h6>
                         <form id="shareForm">
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label for="shareEmail" class="form-label">Email Address</label>
-                                    <input type="email" class="form-control bg-dark text-light border-secondary"
-                                        id="shareEmail" placeholder="user@example.com" required>
+                                    <label for="shareEmail" class="form-label text-white-50">Email Address</label>
+                                    <input type="email" class="form-control border-0 shadow-sm" id="shareEmail"
+                                        placeholder="user@example.com" required>
                                 </div>
                                 <div class="col-md-4">
-                                    <label for="sharePermission" class="form-label">Permission Level</label>
-                                    <select class="form-select bg-dark text-light border-secondary"
-                                        id="sharePermission" required>
+                                    <label for="sharePermission" class="form-label text-white-50">Permission Level</label>
+                                    <select class="form-select border-0 shadow-sm" id="sharePermission" required>
                                         <option value="VIEW_ONLY">View Only</option>
                                         <option value="COLLABORATOR">Collaborator</option>
                                         <option value="CAN_SHARE">Can Share</option>
@@ -32,11 +30,11 @@
                                 </div>
                                 <div class="col-md-2 d-flex align-items-end">
                                     <button type="submit" class="btn btn-primary w-100">
-                                        <i class="bi bi-plus-circle"></i> Share
+                                        <i class="bi bi-plus-circle me-1"></i>Share
                                     </button>
                                 </div>
                             </div>
-                            <small class="text-muted d-block mt-2">
+                            <small class="text-white-50 d-block mt-3">
                                 <strong>View Only:</strong> Can play & download audios<br>
                                 <strong>Collaborator:</strong> Can also generate new audios<br>
                                 <strong>Can Share:</strong> Collaborator + can share with others
@@ -46,23 +44,25 @@
                 </div>
 
                 <!-- Existing Shares List -->
-                <div class="card bg-secondary">
+                <div class="card shadow-sm border-0">
                     <div class="card-body">
-                        <h6 class="card-title">Shared with (<span id="shareCount">0</span>)</h6>
+                        <h6 class="card-title mb-3">
+                            <i class="bi bi-people me-2"></i>Shared with (<span id="shareCount">0</span>)
+                        </h6>
                         <div id="sharesList">
                             <!-- Shares will be loaded here via JavaScript -->
-                            <div class="text-center text-muted py-3">
+                            <div class="text-center text-white-50 py-3">
                                 <div class="spinner-border spinner-border-sm" role="status">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
-                                Loading shares...
+                                <span class="ms-2">Loading shares...</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer border-secondary">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer bg-transparent border-0">
+                <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -88,7 +88,7 @@
     // Load existing shares
     async function loadShares(documentId) {
         const sharesList = document.getElementById('sharesList');
-        sharesList.innerHTML = '<div class="text-center text-muted py-3"><div class="spinner-border spinner-border-sm"></div> Loading...</div>';
+        sharesList.innerHTML = '<div class="text-center text-white-50 py-3"><div class="spinner-border spinner-border-sm"></div> Loading...</div>';
 
         try {
             const response = await fetch(`/speech/document/${documentId}/shares/`, {
@@ -103,14 +103,14 @@
                 document.getElementById('shareCount').textContent = data.total;
 
                 if (data.shares.length === 0) {
-                    sharesList.innerHTML = '<p class="text-muted mb-0">No shares yet. Use the form above to share this document.</p>';
+                    sharesList.innerHTML = '<p class="text-white-50 mb-0">No shares yet. Use the form above to share this document.</p>';
                 } else {
                     sharesList.innerHTML = data.shares.map(share => `
                         <div class="d-flex justify-content-between align-items-center border-bottom border-secondary py-2">
                             <div>
                                 <strong>${share.shared_with.name}</strong>
-                                <small class="text-muted d-block">${share.shared_with.email}</small>
-                                <small class="text-muted">Shared by: ${share.shared_by.name}</small>
+                                <small class="text-white-50 d-block">${share.shared_with.email}</small>
+                                <small class="text-white-50">Shared by: ${share.shared_by.name}</small>
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 <select class="form-select form-select-sm bg-dark text-light border-secondary"

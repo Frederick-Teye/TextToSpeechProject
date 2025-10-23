@@ -24,9 +24,10 @@
             <div class="card h-100 shadow-sm border-0">
                 <div class="card-body">
                     <h5 class="card-title">{{ document.title }}</h5>
-                    <p class="card-text text-muted small">
+                    <p class="card-text text-white-50 small">
                         <i class="bi bi-calendar3 me-1"></i>{{ document.created_at|date:"M d, Y" }}
                     </p>
+                    Status: 
                     <span class="badge 
                         {% if document.status == 'COMPLETED' %}bg-success
                         {% elif document.status == 'PROCESSING' %}bg-warning
@@ -71,33 +72,38 @@
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title" id="deleteModalLabel">
-                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
-                    <span class="text-black">Delete Document</span>
+        <div class="modal-content shadow-sm border-0">
+            <div class="modal-header bg-transparent border-0">
+                <h5 class="modal-title text-danger" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Confirm Deletion
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="alert alert-danger" role="alert">
-                    <strong>Warning:</strong> This action cannot be undone. All pages and associated data will be
-                    permanently deleted.
+                    <strong>Warning: This action cannot be undone.</strong> All pages and associated data will be permanently deleted.
                 </div>
-                <p class="text-body-tertiary">To confirm deletion, please enter the document title:</p>
-                <p class="fw-bold text-primary" id="documentTitleDisplay"></p>
+                
+                <p class="text-muted mb-3">To confirm, please type the document title below:</p>
+                
+                <div class="border rounded p-3 mb-3">
+                    <p class="fw-bold mb-1 text-muted">Document to delete:</p>
+                    <p class="fw-bold text-danger mb-0" id="documentTitleDisplay"></p>
+                </div>
+                
                 <div class="mb-3">
-                    <label for="titleConfirmation" class="form-label text-body-tertiary">Enter document title:</label>
-                    <input type="text" class="form-control" id="titleConfirmation"
-                        placeholder="Type document title here" autocomplete="off">
+                    <label for="titleConfirmation" class="form-label text-muted">Type the document title to confirm:</label>
+                    <input type="text" class="form-control border-0 shadow-sm" id="titleConfirmation"
+                        placeholder="Enter document title exactly as shown above" autocomplete="off">
                     <div class="form-text text-danger d-none" id="titleMismatchError">
-                        The title you entered does not match.
+                        <i class="bi bi-x-circle me-1"></i>The title doesn't match
                     </div>
                 </div>
             </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" disabled>
+            <div class="modal-footer bg-transparent border-0">
+                <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-danger" id="confirmDeleteBtn" disabled>
                     <span class="spinner-border spinner-border-sm d-none" id="deleteSpinner"></span>
                     <i class="bi bi-trash me-1"></i>Delete Document
                 </button>
@@ -261,5 +267,14 @@
         document.getElementById('confirmDeleteBtn').disabled = true;
         document.getElementById('titleMismatchError').classList.add('d-none');
     });
+
+    // Handle share button clicks
+        document.querySelectorAll('.share-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const documentId = this.dataset.documentId;
+                const documentTitle = this.dataset.documentTitle;
+                openShareModal(documentId, documentTitle);
+            });
+        });
 </script>
 {% endblock extra_js %}

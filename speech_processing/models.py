@@ -3,6 +3,9 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # Choices for audio generation and sharing feature
@@ -153,10 +156,21 @@ class Audio(models.Model):
         settings_obj = SiteSettings.get_settings()
         retention_days = settings_obj.audio_retention_months * 30
 
-        if not self.last_played_at:
-            # If never played, check if created more than retention period ago
-            return self.created_at < timezone.now() - timedelta(days=retention_days)
-        return self.last_played_at < timezone.now() - timedelta(days=retention_days)
+        reference_date = self.last_played_at or self.created_at
+        expiry_threshold = timezone.now() - timedelta(days=retention_days)
+        is_exp = reference_date < expiry_threshold
+
+        logger.debug(
+            f"Expiry check for audio {self.id}: "
+            f"retention_months={settings_obj.audio_retention_months}, "
+            f"retention_days={retention_days}, "
+            f"reference_date={reference_date}, "
+            f"now={timezone.now()}, "
+            f"expiry_threshold={expiry_threshold}, "
+            f"is_expired={is_exp}"
+        )
+
+        return is_exp
 
     def days_until_expiry(self):
         """Calculate days until expiry."""
@@ -327,6 +341,10 @@ class SiteSettings(models.Model):
     max_audios_per_page = models.PositiveIntegerField(
         default=4, help_text="Maximum number of audios allowed per page (lifetime)."
     )
+    auto_delete_expired_enabled = models.BooleanField(
+        default=True,
+        help_text="Whether to automatically delete expired audio files from S3.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -354,6 +372,7 @@ class SiteSettings(models.Model):
                 "enable_email_notifications": True,
                 "enable_in_app_notifications": True,
                 "max_audios_per_page": 4,
+                "auto_delete_expired_enabled": True,
             },
         )
         return settings_obj

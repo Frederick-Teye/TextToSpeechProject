@@ -25,7 +25,7 @@ class DocumentViewsIntegrationTests(TransactionTestCase):
     def test_file_upload_success_flow(self, mock_on_commit, mock_upload_s3):
         # Arrange
         mock_upload_s3.return_value = "uploads/1/test.pdf"
-        url = reverse("document_processing:upload")
+        url = reverse("document_processing:document_upload")
         dummy_file = SimpleUploadedFile(
             "test.pdf", b"%PDF-...", content_type="application/pdf"
         )
@@ -40,7 +40,7 @@ class DocumentViewsIntegrationTests(TransactionTestCase):
         doc = Document.objects.first()
         self.assertIsNotNone(doc)
         self.assertRedirects(
-            response, reverse("document_processing:detail", args=[doc.id])
+            response, reverse("document_processing:document_detail", args=[doc.id])
         )
 
         # Assert that the document was created with the correct initial state
@@ -54,6 +54,6 @@ class DocumentViewsIntegrationTests(TransactionTestCase):
         other_user = User.objects.create_user(username="other", password="p")
         other_doc = Document.objects.create(user=other_user, title="Other's Doc")
         response = self.client.get(
-            reverse("document_processing:detail", args=[other_doc.id])
+            reverse("document_processing:document_detail", args=[other_doc.id])
         )
         self.assertEqual(response.status_code, 403)

@@ -32,4 +32,4 @@ def upload_to_s3(file_obj, user_id, file_name):
 
     except Exception:
         logger.exception(f"Failed to upload {file_name} for user {user_id}")
-        raise
+        raise Exception("Failed to upload file to S3")

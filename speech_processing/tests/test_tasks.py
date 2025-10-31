@@ -88,7 +88,7 @@ class GenerateAudioTaskTests(TestCase):
         # Call task directly - it should catch exception and return failure dict
         # (we avoid the Celery retry by calling the task function directly)
         from speech_processing.tasks import generate_audio_task
-        
+
         # We'll use the underlying function to bypass Celery's retry logic
         # The task is decorated with @shared_task(bind=True, max_retries=3)
         # We can still test the failure handling logic
@@ -116,6 +116,7 @@ class GenerateAudioTaskTests(TestCase):
 
         # Call task - it will attempt retries and eventually fail
         from speech_processing.tasks import generate_audio_task
+
         try:
             result = generate_audio_task(self.audio.id)
         except Exception:
@@ -187,7 +188,7 @@ class ExportAuditLogsTaskTests(TestCase):
         # Verify content is valid JSON Lines with logs
         content = call_args.kwargs["Body"]
         if isinstance(content, bytes):
-            content = content.decode('utf-8')
+            content = content.decode("utf-8")
         logs = [json.loads(line) for line in content.split("\n") if line.strip()]
         self.assertEqual(len(logs), 5)
         self.assertEqual(logs[0]["user_email"], "test@example.com")
@@ -221,7 +222,7 @@ class ExportAuditLogsTaskTests(TestCase):
         call_args = mock_s3.put_object.call_args
         content = call_args.kwargs["Body"]
         if isinstance(content, bytes):
-            content = content.decode('utf-8')
+            content = content.decode("utf-8")
         logs = [json.loads(line) for line in content.split("\n") if line.strip()]
         self.assertEqual(len(logs), 5)  # Not 8
 
@@ -252,7 +253,7 @@ class ExportAuditLogsTaskTests(TestCase):
         call_args = mock_s3.put_object.call_args
         content = call_args.kwargs["Body"]
         if isinstance(content, bytes):
-            content = content.decode('utf-8')
+            content = content.decode("utf-8")
         logs = [json.loads(line) for line in content.split("\n") if line.strip()]
         self.assertEqual(len(logs), 5)  # Not 6 (old log excluded)
 

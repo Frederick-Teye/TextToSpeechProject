@@ -38,7 +38,7 @@ class ShareDocumentAPITests(TestCase):
         self.client.login(email="owner@example.com", password="testpass123")
 
         url = reverse(
-            "document_processing:share_document",
+            "speech_processing:share_document",
             kwargs={"document_id": self.document.id},
         )
         response = self.client.post(
@@ -68,7 +68,7 @@ class ShareDocumentAPITests(TestCase):
         self.client.login(email="other@example.com", password="testpass123")
 
         url = reverse(
-            "document_processing:share_document",
+            "speech_processing:share_document",
             kwargs={"document_id": self.document.id},
         )
         response = self.client.post(
@@ -100,7 +100,7 @@ class ShareDocumentAPITests(TestCase):
         self.client.login(email="other@example.com", password="testpass123")
 
         url = reverse(
-            "document_processing:share_document",
+            "speech_processing:share_document",
             kwargs={"document_id": self.document.id},
         )
         response = self.client.post(
@@ -129,7 +129,7 @@ class ShareDocumentAPITests(TestCase):
         self.client.login(email="owner@example.com", password="testpass123")
 
         url = reverse(
-            "document_processing:share_document",
+            "speech_processing:share_document",
             kwargs={"document_id": self.document.id},
         )
         response = self.client.post(
@@ -161,7 +161,7 @@ class ShareDocumentAPITests(TestCase):
         self.client.login(email="owner@example.com", password="testpass123")
 
         url = reverse(
-            "document_processing:share_document",
+            "speech_processing:share_document",
             kwargs={"document_id": self.document.id},
         )
         response = self.client.post(
@@ -212,7 +212,7 @@ class UnshareDocumentAPITests(TestCase):
         self.client.login(email="owner@example.com", password="testpass123")
 
         url = reverse(
-            "document_processing:unshare_document",
+            "speech_processing:unshare_document",
             kwargs={"document_id": self.document.id, "share_id": self.share.id},
         )
         response = self.client.delete(url)
@@ -229,7 +229,7 @@ class UnshareDocumentAPITests(TestCase):
         self.client.login(email="other@example.com", password="testpass123")
 
         url = reverse(
-            "document_processing:unshare_document",
+            "speech_processing:unshare_document",
             kwargs={"document_id": self.document.id, "share_id": self.share.id},
         )
         response = self.client.delete(url)
@@ -282,7 +282,7 @@ class DocumentSharesListAPITests(TestCase):
         self.client.login(email="owner@example.com", password="testpass123")
 
         url = reverse(
-            "document_processing:document_shares",
+            "speech_processing:document_shares",
             kwargs={"document_id": self.document.id},
         )
         response = self.client.get(url)
@@ -339,7 +339,7 @@ class SharedWithMeAPITests(TestCase):
         """Test user can list documents shared with them."""
         self.client.login(email="shared@example.com", password="testpass123")
 
-        url = reverse("document_processing:shared_with_me")
+        url = reverse("speech_processing:shared_with_me")
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
@@ -392,7 +392,7 @@ class UpdateSharePermissionAPITests(TestCase):
         self.client.login(email="owner@example.com", password="testpass123")
 
         url = reverse(
-            "document_processing:update_share_permission",
+            "speech_processing:update_share_permission",
             kwargs={"document_id": self.document.id, "share_id": self.share.id},
         )
         response = self.client.patch(
@@ -414,7 +414,7 @@ class UpdateSharePermissionAPITests(TestCase):
         self.client.login(email="other@example.com", password="testpass123")
 
         url = reverse(
-            "document_processing:update_share_permission",
+            "speech_processing:update_share_permission",
             kwargs={"document_id": self.document.id, "share_id": self.share.id},
         )
         response = self.client.patch(
@@ -437,7 +437,7 @@ class UpdateSharePermissionAPITests(TestCase):
         self.client.login(email="owner@example.com", password="testpass123")
 
         url = reverse(
-            "document_processing:update_share_permission",
+            "speech_processing:update_share_permission",
             kwargs={"document_id": self.document.id, "share_id": self.share.id},
         )
         response = self.client.patch(

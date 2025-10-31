@@ -170,13 +170,15 @@ def check_audio_generation_status(audio_id):
 
 
 @shared_task
-def export_audit_logs_to_s3():
+def export_audit_logs_to_s3(start_date=None, end_date=None, user_id=None):
     """
     Export audit logs to S3 in JSON Lines format.
-    Should be run monthly via Celery Beat.
+    Can be run manually with specific date range and user, or monthly via Celery Beat.
 
-    Exports logs from the previous month and stores them in S3
-    at: audit-logs/YYYY/MM/audit-logs-YYYY-MM.jsonl
+    Args:
+        start_date: Optional ISO format start date string (defaults to start of previous month)
+        end_date: Optional ISO format end date string (defaults to start of current month)
+        user_id: Optional user ID to filter logs (defaults to all users)
 
     Returns:
         dict with success status and details
@@ -190,28 +192,43 @@ def export_audit_logs_to_s3():
     from io import StringIO
 
     try:
-        # Calculate date range for previous month
-        today = timezone.now()
-        first_day_this_month = today.replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0
-        )
-        last_day_prev_month = first_day_this_month - timedelta(days=1)
-        first_day_prev_month = last_day_prev_month.replace(day=1)
+        # Parse date parameters or use previous month
+        if start_date and end_date:
+            from dateutil.parser import parse as parse_date
+
+            first_day_prev_month = parse_date(start_date).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            first_day_this_month = parse_date(end_date).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+        else:
+            today = timezone.now()
+            first_day_this_month = today.replace(
+                day=1, hour=0, minute=0, second=0, microsecond=0
+            )
+            last_day_prev_month = first_day_this_month - timedelta(days=1)
+            first_day_prev_month = last_day_prev_month.replace(day=1)
 
         # Format for S3 key
-        year = last_day_prev_month.year
-        month = last_day_prev_month.month
+        year = first_day_prev_month.year
+        month = first_day_prev_month.month
 
-        logger.info(f"Exporting audit logs for {year}-{month:02d}")
-
-        # Query logs for the previous month
-        logs = (
-            AudioAccessLog.objects.filter(
-                timestamp__gte=first_day_prev_month, timestamp__lt=first_day_this_month
-            )
-            .select_related("user", "audio", "document")
-            .order_by("timestamp")
+        logger.info(
+            f"Exporting audit logs for {year}-{month:02d}"
+            f"{f' for user {user_id}' if user_id else ''}"
         )
+
+        # Query logs for the date range
+        logs = AudioAccessLog.objects.filter(
+            timestamp__gte=first_day_prev_month, timestamp__lt=first_day_this_month
+        ).select_related("user", "audio", "document")
+
+        # Filter by user if specified
+        if user_id:
+            logs = logs.filter(user_id=user_id)
+
+        logs = logs.order_by("timestamp")
 
         log_count = logs.count()
 
@@ -291,7 +308,7 @@ def check_expired_audios():
 
     Actions performed:
     1. Send warning emails to users for audios expiring within 30 days
-    2. Auto-delete expired audios (6 months after last_played_at or created_at)
+    2. Auto-delete expired audios (6 months after last_played_at or created_at) if setting enabled
     3. Log all actions
 
     Returns:
@@ -301,11 +318,15 @@ def check_expired_audios():
     from django.template.loader import render_to_string
     from django.conf import settings
     from django.utils import timezone
-    from speech_processing.models import Audio, AudioLifetimeStatus
+    from speech_processing.models import Audio, AudioLifetimeStatus, SiteSettings
     import boto3
 
     try:
         logger.info("Starting expired audios check task")
+
+        # Check if auto-deletion is enabled
+        site_settings = SiteSettings.get_settings()
+        auto_delete_enabled = site_settings.auto_delete_expired_enabled
 
         # Get active audios only
         active_audios = Audio.objects.filter(
@@ -324,7 +345,7 @@ def check_expired_audios():
         for audio in active_audios:
             try:
                 # Check if expired
-                if audio.is_expired():
+                if audio.is_expired() and auto_delete_enabled:
                     # Delete from S3
                     try:
                         s3_client = boto3.client(

@@ -26,13 +26,19 @@ class GenerateAudioAPITests(TestCase):
     def setUp(self):
         """Create test data."""
         self.client = Client()
-        self.owner = User.objects.create_user(username="testuser28", email="owner@example.com", password="testpass123"
+        self.owner = User.objects.create_user(
+            username="testuser28", email="owner@example.com", password="testpass123"
         )
-        self.other_user = User.objects.create_user(username="testuser29", email="other@example.com", password="testpass123"
+        self.other_user = User.objects.create_user(
+            username="testuser29", email="other@example.com", password="testpass123"
         )
 
         self.document = Document.objects.create(
-            user=self.owner, title="Test Doc", source_content="test.pdf", source_type="FILE", status="COMPLETED"
+            user=self.owner,
+            title="Test Doc",
+            source_content="test.pdf",
+            source_type="FILE",
+            status="COMPLETED",
         )
         self.page = DocumentPage.objects.create(
             document=self.document,
@@ -101,7 +107,7 @@ class GenerateAudioAPITests(TestCase):
             content_type="application/json",
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
         data = response.json()
         self.assertFalse(data["success"])
         self.assertIn("permission", data["error"].lower())
@@ -131,7 +137,7 @@ class GenerateAudioAPITests(TestCase):
             content_type="application/json",
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
         data = response.json()
         self.assertFalse(data["success"])
         self.assertIn("quota", data["error"].lower())
@@ -163,7 +169,7 @@ class GenerateAudioAPITests(TestCase):
             content_type="application/json",
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
         data = response.json()
         self.assertFalse(data["success"])
         self.assertIn("voice", data["error"].lower())
@@ -181,7 +187,7 @@ class GenerateAudioAPITests(TestCase):
             url, data=json.dumps({}), content_type="application/json"
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         data = response.json()
         self.assertFalse(data["success"])
         self.assertIn("voice_id", data["error"].lower())
@@ -202,7 +208,7 @@ class GenerateAudioAPITests(TestCase):
             content_type="application/json",
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
         data = response.json()
         self.assertFalse(data["success"])
         self.assertIn("disabled", data["error"].lower())
@@ -214,10 +220,15 @@ class AudioStatusAPITests(TestCase):
     def setUp(self):
         """Create test data."""
         self.client = Client()
-        self.user = User.objects.create_user(username="testuser30", email="test@example.com", password="testpass123"
+        self.user = User.objects.create_user(
+            username="testuser30", email="test@example.com", password="testpass123"
         )
         self.document = Document.objects.create(
-            user=self.user, title="Test Doc", source_content="test.pdf", source_type="FILE", status="COMPLETED"
+            user=self.user,
+            title="Test Doc",
+            source_content="test.pdf",
+            source_type="FILE",
+            status="COMPLETED",
         )
         self.page = DocumentPage.objects.create(
             document=self.document, page_number=1, markdown_content="Test content"
@@ -262,10 +273,15 @@ class DownloadAudioAPITests(TestCase):
     def setUp(self):
         """Create test data."""
         self.client = Client()
-        self.user = User.objects.create_user(username="testuser31", email="test@example.com", password="testpass123"
+        self.user = User.objects.create_user(
+            username="testuser31", email="test@example.com", password="testpass123"
         )
         self.document = Document.objects.create(
-            user=self.user, title="Test Doc", source_content="test.pdf", source_type="FILE", status="COMPLETED"
+            user=self.user,
+            title="Test Doc",
+            source_content="test.pdf",
+            source_type="FILE",
+            status="COMPLETED",
         )
         self.page = DocumentPage.objects.create(
             document=self.document, page_number=1, markdown_content="Test content"
@@ -306,12 +322,18 @@ class DeleteAudioAPITests(TestCase):
     def setUp(self):
         """Create test data."""
         self.client = Client()
-        self.owner = User.objects.create_user(username="testuser32", email="owner@example.com", password="testpass123"
+        self.owner = User.objects.create_user(
+            username="testuser32", email="owner@example.com", password="testpass123"
         )
-        self.other_user = User.objects.create_user(username="testuser33", email="other@example.com", password="testpass123"
+        self.other_user = User.objects.create_user(
+            username="testuser33", email="other@example.com", password="testpass123"
         )
         self.document = Document.objects.create(
-            user=self.owner, title="Test Doc", source_content="test.pdf", source_type="FILE", status="COMPLETED"
+            user=self.owner,
+            title="Test Doc",
+            source_content="test.pdf",
+            source_type="FILE",
+            status="COMPLETED",
         )
         self.page = DocumentPage.objects.create(
             document=self.document, page_number=1, markdown_content="Test content"
@@ -351,7 +373,7 @@ class DeleteAudioAPITests(TestCase):
         )
         response = self.client.delete(url)
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
         data = response.json()
         self.assertFalse(data["success"])
         self.assertIn("permission", data["error"].lower())
@@ -367,10 +389,15 @@ class PageAudiosListAPITests(TestCase):
     def setUp(self):
         """Create test data."""
         self.client = Client()
-        self.user = User.objects.create_user(username="testuser34", email="test@example.com", password="testpass123"
+        self.user = User.objects.create_user(
+            username="testuser34", email="test@example.com", password="testpass123"
         )
         self.document = Document.objects.create(
-            user=self.user, title="Test Doc", source_content="test.pdf", source_type="FILE", status="COMPLETED"
+            user=self.user,
+            title="Test Doc",
+            source_content="test.pdf",
+            source_type="FILE",
+            status="COMPLETED",
         )
         self.page = DocumentPage.objects.create(
             document=self.document, page_number=1, markdown_content="Test content"

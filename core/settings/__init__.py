@@ -5,7 +5,7 @@ from .base import *
 
 # Determine environment and load specific settings
 # Default to 'dev' settings if DJANGO_SETTINGS_MODULE is not explicitly set
-ENVIRONMENT = os.getenv("DJANGO_SETTINGS_MODULE", "tts_project.settings.dev")
+ENVIRONMENT = os.getenv("DJANGO_SETTINGS_MODULE", "core.settings.dev")
 
 if "dev" in ENVIRONMENT:
     from .dev import *

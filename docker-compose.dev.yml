@@ -15,7 +15,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - SITE_DOMAIN=localhost:8000
       - SITE_NAME=TTS_Project Dev
-      - DJANGO_SETTINGS_MODULE=tts_project.settings.dev
+      - DJANGO_SETTINGS_MODULE=core.settings.dev
       - PYTHONUNBUFFERED=1
       - DEBUG=True
     depends_on:
@@ -30,7 +30,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    command: celery -A tts_project.settings.celery worker -l info --pool=solo
+    command: celery -A core.settings.celery worker -l info --pool=solo
     volumes:
       - .:/app
       - /app/static_cdn
@@ -38,7 +38,7 @@ services:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - DJANGO_SETTINGS_MODULE=tts_project.settings.dev
+      - DJANGO_SETTINGS_MODULE=core.settings.dev
       - PYTHONUNBUFFERED=1
     depends_on:
       - web

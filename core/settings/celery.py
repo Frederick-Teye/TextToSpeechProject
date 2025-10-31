@@ -4,10 +4,10 @@ from celery import Celery
 from celery.schedules import crontab
 
 # Set the default Django settings module
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tts_project.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 
-# Create a Celery instance named 'tts_project'
-app = Celery("tts_project")
+# Create a Celery instance named 'core'
+app = Celery("core")
 
 # Load configuration from Django settings
 app.config_from_object("django.conf:settings", namespace="CELERY")

@@ -10,7 +10,7 @@ services:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - DJANGO_SETTINGS_MODULE=tts_project.settings.production
+      - DJANGO_SETTINGS_MODULE=core.settings.production
     depends_on:
       - db
       - redis
@@ -22,12 +22,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: celery -A tts_project.settings.celery worker -l info
+    command: celery -A core.settings.celery worker -l info
     env_file:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - DJANGO_SETTINGS_MODULE=tts_project.settings.production
+      - DJANGO_SETTINGS_MODULE=core.settings.production
     depends_on:
       - web
       - redis

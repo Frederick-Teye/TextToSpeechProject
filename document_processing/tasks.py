@@ -8,7 +8,7 @@ import requests
 import boto3
 import fitz  # PyMuPDF
 
-from tts_project.settings.celery import app
+from core.settings.celery import app
 from django.conf import settings
 from django.db import transaction
 from pymupdf4llm import to_markdown

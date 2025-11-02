@@ -8,8 +8,10 @@ import requests
 import boto3
 import fitz  # PyMuPDF
 import nh3
+import traceback
 
 from core.settings.celery import app
+from core.task_utils import log_task_failure
 from django.conf import settings
 from django.db import transaction
 from pymupdf4llm import to_markdown
@@ -182,21 +184,53 @@ def parse_document_task(self, document_id, raw_text=""):
         logger.error(e, exc_info=True)
         doc.status = TextStatus.FAILED
         doc.error_message = str(e)
+        log_task_failure(
+            task_name='parse_document_task',
+            error_exception=e,
+            task_kwargs={'document_id': document_id},
+            document_id=document_id,
+            user_id=doc.user.id if doc.user else None,
+            retry_count=self.request.retries,
+        )
 
     except requests.RequestException as e:
         logger.error("URL fetch error", exc_info=True)
         doc.status = TextStatus.FAILED
         doc.error_message = "Failed to fetch URL content"
+        log_task_failure(
+            task_name='parse_document_task',
+            error_exception=e,
+            task_kwargs={'document_id': document_id},
+            document_id=document_id,
+            user_id=doc.user.id if doc.user else None,
+            retry_count=self.request.retries,
+        )
 
     except ValueError as e:
         logger.error(e, exc_info=True)
         doc.status = TextStatus.FAILED
         doc.error_message = "Processing failed: no readable text"
+        log_task_failure(
+            task_name='parse_document_task',
+            error_exception=e,
+            task_kwargs={'document_id': document_id},
+            document_id=document_id,
+            user_id=doc.user.id if doc.user else None,
+            retry_count=self.request.retries,
+        )
 
     except Exception as e:
         logger.exception("Unexpected processing error")
         doc.status = TextStatus.FAILED
         doc.error_message = "Processing failed: unsupported or corrupted content"
+        log_task_failure(
+            task_name='parse_document_task',
+            error_exception=e,
+            task_kwargs={'document_id': document_id},
+            document_id=document_id,
+            user_id=doc.user.id if doc.user else None,
+            retry_count=self.request.retries,
+        )
 
     finally:
         doc.save()

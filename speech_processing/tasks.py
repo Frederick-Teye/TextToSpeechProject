@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from speech_processing.services import AudioGenerationService
 from speech_processing.models import Audio, AudioGenerationStatus
 from speech_processing.logging_utils import log_generation_complete
+from core.task_utils import log_task_failure
 import logging
 import pypandoc
 import re
@@ -108,6 +109,12 @@ def generate_audio_task(self, audio_id):
 
     except Audio.DoesNotExist:
         logger.error(f"Audio {audio_id} not found")
+        log_task_failure(
+            task_name='generate_audio_task',
+            error_exception=Exception(f"Audio {audio_id} not found"),
+            task_kwargs={'audio_id': audio_id},
+            retry_count=self.request.retries,
+        )
         return {"success": False, "message": f"Audio {audio_id} not found"}
 
     except Exception as e:
@@ -124,8 +131,22 @@ def generate_audio_task(self, audio_id):
             log_generation_complete(
                 audio=audio, status=AudioGenerationStatus.FAILED, error_message=str(e)
             )
+            
+            # Log task failure
+            log_task_failure(
+                task_name='generate_audio_task',
+                error_exception=e,
+                task_kwargs={'audio_id': audio_id},
+                user_id=audio.generated_by.id if audio.generated_by else None,
+                retry_count=self.request.retries,
+            )
         except Audio.DoesNotExist:
-            pass
+            log_task_failure(
+                task_name='generate_audio_task',
+                error_exception=e,
+                task_kwargs={'audio_id': audio_id},
+                retry_count=self.request.retries,
+            )
 
         # Retry the task if retries available
         # Use exponential backoff with jitter to prevent thundering herd

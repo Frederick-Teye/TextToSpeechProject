@@ -24,6 +24,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config("DJANGO_SECRET_KEY")
 
+# Administrator contact information for error notifications
+# Format: (name, email) tuples
+ADMINS = [
+    (admin_name, admin_email)
+    for admin_name, admin_email in [
+        tuple(pair.split(',')) for pair in config("ADMINS", default="").split(';')
+        if pair.strip() and ',' in pair
+    ]
+] or [("Admin", config("DEFAULT_ADMIN_EMAIL", default="admin@example.com"))]
+
 
 # Application definition
 

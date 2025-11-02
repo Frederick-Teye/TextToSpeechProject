@@ -9,6 +9,7 @@ from django.db.models import Count, Prefetch
 from django.http import JsonResponse
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.utils.translation import gettext as _
 from django_ratelimit.decorators import ratelimit
 import markdown as md
 import nh3
@@ -93,13 +94,13 @@ def document_upload(request):
         )
         messages.error(
             request,
-            "You have exceeded the maximum number of uploads allowed (10 per hour). "
-            "Please try again later.",
+            _("You have exceeded the maximum number of uploads allowed (10 per hour). "
+            "Please try again later."),
         )
         return JsonResponse(
             {
                 "success": False,
-                "error": "Rate limit exceeded. Maximum 10 uploads per hour.",
+                "error": _("Rate limit exceeded. Maximum 10 uploads per hour."),
             },
             status=429,
         )
@@ -148,7 +149,7 @@ def document_upload(request):
                 )
 
                 messages.success(
-                    request, "Your document has been submitted and is now processing."
+                    request, _("Your document has been submitted and is now processing.")
                 )
                 return redirect("document_processing:document_detail", pk=document.id)
 
@@ -156,12 +157,12 @@ def document_upload(request):
                 logger.exception("Failed during document upload process.")
                 messages.error(
                     request,
-                    "An unexpected error occurred during the upload. Please try again.",
+                    _("An unexpected error occurred during the upload. Please try again."),
                 )
                 # No manual cleanup needed due to @transaction.atomic
 
         else:
-            messages.error(request, "Please correct the errors below.")
+            messages.error(request, _("Please correct the errors below."))
 
     else:
         form = DocumentUploadForm()
@@ -272,7 +273,7 @@ def document_delete(request, pk):
     """
     if request.method != "POST":
         return JsonResponse(
-            {"success": False, "message": "Invalid request method"}, status=405
+            {"success": False, "message": _("Invalid request method")}, status=405
         )
 
     doc = get_object_or_404(Document, pk=pk)
@@ -280,7 +281,7 @@ def document_delete(request, pk):
     # Permission check
     if request.user != doc.user:
         return JsonResponse(
-            {"success": False, "message": "Permission denied"}, status=403
+            {"success": False, "message": _("Permission denied")}, status=403
         )
 
     # Get the confirmed title from request
@@ -291,13 +292,13 @@ def document_delete(request, pk):
         confirmed_title = data.get("title", "").strip()
     except json.JSONDecodeError:
         return JsonResponse(
-            {"success": False, "message": "Invalid JSON data"}, status=400
+            {"success": False, "message": _("Invalid JSON data")}, status=400
         )
 
     # Verify title matches
     if confirmed_title != doc.title:
         return JsonResponse(
-            {"success": False, "message": "Document title does not match"}, status=400
+            {"success": False, "message": _("Document title does not match")}, status=400
         )
 
     try:

@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
+from django.utils.translation import gettext as _
 import json
 
 from document_processing.models import DocumentPage
@@ -52,7 +53,7 @@ def generate_audio(request, page_id):
 
         if not voice_id:
             return JsonResponse(
-                {"success": False, "error": "Voice ID is required"}, status=400
+                {"success": False, "error": _("Voice ID is required")}, status=400
             )
 
         # Get the page
@@ -105,13 +106,13 @@ def generate_audio(request, page_id):
 
     except json.JSONDecodeError:
         return JsonResponse(
-            {"success": False, "error": "Invalid JSON data"}, status=400
+            {"success": False, "error": _("Invalid JSON data")}, status=400
         )
     except Exception as e:
         # Log full error for debugging, but don't expose details to user
         logger.exception(f"Unexpected error in audio generation endpoint")
         return JsonResponse(
-            {"success": False, "error": "An error occurred during audio generation"},
+            {"success": False, "error": _("An error occurred during audio generation")},
             status=500,
         )
 
@@ -139,7 +140,7 @@ def audio_status(request, audio_id):
 
         if not has_access:
             return JsonResponse(
-                {"success": False, "error": "You don't have access to this audio"},
+                {"success": False, "error": _("You don't have access to this audio")},
                 status=403,
             )
 

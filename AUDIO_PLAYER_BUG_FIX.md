@@ -20,13 +20,14 @@ The audio player implementation had critical issues preventing proper functional
 
 ```javascript
 // ❌ OLD (BROKEN)
-document.getElementById('rewindBtn').addEventListener('click', function() {
-    const audio = document.getElementById('audioElement');
-    audio.currentTime = Math.max(0, audio.currentTime - 30);
+document.getElementById("rewindBtn").addEventListener("click", function () {
+  const audio = document.getElementById("audioElement");
+  audio.currentTime = Math.max(0, audio.currentTime - 30);
 });
 ```
 
 **Problems:**
+
 - If element doesn't exist, throws: `TypeError: Cannot read property 'addEventListener' of null`
 - No null checks on audio element access
 - No validation that `audio.src` exists before trying to manipulate `currentTime`
@@ -38,16 +39,22 @@ document.getElementById('rewindBtn').addEventListener('click', function() {
 
 ```javascript
 // ❌ OLD (BROKEN)
-document.getElementById('audioElement').addEventListener('timeupdate', function() {
-    document.getElementById('floatingAudioElement').currentTime = this.currentTime;
-});
+document
+  .getElementById("audioElement")
+  .addEventListener("timeupdate", function () {
+    document.getElementById("floatingAudioElement").currentTime =
+      this.currentTime;
+  });
 
-document.getElementById('floatingAudioElement').addEventListener('timeupdate', function() {
-    document.getElementById('audioElement').currentTime = this.currentTime;
-});
+document
+  .getElementById("floatingAudioElement")
+  .addEventListener("timeupdate", function () {
+    document.getElementById("audioElement").currentTime = this.currentTime;
+  });
 ```
 
 **Problems:**
+
 - Setting `currentTime` on floating element triggers its `timeupdate` event
 - That event sets main audio's `currentTime`
 - Which triggers main audio's `timeupdate` event
@@ -62,10 +69,11 @@ document.getElementById('floatingAudioElement').addEventListener('timeupdate', f
 
 ```javascript
 // ❌ OLD (BROKEN)
-audio.currentTime = Math.max(0, audio.currentTime - 30);  // What if src is empty?
+audio.currentTime = Math.max(0, audio.currentTime - 30); // What if src is empty?
 ```
 
 **Problems:**
+
 - `NaN` errors when audio has no source
 - Browser throws: `Uncaught InvalidStateError: An attempt was made to use an object in an invalid state`
 - Floating player tried to sync before `loadAudio()` set the source
@@ -77,10 +85,11 @@ audio.currentTime = Math.max(0, audio.currentTime - 30);  // What if src is empt
 
 ```javascript
 // ❌ OLD (BROKEN)
-floatingAudio.play();  // Might fail, unhandled promise rejection
+floatingAudio.play(); // Might fail, unhandled promise rejection
 ```
 
 **Problems:**
+
 - Browser throws `Uncaught (in promise) NotSupportedError` in some cases
 - No graceful fallback
 - User sees broken player without understanding why
@@ -100,6 +109,7 @@ floatingAudio.play();  // Might fail, unhandled promise rejection
 ```
 
 **Problems:**
+
 - Floating player might not show on mobile
 - Sync might not work if listeners attached before source set
 - Timing-dependent failures (intermittent bugs)
@@ -112,18 +122,20 @@ floatingAudio.play();  // Might fail, unhandled promise rejection
 
 ```javascript
 // ✅ NEW (FIXED)
-const rewindBtn = document.getElementById('rewindBtn');
+const rewindBtn = document.getElementById("rewindBtn");
 if (rewindBtn) {
-    rewindBtn.addEventListener('click', function() {
-        const audio = document.getElementById('audioElement');
-        if (audio && audio.src) {  // Double check
-            audio.currentTime = Math.max(0, audio.currentTime - 30);
-        }
-    });
+  rewindBtn.addEventListener("click", function () {
+    const audio = document.getElementById("audioElement");
+    if (audio && audio.src) {
+      // Double check
+      audio.currentTime = Math.max(0, audio.currentTime - 30);
+    }
+  });
 }
 ```
 
 **Benefits:**
+
 - Safe - no crashes if elements missing
 - Clear intent - reader sees element validation
 - Robust - handles dynamic HTML changes
@@ -154,6 +166,7 @@ floatingAudio.addEventListener('timeupdate', function() {
 ```
 
 **How it works:**
+
 1. When main audio updates, set `floatingAudioSyncing = true`
 2. Update floating audio's time
 3. Floating audio's `timeupdate` fires but sees flag is true
@@ -161,6 +174,7 @@ floatingAudio.addEventListener('timeupdate', function() {
 5. Reset flag for next update
 
 **Benefits:**
+
 - Eliminates infinite loops
 - One-way sync per direction
 - Smooth playback without UI thrashing
@@ -172,11 +186,12 @@ floatingAudio.addEventListener('timeupdate', function() {
 // ✅ NEW (FIXED)
 // Only sync if time difference > 0.5 seconds
 if (Math.abs(floatingAudio.currentTime - this.currentTime) > 0.5) {
-    floatingAudio.currentTime = this.currentTime;
+  floatingAudio.currentTime = this.currentTime;
 }
 ```
 
 **Benefits:**
+
 - Avoids syncing on every tiny time drift
 - Reduces unnecessary DOM operations
 - Smoother playback (less interruptions)
@@ -186,11 +201,12 @@ if (Math.abs(floatingAudio.currentTime - this.currentTime) > 0.5) {
 
 ```javascript
 // ✅ NEW (FIXED)
-floatingAudio.play().catch(e => console.warn('Float play error:', e));
-mainAudio.play().catch(e => console.warn('Main play error:', e));
+floatingAudio.play().catch((e) => console.warn("Float play error:", e));
+mainAudio.play().catch((e) => console.warn("Main play error:", e));
 ```
 
 **Benefits:**
+
 - Gracefully handles play failures
 - No unhandled promise rejections
 - Helpful error logging for debugging
@@ -201,11 +217,12 @@ mainAudio.play().catch(e => console.warn('Main play error:', e));
 ```javascript
 // ✅ NEW (FIXED)
 if (floatingAudio && floatingAudio.src) {
-    floatingAudio.currentTime = Math.max(0, floatingAudio.currentTime - 30);
+  floatingAudio.currentTime = Math.max(0, floatingAudio.currentTime - 30);
 }
 ```
 
 **Benefits:**
+
 - No `InvalidStateError` when manipulating empty audio
 - Clear validation of preconditions
 - Prevents NaN errors
@@ -218,69 +235,77 @@ if (floatingAudio && floatingAudio.src) {
 ### Main Player Rewind Button
 
 **Before:**
+
 ```javascript
-document.getElementById('rewindBtn').addEventListener('click', function() {
-    const audio = document.getElementById('audioElement');
-    audio.currentTime = Math.max(0, audio.currentTime - 30);
+document.getElementById("rewindBtn").addEventListener("click", function () {
+  const audio = document.getElementById("audioElement");
+  audio.currentTime = Math.max(0, audio.currentTime - 30);
 });
 ```
 
 **After:**
+
 ```javascript
-const rewindBtn = document.getElementById('rewindBtn');
+const rewindBtn = document.getElementById("rewindBtn");
 if (rewindBtn) {
-    rewindBtn.addEventListener('click', function() {
-        const audio = document.getElementById('audioElement');
-        if (audio && audio.src) {
-            audio.currentTime = Math.max(0, audio.currentTime - 30);
-        }
-    });
+  rewindBtn.addEventListener("click", function () {
+    const audio = document.getElementById("audioElement");
+    if (audio && audio.src) {
+      audio.currentTime = Math.max(0, audio.currentTime - 30);
+    }
+  });
 }
 ```
 
 ### Floating Player Rewind Button
 
 **Before:**
+
 ```javascript
-document.getElementById('floatingRewindBtn').addEventListener('click', function() {
-    const audio = document.getElementById('floatingAudioElement');
+document
+  .getElementById("floatingRewindBtn")
+  .addEventListener("click", function () {
+    const audio = document.getElementById("floatingAudioElement");
     audio.currentTime = Math.max(0, audio.currentTime - 30);
-});
+  });
 ```
 
 **After:**
+
 ```javascript
-const floatingRewindBtn = document.getElementById('floatingRewindBtn');
+const floatingRewindBtn = document.getElementById("floatingRewindBtn");
 if (floatingRewindBtn) {
-    floatingRewindBtn.addEventListener('click', function() {
-        if (floatingAudio && floatingAudio.src) {
-            floatingAudio.currentTime = Math.max(0, floatingAudio.currentTime - 30);
-            if (mainAudio && mainAudio.src) {
-                mainAudio.currentTime = floatingAudio.currentTime;  // Sync main
-            }
-        }
-    });
+  floatingRewindBtn.addEventListener("click", function () {
+    if (floatingAudio && floatingAudio.src) {
+      floatingAudio.currentTime = Math.max(0, floatingAudio.currentTime - 30);
+      if (mainAudio && mainAudio.src) {
+        mainAudio.currentTime = floatingAudio.currentTime; // Sync main
+      }
+    }
+  });
 }
 ```
 
 ### Play/Pause Sync
 
 **Before:**
+
 ```javascript
 // ❌ INFINITE LOOP - Not safe
-mainAudio.addEventListener('play', () => floatingAudio.play());
-floatingAudio.addEventListener('play', () => mainAudio.play());  // Loop!
+mainAudio.addEventListener("play", () => floatingAudio.play());
+floatingAudio.addEventListener("play", () => mainAudio.play()); // Loop!
 ```
 
 **After:**
+
 ```javascript
 // ✅ SAFE WITH FLAGS
-mainAudio.addEventListener('play', function() {
-    if (floatingAudio.src && !mainAudioSyncing) {
-        floatingAudioSyncing = true;
-        floatingAudio.play().catch(e => console.warn('Float play error:', e));
-        floatingAudioSyncing = false;
-    }
+mainAudio.addEventListener("play", function () {
+  if (floatingAudio.src && !mainAudioSyncing) {
+    floatingAudioSyncing = true;
+    floatingAudio.play().catch((e) => console.warn("Float play error:", e));
+    floatingAudioSyncing = false;
+  }
 });
 ```
 
@@ -289,6 +314,7 @@ mainAudio.addEventListener('play', function() {
 ## Testing Checklist
 
 ✅ **Rewind Button (Main Player)**
+
 - [ ] Click rewind button
 - [ ] Audio position decreases by ~30 seconds
 - [ ] No errors in console
@@ -297,6 +323,7 @@ mainAudio.addEventListener('play', function() {
 - [ ] Doesn't go below 0 seconds
 
 ✅ **Forward Button (Main Player)**
+
 - [ ] Click forward button
 - [ ] Audio position increases by ~30 seconds
 - [ ] No errors in console
@@ -305,6 +332,7 @@ mainAudio.addEventListener('play', function() {
 - [ ] Doesn't exceed audio duration
 
 ✅ **Floating Player Controls (Mobile)**
+
 - [ ] Resize to mobile width (<992px)
 - [ ] Load audio, floating player appears
 - [ ] Rewind button works on floating player
@@ -314,6 +342,7 @@ mainAudio.addEventListener('play', function() {
 - [ ] No errors in console
 
 ✅ **Audio Sync**
+
 - [ ] Play from main player, floating follows
 - [ ] Pause from main player, floating follows
 - [ ] Play from floating player, main follows
@@ -322,6 +351,7 @@ mainAudio.addEventListener('play', function() {
 - [ ] Time stays synchronized while playing
 
 ✅ **Floating Player Auto-Show**
+
 - [ ] Generate or select audio on mobile
 - [ ] Floating player appears automatically
 - [ ] Close button works (X hides player)
@@ -330,6 +360,7 @@ mainAudio.addEventListener('play', function() {
 - [ ] Sidebar player visible on desktop
 
 ✅ **Edge Cases**
+
 - [ ] No audio generated yet (buttons disabled)
 - [ ] Multiple audios in list (can switch)
 - [ ] Fast clicking rewind/forward (no errors)
@@ -341,6 +372,7 @@ mainAudio.addEventListener('play', function() {
 ## Performance Impact
 
 ### Before Fix
+
 - **CPU Usage:** High (constant sync loops)
 - **Memory:** Growing (listeners not cleaned up)
 - **Console Errors:** Many (undefined element access)
@@ -348,6 +380,7 @@ mainAudio.addEventListener('play', function() {
 - **Audio Playback:** Stuttering (sync interruptions)
 
 ### After Fix
+
 - **CPU Usage:** Minimal (no loops, efficient sync)
 - **Memory:** Stable (proper listener management)
 - **Console Errors:** None (all guarded)
@@ -361,6 +394,7 @@ mainAudio.addEventListener('play', function() {
 All fixes use standard JavaScript/HTML5 APIs:
 
 ✅ **Supported:**
+
 - Chrome 60+
 - Firefox 55+
 - Safari 12+
@@ -368,6 +402,7 @@ All fixes use standard JavaScript/HTML5 APIs:
 - Mobile browsers (iOS Safari, Chrome Mobile)
 
 **Key APIs used:**
+
 - `addEventListener()` / `removeEventListener()`
 - `Promise.catch()`
 - `Math.abs()`, `Math.max()`, `Math.min()`
@@ -381,11 +416,13 @@ All fixes use standard JavaScript/HTML5 APIs:
 ### `templates/document_processing/page_detail.html`
 
 **Changes:**
+
 - Lines 945-1008: Refactored rewind/forward functionality
 - Lines 950-1020: Implemented safe floating player sync
 - Lines 1025-1112: Added proper guard checks and error handling
 
 **Statistics:**
+
 - Lines added: 165
 - Lines removed: 97
 - Net change: +68 lines (but much more robust)
@@ -395,6 +432,7 @@ All fixes use standard JavaScript/HTML5 APIs:
 ## Deployment Notes
 
 ### Pre-Deployment Verification
+
 1. ✅ No syntax errors (JavaScript parses cleanly)
 2. ✅ All element references guarded
 3. ✅ No infinite loops (flags prevent recursion)
@@ -403,6 +441,7 @@ All fixes use standard JavaScript/HTML5 APIs:
 6. ✅ Browser console is clean (no errors)
 
 ### Backward Compatibility
+
 - ✅ No API changes to backend
 - ✅ No database migrations needed
 - ✅ No breaking UI changes
@@ -410,7 +449,9 @@ All fixes use standard JavaScript/HTML5 APIs:
 - ✅ Safe to deploy immediately
 
 ### Monitoring
+
 Watch for:
+
 - Console errors related to audio
 - CPU/memory usage spikes
 - Audio playback stuttering
@@ -424,16 +465,19 @@ Watch for:
 ### Why Did These Bugs Exist?
 
 1. **Rushed Initial Implementation**
+
    - Added features without defensive programming
    - No null checks on DOM queries
    - Assumed elements would always exist
 
 2. **Circular Dependency Not Anticipated**
+
    - Didn't expect timeupdate events to trigger in a loop
    - No flags to break recursion
    - Bi-directional sync without one-way gates
 
 3. **Missing QA on Edge Cases**
+
    - Didn't test with no audio available
    - Didn't test rapid button clicks
    - Didn't monitor console for errors
@@ -451,31 +495,35 @@ Watch for:
 ### Best Practices Applied
 
 1. **Always Check for Element Existence**
+
    ```javascript
    const el = document.getElementById('id');
    if (el) { ... }  // Safe
    ```
 
 2. **Use Flags to Prevent Infinite Loops**
+
    ```javascript
    let syncing = false;
    if (!syncing) {
-       syncing = true;
-       // Make change
-       syncing = false;
+     syncing = true;
+     // Make change
+     syncing = false;
    }
    ```
 
 3. **Validate Preconditions**
+
    ```javascript
    if (audio && audio.src && audio.duration) {
-       // Now safe to manipulate
+     // Now safe to manipulate
    }
    ```
 
 4. **Always Handle Promise Rejections**
+
    ```javascript
-   promise.catch(e => console.error('Error:', e));
+   promise.catch((e) => console.error("Error:", e));
    ```
 
 5. **Test with Missing Data**

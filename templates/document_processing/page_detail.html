@@ -271,25 +271,33 @@
 
 <!-- Floating Audio Player (Mobile Only) -->
 <div id="floatingAudioPlayer" class="floating-audio-player">
-    <button class="float-close-btn" onclick="toggleFloatingPlayer(false)" title="Close player">
-        <i class="bi bi-x-lg"></i>
-    </button>
     <div class="player-header">
-        <i class="bi bi-volume-up me-1"></i> <span id="floatingVoiceLabel">Audio Player</span>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bi bi-volume-up me-1"></i> <span id="floatingVoiceLabel">Audio Player</span>
+            </div>
+            <button class="float-minimize-btn" id="floatingMinimizeBtn" title="Minimize player">
+                <i class="bi bi-dash-lg"></i>
+            </button>
+        </div>
     </div>
-    <audio id="floatingAudioElement" class="w-100">
-        Your browser does not support the audio element.
-    </audio>
-    <div class="player-controls">
-        <button class="btn btn-sm btn-outline-warning" id="floatingRewindBtn" title="Rewind 30 seconds">
-            <i class="bi bi-rewind"></i>
-        </button>
-        <button class="btn btn-sm btn-outline-warning flex-grow-1" id="floatingPlayPauseBtn" title="Play/Pause">
-            <i class="bi bi-play-fill"></i>
-        </button>
-        <button class="btn btn-sm btn-outline-warning" id="floatingForwardBtn" title="Forward 30 seconds">
-            <i class="bi bi-fast-forward"></i>
-        </button>
+    
+    <!-- Expanded content -->
+    <div id="floatingPlayerContent" class="floating-player-content">
+        <audio id="floatingAudioElement" class="w-100">
+            Your browser does not support the audio element.
+        </audio>
+        <div class="player-controls">
+            <button class="btn btn-sm btn-outline-warning" id="floatingRewindBtn" title="Rewind 30 seconds">
+                <i class="bi bi-rewind"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-warning flex-grow-1" id="floatingPlayPauseBtn" title="Play/Pause">
+                <i class="bi bi-play-fill"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-warning" id="floatingForwardBtn" title="Forward 30 seconds">
+                <i class="bi bi-fast-forward"></i>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -378,25 +386,21 @@
         }
     }
 
-    .floating-audio-player .float-close-btn {
-        position: absolute;
-        top: 8px;
-        right: 8px;
+    .floating-audio-player .float-minimize-btn {
         background: none;
         border: none;
         color: #999;
         cursor: pointer;
-        font-size: 1.2rem;
-        padding: 0;
-        width: 30px;
-        height: 30px;
+        font-size: 1rem;
+        padding: 4px 8px;
         display: flex;
         align-items: center;
         justify-content: center;
         transition: color 0.2s;
+        margin-left: auto;
     }
 
-    .floating-audio-player .float-close-btn:hover {
+    .floating-audio-player .float-minimize-btn:hover {
         color: #fff;
     }
 
@@ -404,10 +408,32 @@
         font-size: 0.9rem;
         color: #adb5bd;
         margin-bottom: 12px;
-        padding-right: 24px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+
+    .floating-audio-player .player-header .d-flex {
+        gap: 8px;
+    }
+
+    /* Minimized state */
+    .floating-audio-player.minimized {
+        width: auto;
+        min-width: 140px;
+        padding: 10px;
+    }
+
+    .floating-audio-player.minimized .floating-player-content {
+        display: none;
+    }
+
+    .floating-audio-player.minimized .player-header {
+        margin-bottom: 0;
+    }
+
+    .floating-audio-player.minimized .float-minimize-btn i::before {
+        content: "\F567"; /* bi-plus-lg */
     }
 
     .floating-audio-player audio {
@@ -441,10 +467,17 @@
         }
     }
 
-    /* Adjust main content on mobile when floating player is visible */
-    @media (max-width: 768px) {
-        body.has-floating-player {
-            padding-bottom: 380px;
+    /* Adjust main content on mobile when floating player is visible and expanded */
+    @media (max-width: 991px) {
+        body.has-floating-player-expanded {
+            padding-bottom: 130px;
+        }
+    }
+
+    /* Minimized player takes less space */
+    @media (max-width: 991px) {
+        body.has-floating-player-minimized {
+            padding-bottom: 0;
         }
     }
 </style>
@@ -1073,16 +1106,49 @@
         });
     }
 
+    // Minimize/Maximize floating player
+    const minimizeBtn = document.getElementById('floatingMinimizeBtn');
+    const floatingPlayer = document.getElementById('floatingAudioPlayer');
+    
+    if (minimizeBtn && floatingPlayer) {
+        minimizeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            floatingPlayer.classList.toggle('minimized');
+            
+            // Toggle icon between minus and plus
+            const icon = minimizeBtn.querySelector('i');
+            if (floatingPlayer.classList.contains('minimized')) {
+                icon.className = 'bi bi-plus-lg';
+                minimizeBtn.setAttribute('title', 'Maximize player');
+                // Remove expanded padding, add minimized
+                document.body.classList.remove('has-floating-player-expanded');
+                document.body.classList.add('has-floating-player-minimized');
+            } else {
+                icon.className = 'bi bi-dash-lg';
+                minimizeBtn.setAttribute('title', 'Minimize player');
+                // Add expanded padding, remove minimized
+                document.body.classList.remove('has-floating-player-minimized');
+                document.body.classList.add('has-floating-player-expanded');
+            }
+        });
+    }
+
     // Toggle floating player visibility
     function toggleFloatingPlayer(show) {
         const floatingPlayer = document.getElementById('floatingAudioPlayer');
         if (floatingPlayer) {
             if (show && mainAudio && mainAudio.src) {
                 floatingPlayer.classList.add('active');
-                document.body.classList.add('has-floating-player');
+                // Player shows expanded by default
+                if (!floatingPlayer.classList.contains('minimized')) {
+                    document.body.classList.add('has-floating-player-expanded');
+                    document.body.classList.remove('has-floating-player-minimized');
+                }
             } else {
                 floatingPlayer.classList.remove('active');
-                document.body.classList.remove('has-floating-player');
+                // Remove all player-related padding when hidden
+                document.body.classList.remove('has-floating-player-expanded');
+                document.body.classList.remove('has-floating-player-minimized');
             }
         }
     }

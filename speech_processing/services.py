@@ -325,7 +325,9 @@ class PollyService:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         return f"audios/document_{document_id}/page_{page_number}/voice_{voice_id}_{timestamp}.mp3"
 
-    def generate_audio(self, text: str, voice_id: str, document_id: int, page_number: int) -> str:
+    def generate_audio(
+        self, text: str, voice_id: str, document_id: int, page_number: int
+    ) -> str:
         """
         Full audio generation pipeline:
         1. Chunk text
@@ -400,7 +402,9 @@ class AudioGenerationService:
     def __init__(self):
         self.polly_service = PollyService()
 
-    def check_generation_allowed(self, user, page, voice_id: str) -> tuple[bool, Optional[str]]:
+    def check_generation_allowed(
+        self, user, page, voice_id: str
+    ) -> tuple[bool, Optional[str]]:
         """
         Check if audio generation is allowed.
 
@@ -457,7 +461,7 @@ class AudioGenerationService:
         except DocumentSharing.DoesNotExist:
             return False, "You don't have access to this document."
 
-    def create_audio_record(self, page, voice_id: str, user) -> 'Audio':
+    def create_audio_record(self, page, voice_id: str, user) -> "Audio":
         """
         Create an Audio record in the database with PENDING status.
         Uses database-level locking to prevent race conditions where multiple
@@ -583,7 +587,9 @@ class AudioGenerationService:
             logger.error(f"Unexpected error during audio generation: {str(e)}")
             return False, "An unexpected error occurred during audio generation."
 
-    def get_presigned_url(self, audio: 'Audio', expiration: int = None) -> Optional[str]:
+    def get_presigned_url(
+        self, audio: "Audio", expiration: int = None
+    ) -> Optional[str]:
         """
         Generate a presigned URL for downloading an audio file.
         URL expires after specified seconds (default: 1 hour).

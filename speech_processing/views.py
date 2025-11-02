@@ -205,7 +205,9 @@ def download_audio(request, audio_id):
 
         # Generate presigned URL
         service = AudioGenerationService()
-        download_url = service.get_presigned_url(audio)  # Uses settings.AUDIO_PRESIGNED_URL_EXPIRATION_SECONDS
+        download_url = service.get_presigned_url(
+            audio
+        )  # Uses settings.AUDIO_PRESIGNED_URL_EXPIRATION_SECONDS
 
         if not download_url:
             return JsonResponse(

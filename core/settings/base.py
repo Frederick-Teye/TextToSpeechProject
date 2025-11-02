@@ -116,7 +116,9 @@ DATABASES = {
 # and should be centralized here for easy maintenance.
 
 # File upload and processing
-UPLOAD_MAX_FILENAME_LENGTH = 200  # Max filename length after sanitization (most filesystems support 255)
+UPLOAD_MAX_FILENAME_LENGTH = (
+    200  # Max filename length after sanitization (most filesystems support 255)
+)
 UPLOAD_MAX_FILE_SIZE_MB = 100  # Max file upload size in MB
 DOCUMENT_TITLE_MAX_LENGTH = 255  # Max length for document titles
 RATE_LIMIT_UPLOADS_PER_HOUR = 10  # Maximum document uploads per hour per user

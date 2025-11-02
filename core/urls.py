@@ -19,9 +19,12 @@ from django.contrib import admin
 from django.urls import path, include, re_path  # Import re_path
 from django.conf import settings
 from django.conf.urls.static import static
+from core.health_check import health_live, health_ready
 
 
 urlpatterns = [
+    path("health/live/", health_live, name="health_live"),
+    path("health/ready/", health_ready, name="health_ready"),
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
     path("users/", include("users.urls", namespace="users")),

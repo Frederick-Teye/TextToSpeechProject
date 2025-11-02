@@ -15,7 +15,11 @@ from django_ratelimit.decorators import ratelimit
 import markdown as md
 import nh3
 
-from core.decorators import document_access_required, page_access_required, owner_required
+from core.decorators import (
+    document_access_required,
+    page_access_required,
+    owner_required,
+)
 from .forms import DocumentUploadForm
 from .models import SourceType, TextStatus, Document, DocumentPage
 from .utils import upload_to_s3, validate_markdown, sanitize_markdown
@@ -104,7 +108,9 @@ def document_upload(request):
         return JsonResponse(
             {
                 "success": False,
-                "error": _(f"Rate limit exceeded. Maximum {settings.RATE_LIMIT_UPLOADS_PER_HOUR} uploads per hour."),
+                "error": _(
+                    f"Rate limit exceeded. Maximum {settings.RATE_LIMIT_UPLOADS_PER_HOUR} uploads per hour."
+                ),
             },
             status=429,
         )
@@ -178,7 +184,7 @@ def document_upload(request):
 
 
 @login_required
-@document_access_required(param_name='pk', permission_level='view')
+@document_access_required(param_name="pk", permission_level="view")
 def document_detail(request, pk, document):
     """
     Display a document with all its pages.
@@ -208,7 +214,7 @@ def document_detail(request, pk, document):
 
 
 @login_required
-@page_access_required(doc_param='doc_id', page_param='page', permission_level='view')
+@page_access_required(doc_param="doc_id", page_param="page", permission_level="view")
 def page_detail(request, doc_id, page, page_obj):
     """
     Display a single page with navigation controls.
@@ -254,7 +260,7 @@ def page_detail(request, doc_id, page, page_obj):
 
 
 @login_required
-@owner_required(doc_param='pk')
+@owner_required(doc_param="pk")
 def document_status_api(request, pk):
     """
     Returns the document's current processing status in JSON format.

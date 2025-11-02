@@ -125,12 +125,11 @@ def document_detail(request, pk):
         ).exists()
     )
 
-    can_share = (
-        doc.user == request.user
-        or DocumentSharing.objects.get(
-            document=doc, shared_with=request.user
-        ).can_share()
-    )
+    # Check if user can share (owner or has CAN_SHARE permission)
+    sharing = DocumentSharing.objects.filter(
+        document=doc, shared_with=request.user
+    ).first()
+    can_share = doc.user == request.user or (sharing and sharing.can_share())
 
     if not has_access:
         raise PermissionDenied

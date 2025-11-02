@@ -1,0 +1,545 @@
+Found 91 test(s).
+Creating test database for alias 'default' ('test_tts_db')...
+Operations to perform:
+  Synchronize unmigrated apps: allauth, crispy_bootstrap5, crispy_forms, github, google, messages, staticfiles, storages, widget_tweaks
+  Apply all migrations: account, admin, auth, contenttypes, document_processing, sessions, sites, socialaccount, speech_processing, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying account.0001_initial... OK
+  Applying account.0002_email_max_length... OK
+  Applying account.0003_alter_emailaddress_create_unique_verified_email... OK
+  Applying account.0004_alter_emailaddress_drop_unique_email... OK
+  Applying account.0005_emailaddress_idx_upper_email... OK
+  Applying account.0006_emailaddress_lower... OK
+  Applying account.0007_emailaddress_idx_email... OK
+  Applying account.0008_emailaddress_unique_primary_email_fixup... OK
+  Applying account.0009_emailaddress_unique_primary_email... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying document_processing.0001_initial... OK
+  Applying sessions.0001_initial... OK
+  Applying sites.0001_initial... OK
+  Applying sites.0002_alter_domain_unique... OK
+  Applying socialaccount.0001_initial... OK
+  Applying socialaccount.0002_token_max_lengths... OK
+  Applying socialaccount.0003_extra_data_default_dict... OK
+  Applying socialaccount.0004_app_provider_id_settings... OK
+  Applying socialaccount.0005_socialtoken_nullable_app... OK
+  Applying socialaccount.0006_alter_socialaccount_extra_data... OK
+  Applying speech_processing.0001_initial... OK
+  Applying speech_processing.0002_sitesettings_auto_delete_expired_enabled... OK
+System check identified no issues (0 silenced).
+test_file_source_requires_file (document_processing.tests.test_forms.DocumentUploadFormTests.test_file_source_requires_file) ... ok
+test_file_source_with_file_is_valid (document_processing.tests.test_forms.DocumentUploadFormTests.test_file_source_with_file_is_valid) ... ok
+test_text_source_requires_text (document_processing.tests.test_forms.DocumentUploadFormTests.test_text_source_requires_text) ... ok
+test_text_source_with_text_is_valid (document_processing.tests.test_forms.DocumentUploadFormTests.test_text_source_with_text_is_valid) ... ok
+test_url_source_requires_url (document_processing.tests.test_forms.DocumentUploadFormTests.test_url_source_requires_url) ... ok
+test_url_source_with_url_is_valid (document_processing.tests.test_forms.DocumentUploadFormTests.test_url_source_with_url_is_valid) ... ok
+test_task_fails_gracefully_on_bad_url (document_processing.tests.test_tasks.ParseDocumentTaskFailureTests.test_task_fails_gracefully_on_bad_url) ... [INFO] [None] Start processing Document 1
+[INFO] → URL: fetching and markdownifying http://a-bad-url.com
+[ERROR] URL fetch error
+Traceback (most recent call last):
+  File "/app/document_processing/tasks.py", line 114, in parse_document_task
+    pages = _process_url(doc.source_content)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/document_processing/tasks.py", line 90, in _process_url
+    resp = requests.get(url, timeout=10)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/unittest/mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/unittest/mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/unittest/mock.py", line 1183, in _execute_mock_call
+    raise effect
+requests.exceptions.RequestException: Connection timed out
+[INFO] Finished Document 1 with status FAILED
+ok
+test_task_fails_gracefully_on_corrupted_pdf (document_processing.tests.test_tasks.ParseDocumentTaskFailureTests.test_task_fails_gracefully_on_corrupted_pdf) ... [INFO] [None] Start processing Document 2
+[ERROR] Unexpected processing error
+Traceback (most recent call last):
+  File "/app/document_processing/tasks.py", line 141, in parse_document_task
+    pages = proc(buf)
+            ^^^^^^^^^
+  File "/usr/local/lib/python3.11/unittest/mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/unittest/mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/unittest/mock.py", line 1183, in _execute_mock_call
+    raise effect
+Exception: Cannot open corrupted PDF
+[INFO] Finished Document 2 with status FAILED
+ok
+test_task_fails_gracefully_on_empty_content (document_processing.tests.test_tasks.ParseDocumentTaskFailureTests.test_task_fails_gracefully_on_empty_content) ... [INFO] [None] Start processing Document 3
+[ERROR] No readable text found
+Traceback (most recent call last):
+  File "/app/document_processing/tasks.py", line 146, in parse_document_task
+    raise ValueError("No readable text found")
+ValueError: No readable text found
+[INFO] Finished Document 3 with status FAILED
+ok
+test_text_source_creates_one_page (document_processing.tests.test_tasks.ParseDocumentTaskSuccessTests.test_text_source_creates_one_page) ... [INFO] [None] Start processing Document 4
+[ERROR] No readable text found
+Traceback (most recent call last):
+  File "/app/document_processing/tasks.py", line 146, in parse_document_task
+    raise ValueError("No readable text found")
+ValueError: No readable text found
+[INFO] Finished Document 4 with status FAILED
+FAIL
+test_url_source_is_markdownified (document_processing.tests.test_tasks.ParseDocumentTaskSuccessTests.test_url_source_is_markdownified) ... [INFO] [None] Start processing Document 5
+[INFO] → URL: fetching and markdownifying http://fake-example.com
+[INFO] Finished Document 5 with status COMPLETED
+ok
+test_upload_failure_raises_exception (document_processing.tests.test_utils.UploadToS3Tests.test_upload_failure_raises_exception) ... [ERROR] Failed to upload foo.txt for user 1
+Traceback (most recent call last):
+  File "/app/document_processing/utils.py", line 29, in upload_to_s3
+    key = storage.save(s3_path, file_obj)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/unittest/mock.py", line 1124, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/unittest/mock.py", line 1128, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/unittest/mock.py", line 1183, in _execute_mock_call
+    raise effect
+Exception: Failed to upload file to S3
+ok
+test_upload_success_uses_uuid (document_processing.tests.test_utils.UploadToS3Tests.test_upload_success_uses_uuid) ... [INFO] Uploaded foo.txt to uploads/1/some-uuid_foo.txt
+ok
+test_audio_status_success (speech_processing.tests.test_api_endpoints.AudioStatusAPITests.test_audio_status_success)
+Test successful status check. ... ok
+test_audio_status_unauthenticated (speech_processing.tests.test_api_endpoints.AudioStatusAPITests.test_audio_status_unauthenticated)
+Test status check fails for unauthenticated user. ... ok
+test_delete_audio_by_non_owner (speech_processing.tests.test_api_endpoints.DeleteAudioAPITests.test_delete_audio_by_non_owner)
+Test non-owner cannot delete audio. ... [WARNING] Forbidden: /speech/audio/3/delete/
+FAIL
+test_delete_audio_by_owner (speech_processing.tests.test_api_endpoints.DeleteAudioAPITests.test_delete_audio_by_owner)
+Test owner can delete audio. ... ok
+test_download_audio_success (speech_processing.tests.test_api_endpoints.DownloadAudioAPITests.test_download_audio_success)
+Test successful download URL generation. ... ok
+test_generate_audio_duplicate_voice (speech_processing.tests.test_api_endpoints.GenerateAudioAPITests.test_generate_audio_duplicate_voice)
+Test generation fails for duplicate active voice. ... [WARNING] Forbidden: /speech/generate/7/
+ok
+test_generate_audio_generation_disabled (speech_processing.tests.test_api_endpoints.GenerateAudioAPITests.test_generate_audio_generation_disabled)
+Test generation fails when globally disabled. ... [WARNING] Forbidden: /speech/generate/8/
+ok
+test_generate_audio_missing_voice_id (speech_processing.tests.test_api_endpoints.GenerateAudioAPITests.test_generate_audio_missing_voice_id)
+Test generation fails with missing voice_id. ... [WARNING] Bad Request: /speech/generate/9/
+FAIL
+test_generate_audio_quota_exceeded (speech_processing.tests.test_api_endpoints.GenerateAudioAPITests.test_generate_audio_quota_exceeded)
+Test generation fails when quota is full. ... [WARNING] Forbidden: /speech/generate/10/
+ok
+test_generate_audio_success (speech_processing.tests.test_api_endpoints.GenerateAudioAPITests.test_generate_audio_success)
+Test successful audio generation by owner. ... ok
+test_generate_audio_unauthenticated (speech_processing.tests.test_api_endpoints.GenerateAudioAPITests.test_generate_audio_unauthenticated)
+Test generation fails for unauthenticated user. ... ok
+test_generate_audio_unauthorized_user (speech_processing.tests.test_api_endpoints.GenerateAudioAPITests.test_generate_audio_unauthorized_user)
+Test generation fails for user without access. ... [WARNING] Forbidden: /speech/generate/13/
+FAIL
+test_list_page_audios_success (speech_processing.tests.test_api_endpoints.PageAudiosListAPITests.test_list_page_audios_success)
+Test successful listing of page audios. ... ok
+test_days_until_expiry_expired_audio (speech_processing.tests.test_models.AudioModelExpiryTests.test_days_until_expiry_expired_audio)
+Test days_until_expiry returns 0 for expired audio. ... ok
+test_days_until_expiry_never_played (speech_processing.tests.test_models.AudioModelExpiryTests.test_days_until_expiry_never_played)
+Test days_until_expiry calculation for never-played audio. ... ok
+test_days_until_expiry_recently_played (speech_processing.tests.test_models.AudioModelExpiryTests.test_days_until_expiry_recently_played)
+Test days_until_expiry after recent play. ... ok
+test_get_expiry_date_never_played (speech_processing.tests.test_models.AudioModelExpiryTests.test_get_expiry_date_never_played)
+Test get_expiry_date calculation for never-played audio. ... ok
+test_get_expiry_date_with_play_date (speech_processing.tests.test_models.AudioModelExpiryTests.test_get_expiry_date_with_play_date)
+Test get_expiry_date uses last_played_at when available. ... ok
+test_is_expired_never_played_is_expired (speech_processing.tests.test_models.AudioModelExpiryTests.test_is_expired_never_played_is_expired)
+Test audio created 7 months ago (never played) is expired. ... [DEBUG] Expiry check for audio 19: retention_months=6, retention_days=180, reference_date=2025-04-06 14:04:50.785487+00:00, now=2025-11-02 14:04:50.790099+00:00, expiry_threshold=2025-05-06 14:04:50.790076+00:00, is_expired=True
+ok
+test_is_expired_never_played_not_expired (speech_processing.tests.test_models.AudioModelExpiryTests.test_is_expired_never_played_not_expired)
+Test audio created recently (never played) is not expired. ... [DEBUG] Expiry check for audio 20: retention_months=6, retention_days=180, reference_date=2025-11-02 14:04:51.134859+00:00, now=2025-11-02 14:04:51.135720+00:00, expiry_threshold=2025-05-06 14:04:51.135704+00:00, is_expired=False
+ok
+test_is_expired_old_play_date (speech_processing.tests.test_models.AudioModelExpiryTests.test_is_expired_old_play_date)
+Test audio not played for 7 months is expired. ... [DEBUG] Expiry check for audio 21: retention_months=6, retention_days=180, reference_date=2025-04-06 14:04:51.476310+00:00, now=2025-11-02 14:04:51.479379+00:00, expiry_threshold=2025-05-06 14:04:51.479362+00:00, is_expired=True
+ok
+test_is_expired_recently_played (speech_processing.tests.test_models.AudioModelExpiryTests.test_is_expired_recently_played)
+Test audio played recently is not expired. ... [DEBUG] Expiry check for audio 22: retention_months=6, retention_days=180, reference_date=2025-10-03 14:04:51.865844+00:00, now=2025-11-02 14:04:51.869966+00:00, expiry_threshold=2025-05-06 14:04:51.869938+00:00, is_expired=False
+ok
+test_needs_expiry_warning_already_expired (speech_processing.tests.test_models.AudioModelExpiryTests.test_needs_expiry_warning_already_expired)
+Test needs_expiry_warning returns False for expired audio. ... ok
+test_needs_expiry_warning_no_warning_needed (speech_processing.tests.test_models.AudioModelExpiryTests.test_needs_expiry_warning_no_warning_needed)
+Test needs_expiry_warning returns False for recently played audio. ... ok
+test_needs_expiry_warning_warning_needed (speech_processing.tests.test_models.AudioModelExpiryTests.test_needs_expiry_warning_warning_needed)
+Test needs_expiry_warning returns True when 25 days left. ... ok
+test_can_create_audio_within_quota (speech_processing.tests.test_models.AudioModelQuotaTests.test_can_create_audio_within_quota)
+Test that audios can be created when under quota. ... ok
+test_deleted_audios_count_toward_quota (speech_processing.tests.test_models.AudioModelQuotaTests.test_deleted_audios_count_toward_quota)
+Test that soft-deleted audios still count toward lifetime quota. ... ok
+test_expired_audios_count_toward_quota (speech_processing.tests.test_models.AudioModelQuotaTests.test_expired_audios_count_toward_quota)
+Test that expired audios count toward lifetime quota. ... ok
+test_quota_enforcement_max_4_audios (speech_processing.tests.test_models.AudioModelQuotaTests.test_quota_enforcement_max_4_audios)
+Test that 5th audio creation fails (max 4 allowed). ... ok
+test_soft_delete_allows_voice_reuse (speech_processing.tests.test_models.AudioModelSoftDeleteTests.test_soft_delete_allows_voice_reuse)
+Test that soft-deleting an audio allows voice reuse. ... ok
+test_soft_delete_record_remains_in_database (speech_processing.tests.test_models.AudioModelSoftDeleteTests.test_soft_delete_record_remains_in_database)
+Test soft-deleted audio still exists in database. ... ok
+test_soft_delete_sets_lifetime_status (speech_processing.tests.test_models.AudioModelSoftDeleteTests.test_soft_delete_sets_lifetime_status)
+Test soft delete changes lifetime_status to DELETED. ... ok
+test_can_reuse_voice_after_deletion (speech_processing.tests.test_models.AudioModelVoiceUniquenessTests.test_can_reuse_voice_after_deletion)
+Test that voice can be reused after original is soft-deleted. ... ok
+test_can_reuse_voice_after_expiry (speech_processing.tests.test_models.AudioModelVoiceUniquenessTests.test_can_reuse_voice_after_expiry)
+Test that voice can be reused after original expires. ... ok
+test_cannot_create_duplicate_active_voice (speech_processing.tests.test_models.AudioModelVoiceUniquenessTests.test_cannot_create_duplicate_active_voice)
+Test that duplicate active voice on same page fails. ... ok
+test_different_pages_can_have_same_voice (speech_processing.tests.test_models.AudioModelVoiceUniquenessTests.test_different_pages_can_have_same_voice)
+Test that different pages can have audios with same voice. ... ok
+test_list_shares_by_owner (speech_processing.tests.test_sharing_api.DocumentSharesListAPITests.test_list_shares_by_owner)
+Test owner can list all shares. ... ok
+test_share_document_by_non_owner (speech_processing.tests.test_sharing_api.ShareDocumentAPITests.test_share_document_by_non_owner)
+Test non-owner cannot share document. ... [WARNING] Forbidden: /speech/share/43/
+FAIL
+test_share_document_by_owner_success (speech_processing.tests.test_sharing_api.ShareDocumentAPITests.test_share_document_by_owner_success)
+Test owner can share document with collaborator permission. ... ok
+test_share_document_duplicate_share (speech_processing.tests.test_sharing_api.ShareDocumentAPITests.test_share_document_duplicate_share)
+Test sharing with already shared user fails. ... FAIL
+test_share_document_invalid_email (speech_processing.tests.test_sharing_api.ShareDocumentAPITests.test_share_document_invalid_email)
+Test sharing with non-existent email fails gracefully. ... [WARNING] Not Found: /speech/share/46/
+FAIL
+test_share_document_with_can_share_permission (speech_processing.tests.test_sharing_api.ShareDocumentAPITests.test_share_document_with_can_share_permission)
+Test user with CAN_SHARE permission can share document. ... ok
+test_list_shared_with_me (speech_processing.tests.test_sharing_api.SharedWithMeAPITests.test_list_shared_with_me)
+Test user can list documents shared with them. ... ERROR
+test_unshare_by_non_owner (speech_processing.tests.test_sharing_api.UnshareDocumentAPITests.test_unshare_by_non_owner)
+Test non-owner cannot remove share. ... ERROR
+test_unshare_by_owner_success (speech_processing.tests.test_sharing_api.UnshareDocumentAPITests.test_unshare_by_owner_success)
+Test owner can remove share. ... ERROR
+test_update_permission_by_non_owner (speech_processing.tests.test_sharing_api.UpdateSharePermissionAPITests.test_update_permission_by_non_owner)
+Test non-owner cannot update permission. ... ERROR
+test_update_permission_by_owner (speech_processing.tests.test_sharing_api.UpdateSharePermissionAPITests.test_update_permission_by_owner)
+Test owner can update share permission. ... ERROR
+test_update_permission_invalid_value (speech_processing.tests.test_sharing_api.UpdateSharePermissionAPITests.test_update_permission_invalid_value)
+Test update fails with invalid permission value. ... ERROR
+test_can_generate_audio_with_can_share_permission (speech_processing.tests.test_sharing_model.DocumentSharingModelTests.test_can_generate_audio_with_can_share_permission)
+Test can_generate_audio returns True for CAN_SHARE. ... ok
+test_can_generate_audio_with_collaborator_permission (speech_processing.tests.test_sharing_model.DocumentSharingModelTests.test_can_generate_audio_with_collaborator_permission)
+Test can_generate_audio returns True for COLLABORATOR. ... ok
+test_can_generate_audio_with_view_only_permission (speech_processing.tests.test_sharing_model.DocumentSharingModelTests.test_can_generate_audio_with_view_only_permission)
+Test can_generate_audio returns False for VIEW_ONLY. ... ok
+test_can_share_same_document_with_different_users (speech_processing.tests.test_sharing_model.DocumentSharingModelTests.test_can_share_same_document_with_different_users)
+Test document can be shared with multiple users. ... ok
+test_can_share_with_can_share_permission (speech_processing.tests.test_sharing_model.DocumentSharingModelTests.test_can_share_with_can_share_permission)
+Test can_share returns True only for CAN_SHARE. ... ok
+test_can_share_with_collaborator_permission (speech_processing.tests.test_sharing_model.DocumentSharingModelTests.test_can_share_with_collaborator_permission)
+Test can_share returns False for COLLABORATOR. ... ok
+test_can_share_with_view_only_permission (speech_processing.tests.test_sharing_model.DocumentSharingModelTests.test_can_share_with_view_only_permission)
+Test can_share returns False for VIEW_ONLY. ... ok
+test_permission_levels_hierarchy (speech_processing.tests.test_sharing_model.DocumentSharingModelTests.test_permission_levels_hierarchy)
+Test that permission levels have correct hierarchy. ... ok
+test_unique_together_constraint (speech_processing.tests.test_sharing_model.DocumentSharingModelTests.test_unique_together_constraint)
+Test that duplicate share (same document + user) raises error. ... ok
+test_can_update_existing_settings (speech_processing.tests.test_sharing_model.SiteSettingsModelTests.test_can_update_existing_settings)
+Test that existing settings can be updated. ... ok
+test_default_values (speech_processing.tests.test_sharing_model.SiteSettingsModelTests.test_default_values)
+Test that default values are set correctly. ... ok
+test_get_settings_creates_instance_if_none_exists (speech_processing.tests.test_sharing_model.SiteSettingsModelTests.test_get_settings_creates_instance_if_none_exists)
+Test get_settings creates instance with defaults if none exists. ... ok
+test_get_settings_returns_existing_instance (speech_processing.tests.test_sharing_model.SiteSettingsModelTests.test_get_settings_returns_existing_instance)
+Test get_settings returns existing instance if one exists. ... ok
+test_only_one_instance_allowed (speech_processing.tests.test_sharing_model.SiteSettingsModelTests.test_only_one_instance_allowed)
+Test that save() prevents creation of second instance. ... ok
+test_settings_str_representation (speech_processing.tests.test_sharing_model.SiteSettingsModelTests.test_settings_str_representation)
+Test string representation of settings. ... ok
+test_check_expired_audios_cleans_up_s3 (speech_processing.tests.test_tasks.CheckExpiredAudiosTaskTests.test_check_expired_audios_cleans_up_s3)
+Test task removes S3 files for expired audios. ... [INFO] Starting expired audios check task
+[DEBUG] Expiry check for audio 50: retention_months=6, retention_days=180, reference_date=2025-04-06 14:05:24.635970+00:00, now=2025-11-02 14:05:24.647842+00:00, expiry_threshold=2025-05-06 14:05:24.647804+00:00, is_expired=True
+[INFO] Deleted S3 object: audios/expired.mp3
+[INFO] Marked audio 50 as expired (voice: Kimberly, user: test@example.com)
+[INFO] Expiry check completed: 1 deleted, 0 warnings sent, 0 errors
+ok
+test_check_expired_audios_deletes_expired (speech_processing.tests.test_tasks.CheckExpiredAudiosTaskTests.test_check_expired_audios_deletes_expired)
+Test task soft-deletes expired audios. ... [INFO] Starting expired audios check task
+[DEBUG] Expiry check for audio 52: retention_months=6, retention_days=180, reference_date=2025-11-02 14:05:25.036458+00:00, now=2025-11-02 14:05:25.042074+00:00, expiry_threshold=2025-05-06 14:05:25.042053+00:00, is_expired=False
+[DEBUG] Expiry check for audio 51: retention_months=6, retention_days=180, reference_date=2025-04-06 14:05:25.031000+00:00, now=2025-11-02 14:05:25.044933+00:00, expiry_threshold=2025-05-06 14:05:25.044899+00:00, is_expired=True
+[INFO] Deleted S3 object: audios/expired.mp3
+[INFO] Marked audio 51 as expired (voice: Joanna, user: test@example.com)
+[INFO] Expiry check completed: 1 deleted, 0 warnings sent, 0 errors
+ok
+test_check_expired_audios_handles_last_played_at (speech_processing.tests.test_tasks.CheckExpiredAudiosTaskTests.test_check_expired_audios_handles_last_played_at)
+Test task uses last_played_at for expiry calculation when available. ... [INFO] Starting expired audios check task
+[DEBUG] Expiry check for audio 53: retention_months=6, retention_days=180, reference_date=2025-10-03 14:05:26.680725+00:00, now=2025-11-02 14:05:26.690576+00:00, expiry_threshold=2025-05-06 14:05:26.690538+00:00, is_expired=False
+[INFO] Expiry check completed: 0 deleted, 0 warnings sent, 0 errors
+ok
+test_check_expired_audios_no_warning_for_recent (speech_processing.tests.test_tasks.CheckExpiredAudiosTaskTests.test_check_expired_audios_no_warning_for_recent)
+Test task does not send warnings for recently created audios. ... [INFO] Starting expired audios check task
+[DEBUG] Expiry check for audio 54: retention_months=6, retention_days=180, reference_date=2025-10-03 14:05:27.041363+00:00, now=2025-11-02 14:05:27.048696+00:00, expiry_threshold=2025-05-06 14:05:27.048677+00:00, is_expired=False
+[INFO] Expiry check completed: 0 deleted, 0 warnings sent, 0 errors
+ok
+test_check_expired_audios_respects_settings (speech_processing.tests.test_tasks.CheckExpiredAudiosTaskTests.test_check_expired_audios_respects_settings)
+Test task respects auto-deletion setting. ... [INFO] Starting expired audios check task
+[DEBUG] Expiry check for audio 55: retention_months=6, retention_days=180, reference_date=2025-04-06 14:05:27.406119+00:00, now=2025-11-02 14:05:27.413801+00:00, expiry_threshold=2025-05-06 14:05:27.413774+00:00, is_expired=True
+[INFO] Expiry check completed: 0 deleted, 0 warnings sent, 0 errors
+ok
+test_check_expired_audios_sends_warning_emails (speech_processing.tests.test_tasks.CheckExpiredAudiosTaskTests.test_check_expired_audios_sends_warning_emails)
+Test task sends warning emails for audios nearing expiry. ... [INFO] Starting expired audios check task
+[DEBUG] Expiry check for audio 56: retention_months=6, retention_days=180, reference_date=2025-05-31 14:05:27.767818+00:00, now=2025-11-02 14:05:27.774482+00:00, expiry_threshold=2025-05-06 14:05:27.774463+00:00, is_expired=False
+[INFO] Sent expiry warning email to test@example.com for 1 audios
+[INFO] Expiry check completed: 0 deleted, 1 warnings sent, 0 errors
+ok
+test_export_audit_logs_filters_by_date_range (speech_processing.tests.test_tasks.ExportAuditLogsTaskTests.test_export_audit_logs_filters_by_date_range)
+Test export filters logs by date range. ... [INFO] Exporting audit logs for 2025-10 for user 122
+[INFO] Successfully exported 5 audit logs to s3://frederick-tts-project-dev-bucket-2025/audit-logs/2025/10/audit-logs-2025-10.jsonl
+ok
+test_export_audit_logs_filters_by_user (speech_processing.tests.test_tasks.ExportAuditLogsTaskTests.test_export_audit_logs_filters_by_user)
+Test export filters logs by user. ... [INFO] Exporting audit logs for 2025-11 for user 123
+[INFO] Successfully exported 5 audit logs to s3://frederick-tts-project-dev-bucket-2025/audit-logs/2025/11/audit-logs-2025-11.jsonl
+ok
+test_export_audit_logs_success (speech_processing.tests.test_tasks.ExportAuditLogsTaskTests.test_export_audit_logs_success)
+Test successful audit log export to S3. ... [INFO] Exporting audit logs for 2025-11 for user 125
+[INFO] Successfully exported 5 audit logs to s3://frederick-tts-project-dev-bucket-2025/audit-logs/2025/11/audit-logs-2025-11.jsonl
+ok
+test_generate_audio_task_audio_not_found (speech_processing.tests.test_tasks.GenerateAudioTaskTests.test_generate_audio_task_audio_not_found)
+Test task handles missing audio gracefully. ... [ERROR] Audio 99999 not found
+ok
+test_generate_audio_task_failure (speech_processing.tests.test_tasks.GenerateAudioTaskTests.test_generate_audio_task_failure)
+Test audio generation task handles failures. ... [INFO] Starting audio generation task for audio 58
+[ERROR] Audio generation task failed for audio 58: AWS Polly error
+ok
+test_generate_audio_task_retry_on_transient_error (speech_processing.tests.test_tasks.GenerateAudioTaskTests.test_generate_audio_task_retry_on_transient_error)
+Test task retries on transient errors. ... [INFO] Starting audio generation task for audio 59
+[ERROR] Audio generation task failed for audio 59: Connection timeout
+ok
+test_generate_audio_task_success (speech_processing.tests.test_tasks.GenerateAudioTaskTests.test_generate_audio_task_success)
+Test successful audio generation task execution. ... [INFO] Starting audio generation task for audio 60
+[INFO] Audio generation task completed for audio 60
+ok
+test_file_upload_success_flow (document_processing.tests.test_views.DocumentViewsIntegrationTests.test_file_upload_success_flow) ... ok
+test_non_owner_is_forbidden_from_detail_page (document_processing.tests.test_views.DocumentViewsIntegrationTests.test_non_owner_is_forbidden_from_detail_page) ... [ERROR] Internal Server Error: /documents/docs/1/
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/contrib/auth/decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/document_processing/views.py", line 130, in document_detail
+    or DocumentSharing.objects.get(
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+speech_processing.models.DocumentSharing.DoesNotExist: DocumentSharing matching query does not exist.
+ERROR
+
+======================================================================
+ERROR: test_list_shared_with_me (speech_processing.tests.test_sharing_api.SharedWithMeAPITests.test_list_shared_with_me)
+Test user can list documents shared with them.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/speech_processing/tests/test_sharing_api.py", line 348, in test_list_shared_with_me
+    self.assertEqual(len(data["shared_documents"]), 2)
+                         ~~~~^^^^^^^^^^^^^^^^^^^^
+KeyError: 'shared_documents'
+
+======================================================================
+ERROR: test_unshare_by_non_owner (speech_processing.tests.test_sharing_api.UnshareDocumentAPITests.test_unshare_by_non_owner)
+Test non-owner cannot remove share.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/speech_processing/tests/test_sharing_api.py", line 231, in test_unshare_by_non_owner
+    url = reverse(
+          ^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'unshare_document' with keyword arguments '{'document_id': 50, 'share_id': 9}' not found. 1 pattern(s) tried: ['speech/unshare/(?P<sharing_id>[0-9]+)/\\Z']
+
+======================================================================
+ERROR: test_unshare_by_owner_success (speech_processing.tests.test_sharing_api.UnshareDocumentAPITests.test_unshare_by_owner_success)
+Test owner can remove share.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/speech_processing/tests/test_sharing_api.py", line 214, in test_unshare_by_owner_success
+    url = reverse(
+          ^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'unshare_document' with keyword arguments '{'document_id': 51, 'share_id': 10}' not found. 1 pattern(s) tried: ['speech/unshare/(?P<sharing_id>[0-9]+)/\\Z']
+
+======================================================================
+ERROR: test_update_permission_by_non_owner (speech_processing.tests.test_sharing_api.UpdateSharePermissionAPITests.test_update_permission_by_non_owner)
+Test non-owner cannot update permission.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/speech_processing/tests/test_sharing_api.py", line 416, in test_update_permission_by_non_owner
+    url = reverse(
+          ^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'update_share_permission' with keyword arguments '{'document_id': 52, 'share_id': 11}' not found. 1 pattern(s) tried: ['speech/share/(?P<sharing_id>[0-9]+)/permission/\\Z']
+
+======================================================================
+ERROR: test_update_permission_by_owner (speech_processing.tests.test_sharing_api.UpdateSharePermissionAPITests.test_update_permission_by_owner)
+Test owner can update share permission.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/speech_processing/tests/test_sharing_api.py", line 394, in test_update_permission_by_owner
+    url = reverse(
+          ^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'update_share_permission' with keyword arguments '{'document_id': 53, 'share_id': 12}' not found. 1 pattern(s) tried: ['speech/share/(?P<sharing_id>[0-9]+)/permission/\\Z']
+
+======================================================================
+ERROR: test_update_permission_invalid_value (speech_processing.tests.test_sharing_api.UpdateSharePermissionAPITests.test_update_permission_invalid_value)
+Test update fails with invalid permission value.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/speech_processing/tests/test_sharing_api.py", line 439, in test_update_permission_invalid_value
+    url = reverse(
+          ^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/urls/base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/urls/resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'update_share_permission' with keyword arguments '{'document_id': 54, 'share_id': 13}' not found. 1 pattern(s) tried: ['speech/share/(?P<sharing_id>[0-9]+)/permission/\\Z']
+
+======================================================================
+ERROR: test_non_owner_is_forbidden_from_detail_page (document_processing.tests.test_views.DocumentViewsIntegrationTests.test_non_owner_is_forbidden_from_detail_page)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/document_processing/tests/test_views.py", line 56, in test_non_owner_is_forbidden_from_detail_page
+    response = self.client.get(
+               ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/test/client.py", line 1124, in get
+    response = super().get(
+               ^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/test/client.py", line 475, in get
+    return self.generic(
+           ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/test/client.py", line 671, in generic
+    return self.request(**r)
+           ^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/test/client.py", line 1087, in request
+    self.check_exception(response)
+  File "/usr/local/lib/python3.11/site-packages/django/test/client.py", line 802, in check_exception
+    raise exc_value
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/contrib/auth/decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/document_processing/views.py", line 130, in document_detail
+    or DocumentSharing.objects.get(
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+speech_processing.models.DocumentSharing.DoesNotExist: DocumentSharing matching query does not exist.
+
+======================================================================
+FAIL: test_text_source_creates_one_page (document_processing.tests.test_tasks.ParseDocumentTaskSuccessTests.test_text_source_creates_one_page)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/document_processing/tests/test_tasks.py", line 31, in test_text_source_creates_one_page
+    self.assertEqual(doc.status, TextStatus.COMPLETED)
+AssertionError: 'FAILED' != TextStatus.COMPLETED
+
+======================================================================
+FAIL: test_delete_audio_by_non_owner (speech_processing.tests.test_api_endpoints.DeleteAudioAPITests.test_delete_audio_by_non_owner)
+Test non-owner cannot delete audio.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/speech_processing/tests/test_api_endpoints.py", line 379, in test_delete_audio_by_non_owner
+    self.assertIn("permission", data["error"].lower())
+AssertionError: 'permission' not found in 'only the document owner can delete audio files'
+
+======================================================================
+FAIL: test_generate_audio_missing_voice_id (speech_processing.tests.test_api_endpoints.GenerateAudioAPITests.test_generate_audio_missing_voice_id)
+Test generation fails with missing voice_id.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/speech_processing/tests/test_api_endpoints.py", line 193, in test_generate_audio_missing_voice_id
+    self.assertIn("voice_id", data["error"].lower())
+AssertionError: 'voice_id' not found in 'voice id is required'
+
+======================================================================
+FAIL: test_generate_audio_unauthorized_user (speech_processing.tests.test_api_endpoints.GenerateAudioAPITests.test_generate_audio_unauthorized_user)
+Test generation fails for user without access.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/speech_processing/tests/test_api_endpoints.py", line 113, in test_generate_audio_unauthorized_user
+    self.assertIn("permission", data["error"].lower())
+AssertionError: 'permission' not found in "you don't have access to this document."
+
+======================================================================
+FAIL: test_share_document_by_non_owner (speech_processing.tests.test_sharing_api.ShareDocumentAPITests.test_share_document_by_non_owner)
+Test non-owner cannot share document.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/speech_processing/tests/test_sharing_api.py", line 85, in test_share_document_by_non_owner
+    self.assertEqual(response.status_code, 200)
+AssertionError: 403 != 200
+
+======================================================================
+FAIL: test_share_document_duplicate_share (speech_processing.tests.test_sharing_api.ShareDocumentAPITests.test_share_document_duplicate_share)
+Test sharing with already shared user fails.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/speech_processing/tests/test_sharing_api.py", line 180, in test_share_document_duplicate_share
+    self.assertFalse(data["success"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_share_document_invalid_email (speech_processing.tests.test_sharing_api.ShareDocumentAPITests.test_share_document_invalid_email)
+Test sharing with non-existent email fails gracefully.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/app/speech_processing/tests/test_sharing_api.py", line 146, in test_share_document_invalid_email
+    self.assertEqual(response.status_code, 200)
+AssertionError: 404 != 200
+
+----------------------------------------------------------------------
+Ran 91 tests in 58.443s
+
+FAILED (failures=7, errors=7)
+Destroying test database for alias 'default' ('test_tts_db')...

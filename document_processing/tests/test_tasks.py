@@ -25,7 +25,7 @@ class ParseDocumentTaskSuccessTests(TestCase):
             source_content=long_text,
         )
         # Act
-        parse_document_task(doc.id)
+        parse_document_task(doc.id, raw_text=long_text)
         # Assert
         doc.refresh_from_db()
         self.assertEqual(doc.status, TextStatus.COMPLETED)

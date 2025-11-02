@@ -23,6 +23,7 @@ from speech_processing.models import (
 )
 from document_processing.models import Document
 from django.contrib.auth import get_user_model
+from speech_processing.logging_utils import log_admin_action, get_client_ip, get_user_agent
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -138,6 +139,15 @@ def dashboard_home(request):
     """
     Main admin dashboard with overview statistics.
     """
+    # Log dashboard access
+    log_admin_action(
+        user=request.user,
+        action='VIEW_DASHBOARD',
+        description='Accessed admin dashboard',
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+    )
+    
     # Calculate date ranges
     now = timezone.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -243,6 +253,15 @@ def analytics_view(request):
     """
     Detailed analytics page with charts and trends.
     """
+    # Log analytics access
+    log_admin_action(
+        user=request.user,
+        action='VIEW_ANALYTICS',
+        description='Viewed analytics dashboard',
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+    )
+    
     settings = SiteSettings.get_settings()
 
     context = {
@@ -262,6 +281,15 @@ def analytics_data(request):
     - Validates and bounds 'period' query parameter (1-365 days)
     - Prevents negative values and excessive queries
     """
+    # Log analytics data access
+    log_admin_action(
+        user=request.user,
+        action='VIEW_ANALYTICS',
+        description=f'Accessed analytics data with period={request.GET.get("period", "30")}',
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+    )
+    
     period = request.GET.get("period", "30")  # days
 
     # Validate the days parameter

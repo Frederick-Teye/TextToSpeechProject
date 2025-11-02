@@ -94,8 +94,10 @@ def document_upload(request):
         )
         messages.error(
             request,
-            _("You have exceeded the maximum number of uploads allowed (10 per hour). "
-            "Please try again later."),
+            _(
+                "You have exceeded the maximum number of uploads allowed (10 per hour). "
+                "Please try again later."
+            ),
         )
         return JsonResponse(
             {
@@ -149,7 +151,8 @@ def document_upload(request):
                 )
 
                 messages.success(
-                    request, _("Your document has been submitted and is now processing.")
+                    request,
+                    _("Your document has been submitted and is now processing."),
                 )
                 return redirect("document_processing:document_detail", pk=document.id)
 
@@ -157,7 +160,9 @@ def document_upload(request):
                 logger.exception("Failed during document upload process.")
                 messages.error(
                     request,
-                    _("An unexpected error occurred during the upload. Please try again."),
+                    _(
+                        "An unexpected error occurred during the upload. Please try again."
+                    ),
                 )
                 # No manual cleanup needed due to @transaction.atomic
 
@@ -298,7 +303,8 @@ def document_delete(request, pk):
     # Verify title matches
     if confirmed_title != doc.title:
         return JsonResponse(
-            {"success": False, "message": _("Document title does not match")}, status=400
+            {"success": False, "message": _("Document title does not match")},
+            status=400,
         )
 
     try:

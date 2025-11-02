@@ -122,6 +122,13 @@ def document_detail(request, pk):
         ).exists()
     )
 
+    can_share = (
+        doc.user == request.user
+        or DocumentSharing.objects.get(
+            document=doc, shared_with=request.user
+        ).can_share()
+    )
+
     if not has_access:
         raise PermissionDenied
     pages = []
@@ -130,7 +137,7 @@ def document_detail(request, pk):
     return render(
         request,
         "document_processing/document_detail.html",
-        {"document": doc, "pages": pages},
+        {"document": doc, "pages": pages, "can_share": can_share},
     )
 
 
@@ -142,8 +149,7 @@ def page_detail(request, doc_id, page):
     has_access = (
         request.user != page_obj.document.user
         or DocumentSharing.objects.filter(
-            document = page_obj.document,
-            shared_with = request.user
+            document=page_obj.document, shared_with=request.user
         )
     )
     if not has_access:

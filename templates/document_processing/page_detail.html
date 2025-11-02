@@ -46,30 +46,45 @@
             <!-- Edit Modal -->
             {% if can_edit %}
             <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content bg-secondary">
+                <!-- Modal dialog - full height on desktop, normal on mobile -->
+                <div class="modal-dialog modal-fullscreen-lg-down modal-xl" style="max-height: 90vh;">
+                    <div class="modal-content bg-secondary h-100 d-flex flex-column">
                         <div class="modal-header border-secondary">
                             <h5 class="modal-title" id="editModalLabel">
                                 <i class="bi bi-pencil-square me-2"></i> Edit Page {{ page.page_number }}
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="contentInput" class="form-label">Markdown Content</label>
-                                <textarea id="contentInput" class="form-control bg-dark border-secondary text-white" 
-                                          rows="12" placeholder="Enter markdown content...">{{ page.markdown_content }}</textarea>
-                                <small class="text-white-50 d-block mt-2">
-                                    <i class="bi bi-info-circle me-1"></i> Supports markdown formatting (headers, bold, links, code blocks, etc.)
-                                </small>
-                            </div>
-                            <div id="previewContainer" class="mb-3">
-                                <label class="form-label">Preview</label>
-                                <div id="previewContent" class="card bg-dark border-secondary p-3 markdown-content" style="min-height: 150px;">
-                                    <p class="text-white-50">Preview will appear here...</p>
+                        
+                        <!-- Modal body with landscape layout -->
+                        <div class="modal-body flex-grow-1 overflow-hidden p-3">
+                            <div class="row h-100 g-3">
+                                <!-- Left side: Editor -->
+                                <div class="col-lg-6 d-flex flex-column">
+                                    <label for="contentInput" class="form-label mb-2">
+                                        <i class="bi bi-pencil me-1"></i> Markdown Content
+                                    </label>
+                                    <textarea id="contentInput" class="form-control bg-dark border-secondary text-white flex-grow-1" 
+                                              placeholder="Enter markdown content..."
+                                              style="resize: none; font-family: monospace; font-size: 0.95rem;">{{ page.markdown_content }}</textarea>
+                                    <small class="text-white-50 d-block mt-2">
+                                        <i class="bi bi-info-circle me-1"></i> Supports markdown formatting (headers, bold, links, code blocks, etc.)
+                                    </small>
+                                </div>
+                                
+                                <!-- Right side: Preview -->
+                                <div class="col-lg-6 d-flex flex-column">
+                                    <label class="form-label mb-2">
+                                        <i class="bi bi-eye me-1"></i> Live Preview
+                                    </label>
+                                    <div id="previewContent" class="card bg-dark border-secondary p-3 markdown-content flex-grow-1 overflow-auto" 
+                                         style="min-height: 200px; max-height: 100%;">
+                                        <p class="text-white-50">Preview will appear here...</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                        
                         <div class="modal-footer border-secondary">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                                 <i class="bi bi-x-circle me-1"></i> Cancel

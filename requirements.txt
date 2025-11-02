@@ -53,4 +53,5 @@ pydub
 # pydub require ffmpeg to be installed on server: sudo apt install ffmpeg
 
 # for tests (pkg_resources)
-setuptools
+# setuptools
+nh3

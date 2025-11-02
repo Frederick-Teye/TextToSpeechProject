@@ -16,9 +16,9 @@
 
                 {% if confirmation %}
                 {% user_display confirmation.email_address.user as user_display %}
-                <p class="text-center text-muted mb-4">
+                <p class="text-center text-white-50 mb-4">
                     {% blocktrans with confirmation.email_address.email as email %}Please confirm that <a
-                        href="mailto:{{ email }}" class="text-decoration-none fw-bold">{{ email }}</a> is an e-mail
+                        href="mailto:{{ email }}" class="text-decoration-none fw-bold">{{ email }}</a> is your e-mail
                     address for user {{ user_display }}.{% endblocktrans %}
                 </p>
 
@@ -28,7 +28,7 @@
                 </form>
                 {% else %}
                 {% url 'account_email' as email_url %}
-                <p class="text-center text-muted mb-4">
+                <p class="text-center text-white-50 mb-4">
                     {% blocktrans %}This e-mail confirmation link expired or is invalid. Please <a
                         href="{{ email_url }}" class="text-decoration-none fw-bold">issue a new e-mail confirmation
                         request</a>.{% endblocktrans %}

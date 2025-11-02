@@ -46,10 +46,12 @@
                     <a href="{% url 'document_processing:document_list' %}" class="btn btn-outline-primary me-2 mb-2">
                         <i class="bi bi-arrow-left me-1"></i>Back to Documents
                     </a>
+                    {% if can_share %}
                     <button class="btn btn-outline-primary"
                         onclick="openShareModal({{ document.id }}, '{{ document.title|escapejs }}')" type="button">
                         <i class="bi bi-share me-1"></i>Share
                     </button>
+                    {% endif %}
                 </div>
             </div>
         </div>

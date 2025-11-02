@@ -12,6 +12,7 @@ from .forms import DocumentUploadForm
 from .models import SourceType, TextStatus, Document, DocumentPage
 from .utils import upload_to_s3
 from .tasks import parse_document_task
+from speech_processing.models import DocumentSharing
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +113,16 @@ def document_upload(request):
 @login_required
 def document_detail(request, pk):
     doc = get_object_or_404(Document, pk=pk)
-    if request.user != doc.user:
+
+    # Check if user has access
+    has_access = (
+        doc.user == request.user
+        or DocumentSharing.objects.filter(
+            document=doc, shared_with=request.user
+        ).exists()
+    )
+
+    if not has_access:
         raise PermissionDenied
     pages = []
     if doc.status == TextStatus.COMPLETED:
@@ -127,7 +137,16 @@ def document_detail(request, pk):
 @login_required
 def page_detail(request, doc_id, page):
     page_obj = get_object_or_404(DocumentPage, document_id=doc_id, page_number=page)
-    if request.user != page_obj.document.user:
+
+    # Check if user has access
+    has_access = (
+        request.user != page_obj.document.user
+        or DocumentSharing.objects.filter(
+            document = page_obj.document,
+            shared_with = request.user
+        )
+    )
+    if not has_access:
         raise PermissionDenied
     return render(request, "document_processing/page_detail.html", {"page": page_obj})
 

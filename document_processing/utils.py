@@ -30,13 +30,14 @@ def sanitize_filename(filename: str) -> str:
     2. Removes null bytes
     3. Normalizes unicode to NFKD form
     4. Keeps only safe characters: alphanumeric, dots, dashes, underscores
-    5. Ensures filename is not empty
+    5. Preserves the file extension
+    6. Ensures filename is not empty
 
     Examples:
         "../../../etc/passwd" -> "etcpasswd"
-        "shell.php%00.txt" -> "shell.phptxt"
-        "file name.pdf" -> "file_name.pdf"
-        "файл.doc" -> "doc"  (non-ASCII removed)
+        "shell.php%00.txt" -> "shell_phptxt"
+        "file name.pdf" -> "file_name_pdf"
+        "DOCUMENT.PDF" -> "DOCUMENT_pdf"  (preserves extension)
 
     Args:
         filename: The original filename to sanitize
@@ -50,39 +51,60 @@ def sanitize_filename(filename: str) -> str:
     if not filename or not isinstance(filename, str):
         raise ValueError("Filename must be a non-empty string")
 
-    # Step 1: Remove path separators and traversal attempts
+    # Step 1: Extract file extension before any sanitization
+    # This ensures we always preserve the extension as a useful indicator
+    name, ext = os.path.splitext(filename.lower())
+    
+    # Remove leading dot from extension
+    if ext.startswith("."):
+        ext = ext[1:]
+    
+    # Step 2: Remove path separators and traversal attempts from name only
     # This prevents ../../../etc/passwd type attacks
-    filename = filename.replace("/", "").replace("\\", "").replace(".", "_")
+    name = name.replace("/", "").replace("\\", "")
 
-    # Step 2: Remove null bytes
+    # Step 3: Remove null bytes
     # This prevents null byte injection attacks like "shell.php\x00.txt"
-    filename = filename.split("\x00")[0]
+    name = name.split("\x00")[0]
 
-    # Step 3: Normalize unicode to NFKD form
+    # Step 4: Normalize unicode to NFKD form
     # This prevents unicode normalization attacks
-    filename = unicodedata.normalize("NFKD", filename)
-    filename = filename.encode("ascii", "ignore").decode("ascii")
+    name = unicodedata.normalize("NFKD", name)
+    name = name.encode("ascii", "ignore").decode("ascii")
 
-    # Step 4: Keep only safe characters
-    # Allow: alphanumeric, dots, dashes, underscores, spaces (converted to _)
-    filename = re.sub(r"[^a-zA-Z0-9._\- ]", "", filename)
+    # Step 5: Keep only safe characters in the name part
+    # Allow: alphanumeric, dashes, underscores, spaces (converted to _)
+    # NOTE: dots removed from name to prevent path traversal via dots
+    name = re.sub(r"[^a-zA-Z0-9_\- ]", "", name)
 
-    # Step 5: Convert spaces to underscores for better filesystem compatibility
-    filename = filename.replace(" ", "_")
+    # Step 6: Convert spaces to underscores for better filesystem compatibility
+    name = name.replace(" ", "_")
 
-    # Step 6: Remove multiple consecutive special chars
-    filename = re.sub(r"[._-]{2,}", "_", filename)
+    # Step 7: Remove multiple consecutive special chars
+    name = re.sub(r"[_-]{2,}", "_", name)
 
-    # Step 7: Ensure filename is not empty
-    if not filename or filename == "_" * len(filename):
-        raise ValueError(
-            "Filename contains only invalid characters and cannot be sanitized"
-        )
+    # Step 8: Clean up extension - keep only alphanumeric (most file extensions)
+    # This prevents extensions like .php%00.jpg becoming valid
+    ext = re.sub(r"[^a-zA-Z0-9]", "", ext)
+    
+    # Step 9: Ensure name is not empty
+    if not name or name == "_" * len(name):
+        # If name becomes empty, use a generic name
+        name = "document"
 
-    # Step 8: Limit length to 200 chars (most filesystems support 255)
-    filename = filename[:settings.UPLOAD_MAX_FILENAME_LENGTH]
+    # Step 10: Combine name and extension with underscore separator
+    # Using underscore instead of dot makes it clearer which part is the extension
+    if ext:
+        sanitized = f"{name}_{ext}"
+    else:
+        sanitized = name
 
-    return filename
+    # Step 11: Limit length to 200 chars (most filesystems support 255)
+    # Account for the unique prefix that will be added (32 hex chars + underscore = 33)
+    max_name_length = settings.UPLOAD_MAX_FILENAME_LENGTH - 33
+    sanitized = sanitized[:max_name_length]
+
+    return sanitized
 
 
 def upload_to_s3(file_obj: BinaryIO, user_id: int, file_name: str) -> str:

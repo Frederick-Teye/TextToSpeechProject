@@ -131,7 +131,27 @@ def parse_document_task(self, document_id, raw_text=""):
             buf.seek(0)
 
             # Dispatch by extension
-            _, ext = os.path.splitext(doc.source_content.lower())
+            # Extract extension from S3 key (format: uploads/user_id/uuid_filename_ext)
+            # The last part after the last underscore is the extension
+            s3_key = doc.source_content
+            if isinstance(s3_key, str):
+                # Remove 'media/' prefix if present
+                if s3_key.startswith("media/"):
+                    s3_key = s3_key[6:]
+                
+                # Get the last part after the last underscore
+                parts = s3_key.split("_")
+                if len(parts) >= 3:
+                    # Format is: uploads/user/uuid_filename_ext
+                    # parts[-1] should be the extension
+                    ext = "." + parts[-1]
+                else:
+                    # Fallback: try splitext
+                    _, ext = os.path.splitext(s3_key.lower())
+            else:
+                _, ext = os.path.splitext(str(s3_key).lower())
+            
+            ext = ext.lower()
             processors = {
                 ".pdf": _process_pdf,
                 ".docx": _process_docx,

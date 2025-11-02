@@ -16,8 +16,7 @@ from django.shortcuts import get_object_or_404
 
 
 def document_access_required(
-    param_name: str = 'pk',
-    permission_level: str = 'view'
+    param_name: str = "pk", permission_level: str = "view"
 ) -> Callable:
     """
     Decorator to check document access (ownership or sharing).
@@ -48,6 +47,7 @@ def document_access_required(
             # 'document' is automatically injected by decorator
             return render(request, 'edit.html', {'document': document})
     """
+
     def decorator(view_func: Callable) -> Callable:
         @wraps(view_func)
         def wrapper(request: HttpRequest, *args, **kwargs) -> Any:
@@ -67,43 +67,47 @@ def document_access_required(
 
             # Check sharing access
             sharing = DocumentSharing.objects.filter(
-                document=document,
-                shared_with=request.user
+                document=document, shared_with=request.user
             ).first()
 
             # Validate permission level
-            if permission_level == 'own':
+            if permission_level == "own":
                 # Must be owner
                 if not is_owner:
-                    raise PermissionDenied("You don't have permission to access this document.")
+                    raise PermissionDenied(
+                        "You don't have permission to access this document."
+                    )
 
-            elif permission_level == 'edit':
+            elif permission_level == "edit":
                 # Must be owner or have CAN_SHARE permission
                 can_edit = is_owner or (sharing and sharing.can_share())
                 if not can_edit:
-                    raise PermissionDenied("You don't have permission to edit this document.")
+                    raise PermissionDenied(
+                        "You don't have permission to edit this document."
+                    )
 
-            elif permission_level == 'view':
+            elif permission_level == "view":
                 # Must be owner or have any sharing permission
                 has_access = is_owner or sharing is not None
                 if not has_access:
-                    raise PermissionDenied("You don't have permission to access this document.")
+                    raise PermissionDenied(
+                        "You don't have permission to access this document."
+                    )
 
             else:
                 raise ValueError(f"Invalid permission level: {permission_level}")
 
             # Inject document into kwargs and call view
-            kwargs['document'] = document
+            kwargs["document"] = document
             return view_func(request, *args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
 def page_access_required(
-    doc_param: str = 'doc_id',
-    page_param: str = 'page',
-    permission_level: str = 'view'
+    doc_param: str = "doc_id", page_param: str = "page", permission_level: str = "view"
 ) -> Callable:
     """
     Decorator to check page access (via document ownership/sharing).
@@ -132,6 +136,7 @@ def page_access_required(
             # 'page_obj' is automatically injected by decorator
             return render(request, 'edit_page.html', {'page': page_obj})
     """
+
     def decorator(view_func: Callable) -> Callable:
         @wraps(view_func)
         def wrapper(request: HttpRequest, *args, **kwargs) -> Any:
@@ -147,9 +152,7 @@ def page_access_required(
 
             # Fetch page or 404
             page_obj = get_object_or_404(
-                DocumentPage,
-                document_id=doc_id,
-                page_number=page_num
+                DocumentPage, document_id=doc_id, page_number=page_num
             )
 
             # Check ownership
@@ -157,36 +160,40 @@ def page_access_required(
 
             # Check sharing access
             sharing = DocumentSharing.objects.filter(
-                document=page_obj.document,
-                shared_with=request.user
+                document=page_obj.document, shared_with=request.user
             ).first()
 
             # Validate permission level
-            if permission_level == 'edit':
+            if permission_level == "edit":
                 # Must be owner or have CAN_SHARE permission
                 can_edit = is_owner or (sharing and sharing.can_share())
                 if not can_edit:
-                    raise PermissionDenied("You don't have permission to edit this page.")
+                    raise PermissionDenied(
+                        "You don't have permission to edit this page."
+                    )
 
-            elif permission_level == 'view':
+            elif permission_level == "view":
                 # Must be owner or have any sharing permission
                 has_access = is_owner or sharing is not None
                 if not has_access:
-                    raise PermissionDenied("You don't have permission to view this page.")
+                    raise PermissionDenied(
+                        "You don't have permission to view this page."
+                    )
 
             else:
                 raise ValueError(f"Invalid permission level: {permission_level}")
 
             # Inject page into kwargs and call view
-            kwargs['page_obj'] = page_obj
+            kwargs["page_obj"] = page_obj
             return view_func(request, *args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
 def audio_generation_allowed(
-    page_param: str = 'page_id',
+    page_param: str = "page_id",
 ) -> Callable:
     """
     Decorator to check if audio generation is allowed for a page.
@@ -211,6 +218,7 @@ def audio_generation_allowed(
             # Generate audio for the page
             pass
     """
+
     def decorator(view_func: Callable) -> Callable:
         @wraps(view_func)
         def wrapper(request: HttpRequest, *args, **kwargs) -> Any:
@@ -230,8 +238,7 @@ def audio_generation_allowed(
 
             # Check sharing access with generation permission
             sharing = DocumentSharing.objects.filter(
-                document=page_obj.document,
-                shared_with=request.user
+                document=page_obj.document, shared_with=request.user
             ).first()
 
             # Can generate if owner or has COLLABORATOR/CAN_SHARE permission
@@ -245,10 +252,11 @@ def audio_generation_allowed(
             return view_func(request, *args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
-def owner_required(doc_param: str = 'pk') -> Callable:
+def owner_required(doc_param: str = "pk") -> Callable:
     """
     Decorator to require document ownership.
 
@@ -273,6 +281,7 @@ def owner_required(doc_param: str = 'pk') -> Callable:
             document.delete()
             return redirect('documents_list')
     """
+
     def decorator(view_func: Callable) -> Callable:
         @wraps(view_func)
         def wrapper(request: HttpRequest, *args, **kwargs) -> Any:
@@ -285,9 +294,12 @@ def owner_required(doc_param: str = 'pk') -> Callable:
             document = get_object_or_404(Document, pk=doc_id)
 
             if document.user != request.user:
-                raise PermissionDenied("Only the document owner can perform this action.")
+                raise PermissionDenied(
+                    "Only the document owner can perform this action."
+                )
 
             return view_func(request, *args, **kwargs)
 
         return wrapper
+
     return decorator

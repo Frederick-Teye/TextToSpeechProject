@@ -46,9 +46,9 @@
             <!-- Edit Modal -->
             {% if can_edit %}
             <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-                <!-- Modal dialog - full height on desktop, normal on mobile -->
-                <div class="modal-dialog modal-fullscreen-lg-down modal-xl" style="max-height: 90vh;">
-                    <div class="modal-content bg-secondary h-100 d-flex flex-column">
+                <!-- Modal dialog - fullscreen on mobile, 100% width on desktop -->
+                <div class="modal-dialog modal-fullscreen-lg-down edit-modal-dialog" style="max-height: 100vh;">
+                    <div class="modal-content bg-secondary h-100 d-flex flex-column" style="height: 100vh;">
                         <div class="modal-header border-secondary">
                             <h5 class="modal-title" id="editModalLabel">
                                 <i class="bi bi-pencil-square me-2"></i> Edit Page {{ page.page_number }}
@@ -56,29 +56,29 @@
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         
-                        <!-- Modal body with landscape layout -->
-                        <div class="modal-body flex-grow-1 overflow-hidden p-3">
-                            <div class="row h-100 g-3">
-                                <!-- Left side: Editor -->
-                                <div class="col-lg-6 d-flex flex-column">
+                        <!-- Modal body with responsive layout -->
+                        <div class="modal-body flex-grow-1 overflow-hidden p-3 edit-modal-body">
+                            <div class="edit-modal-content">
+                                <!-- Left side: Editor (45% width) -->
+                                <div class="edit-editor-pane">
                                     <label for="contentInput" class="form-label mb-2">
                                         <i class="bi bi-pencil me-1"></i> Markdown Content
                                     </label>
                                     <textarea id="contentInput" class="form-control bg-dark border-secondary text-white flex-grow-1" 
                                               placeholder="Enter markdown content..."
-                                              style="resize: none; font-family: monospace; font-size: 0.95rem;">{{ page.markdown_content }}</textarea>
+                                              style="resize: none; font-family: monospace; font-size: 0.95rem; min-height: 0;">{{ page.markdown_content }}</textarea>
                                     <small class="text-white-50 d-block mt-2">
                                         <i class="bi bi-info-circle me-1"></i> Supports markdown formatting (headers, bold, links, code blocks, etc.)
                                     </small>
                                 </div>
                                 
-                                <!-- Right side: Preview -->
-                                <div class="col-lg-6 d-flex flex-column">
+                                <!-- Right side: Preview (45% width) -->
+                                <div class="edit-preview-pane">
                                     <label class="form-label mb-2">
                                         <i class="bi bi-eye me-1"></i> Live Preview
                                     </label>
-                                    <div id="previewContent" class="card bg-dark border-secondary p-3 markdown-content flex-grow-1 overflow-auto" 
-                                         style="min-height: 200px; max-height: 100%;">
+                                    <div id="previewContent" class="card bg-dark border-secondary p-3 markdown-content" 
+                                         style="min-height: 0; overflow-y: auto; flex: 1;">
                                         <p class="text-white-50">Preview will appear here...</p>
                                     </div>
                                 </div>
@@ -348,6 +348,69 @@
         background-color: rgba(13, 110, 253, 0.1);
     }
 
+    /* Edit Modal Styles */
+    .edit-modal-dialog {
+        width: 100%;
+        margin: 0;
+    }
+
+    @media (min-width: 992px) {
+        .edit-modal-dialog {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0;
+        }
+        
+        .modal-fullscreen-lg-down .modal-dialog {
+            max-width: 100% !important;
+        }
+    }
+
+    .edit-modal-body {
+        display: flex;
+        height: 100%;
+        padding: 12px !important;
+    }
+
+    .edit-modal-content {
+        display: flex;
+        width: 100%;
+        gap: 12px;
+        height: 100%;
+    }
+
+    .edit-editor-pane {
+        flex: 0 0 45%;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .edit-preview-pane {
+        flex: 0 0 45%;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .edit-editor-pane label,
+    .edit-preview-pane label {
+        margin-bottom: 8px;
+        flex-shrink: 0;
+    }
+
+    .edit-editor-pane textarea,
+    .edit-preview-pane #previewContent {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    .edit-editor-pane .text-white-50 {
+        margin-top: 8px;
+        flex-shrink: 0;
+    }
+
     @media (max-width: 991px) {
         .position-sticky {
             position: static !important;
@@ -478,6 +541,55 @@
     @media (max-width: 991px) {
         body.has-floating-player-minimized {
             padding-bottom: 0;
+        }
+    }
+
+    /* Edit Modal Responsive Styling */
+    #editModal .modal-body {
+        padding: 12px;
+    }
+
+    /* On all screens: Keep side-by-side layout with 45% split */
+    @media (max-width: 768px) {
+        #editModal .modal-content {
+            height: 100vh;
+        }
+
+        #editModal .modal-body > div {
+            flex-direction: row;
+            gap: 12px;
+        }
+
+        #editModal .modal-body > div > div {
+            flex: 0 0 calc(50% - 6px) !important;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #editModal textarea {
+            min-height: 0;
+            flex: 1;
+        }
+
+        #editModal #previewContent {
+            min-height: 0;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Reduce font sizes on mobile */
+        #editModal textarea {
+            font-size: 0.85rem;
+        }
+
+        #editModal .form-label {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        #editModal .modal-body {
+            padding: 8px;
         }
     }
 </style>
@@ -891,16 +1003,44 @@
     const previewContent = document.getElementById('previewContent');
     const saveBtn = document.getElementById('saveBtn');
 
-    if (editBtn) {
+    if (editBtn && editModal && contentInput && saveBtn) {
+        let hasChanges = false;
+        let originalContent = contentInput.value;
+
         // Open edit modal
         editBtn.addEventListener('click', function() {
+            hasChanges = false;
+            originalContent = contentInput.value;
+            
+            // Show initial preview when opening modal
+            updatePreview(contentInput.value);
+            
             const modal = new bootstrap.Modal(editModal);
             modal.show();
         });
 
-        // Update preview as user types
+        // Update preview as user types with debouncing
+        let previewTimeout;
         contentInput.addEventListener('input', function() {
-            updatePreview(this.value);
+            hasChanges = (this.value !== originalContent);
+            
+            // Debounce preview updates to avoid excessive API calls
+            clearTimeout(previewTimeout);
+            previewTimeout = setTimeout(() => {
+                updatePreview(this.value);
+            }, 300);
+        });
+
+        // Warn before closing if there are unsaved changes
+        editModal.addEventListener('hide.bs.modal', function(e) {
+            if (hasChanges) {
+                const confirmClose = confirm('You have unsaved changes. Are you sure you want to close without saving?');
+                if (!confirmClose) {
+                    e.preventDefault();
+                    return false;
+                }
+                hasChanges = false;
+            }
         });
 
         // Save changes
@@ -913,6 +1053,7 @@
             }
 
             saveBtn.disabled = true;
+            const originalHtml = saveBtn.innerHTML;
             saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
 
             try {
@@ -929,23 +1070,33 @@
 
                 if (data.success) {
                     showToast('success', 'Page updated successfully!');
+                    hasChanges = false;
+                    originalContent = content;
                     
                     // Close modal
                     const modal = bootstrap.Modal.getInstance(editModal);
-                    modal.hide();
+                    if (modal) {
+                        modal.hide();
+                    }
 
                     // Update display content
                     updateDisplayContent(data.html);
                 } else {
                     showToast('error', data.error || 'Failed to update page');
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalHtml;
                 }
             } catch (error) {
                 console.error('Error saving page:', error);
                 showToast('error', 'Failed to save changes');
-            } finally {
                 saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Save Changes';
+                saveBtn.innerHTML = originalHtml;
             }
+        });
+
+        // Modal shown event - focus on textarea
+        editModal.addEventListener('shown.bs.modal', function() {
+            contentInput.focus();
         });
     }
 

@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.db.models import Count, Q, Avg, Sum
 from django.db.models.functions import TruncDate, TruncMonth
 from django.utils import timezone
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from datetime import timedelta
 import logging
 
@@ -29,24 +30,71 @@ logger = logging.getLogger(__name__)
 # Constants for input validation
 MIN_DAYS = 1
 MAX_DAYS = 365
+DEFAULT_PAGE_SIZE = 50
+MAX_PAGE_SIZE = 500
+MIN_PAGE_SIZE = 10
+
+
+def validate_page_parameter(page_str, total_count, page_size=DEFAULT_PAGE_SIZE):
+    """
+    Validate and safely parse page number for pagination.
+
+    Security validations:
+    - Must be a valid integer
+    - Must be within valid range
+    - Prevents overflow attacks
+
+    Args:
+        page_str: Page number from query parameter
+        total_count: Total number of items to paginate
+        page_size: Items per page
+
+    Returns:
+        Tuple of (page_number: int, total_pages: int)
+        Returns (1, pages) if invalid
+    """
+    try:
+        page = int(page_str) if page_str else 1
+
+        # Ensure page is positive
+        if page < 1:
+            logger.warning(f"Invalid page number: {page}. Defaulting to 1.")
+            page = 1
+
+        # Calculate total pages
+        total_pages = (total_count + page_size - 1) // page_size
+
+        # Ensure page doesn't exceed total
+        if page > total_pages and total_pages > 0:
+            logger.warning(
+                f"Page {page} exceeds total pages {total_pages}. "
+                f"Defaulting to last page."
+            )
+            page = total_pages
+
+        return page, total_pages
+
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid page parameter: {page_str}. Defaulting to 1.")
+        return 1, 0
 
 
 def validate_days_parameter(days_str, default=30):
     """
     Validate and sanitize the 'days' query parameter.
-    
+
     Security validations:
     - Must be convertible to integer (prevents injection)
     - Must be between MIN_DAYS (1) and MAX_DAYS (365)
     - Prevents negative values, zero, or excessive queries
-    
+
     Args:
         days_str: String value from query parameter
         default: Default value if validation fails (default: 30)
-        
+
     Returns:
         Validated integer number of days (bounded 1-365)
-        
+
     Example:
         >>> validate_days_parameter("30")
         30
@@ -59,7 +107,7 @@ def validate_days_parameter(days_str, default=30):
     """
     try:
         days = int(days_str)
-        
+
         # Validate bounds
         if days < MIN_DAYS:
             logger.warning(
@@ -67,16 +115,16 @@ def validate_days_parameter(days_str, default=30):
                 f"(minimum {MIN_DAYS}). Using default."
             )
             return default
-        
+
         if days > MAX_DAYS:
             logger.warning(
                 f"Dashboard query with excessive days parameter: {days} "
                 f"(maximum {MAX_DAYS}). Limiting to {MAX_DAYS}."
             )
             return MAX_DAYS
-        
+
         return days
-        
+
     except (ValueError, TypeError):
         logger.warning(
             f"Dashboard query with non-numeric days parameter: {days_str}. "
@@ -209,13 +257,13 @@ def analytics_data(request):
     """
     API endpoint for analytics chart data.
     Returns JSON data for frontend charts.
-    
+
     Security:
     - Validates and bounds 'period' query parameter (1-365 days)
     - Prevents negative values and excessive queries
     """
     period = request.GET.get("period", "30")  # days
-    
+
     # Validate the days parameter
     days = validate_days_parameter(period, default=30)
 
@@ -309,19 +357,22 @@ def analytics_data(request):
 def error_monitoring(request):
     """
     Error monitoring page showing failed audio generations.
-    
+
     Security:
     - Validates and bounds 'days' query parameter (1-365 days)
     - Prevents negative values and excessive queries
+    - Paginates results to prevent memory exhaustion
     """
     # Get filter parameters with validation
     days_param = request.GET.get("days", "7")
     days = validate_days_parameter(days_param, default=7)
 
+    page_num = request.GET.get("page", "1")
+
     start_date = timezone.now() - timedelta(days=days)
 
     # Get failed audios
-    failed_audios = (
+    failed_audios_qs = (
         Audio.objects.filter(
             status=AudioGenerationStatus.FAILED, created_at__gte=start_date
         )
@@ -329,31 +380,42 @@ def error_monitoring(request):
         .order_by("-created_at")
     )
 
-    # Error statistics
-    total_errors = failed_audios.count()
-    unique_errors = failed_audios.values("error_message").distinct().count()
+    # Error statistics (computed before pagination)
+    total_errors = failed_audios_qs.count()
+    unique_errors = failed_audios_qs.values("error_message").distinct().count()
 
     # Error frequency
     error_frequency = (
-        failed_audios.values("error_message")
+        failed_audios_qs.values("error_message")
         .annotate(count=Count("id"))
         .order_by("-count")[:10]
     )
 
     # Affected users
     affected_users = (
-        failed_audios.values("generated_by__email")
+        failed_audios_qs.values("generated_by__email")
         .annotate(count=Count("id"))
         .order_by("-count")[:10]
     )
 
+    # Paginate the results
+    page, total_pages = validate_page_parameter(
+        page_num, total_errors, DEFAULT_PAGE_SIZE
+    )
+    start_idx = (page - 1) * DEFAULT_PAGE_SIZE
+    end_idx = start_idx + DEFAULT_PAGE_SIZE
+    failed_audios = failed_audios_qs[start_idx:end_idx]
+
     context = {
-        "failed_audios": failed_audios[:50],  # Limit to 50 for performance
+        "failed_audios": failed_audios,
         "total_errors": total_errors,
         "unique_errors": unique_errors,
         "error_frequency": error_frequency,
         "affected_users": affected_users,
         "days": days,
+        "current_page": page,
+        "total_pages": total_pages,
+        "page_size": DEFAULT_PAGE_SIZE,
     }
 
     return render(request, "speech_processing/error_monitoring.html", context)
@@ -363,7 +425,7 @@ def error_monitoring(request):
 def user_activity(request):
     """
     User activity report showing detailed user actions.
-    
+
     Security:
     - Validates and bounds 'days' query parameter (1-365 days)
     - Prevents negative values and excessive queries

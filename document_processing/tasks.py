@@ -151,7 +151,7 @@ def parse_document_task(self, document_id, raw_text=""):
         validated_pages = []
         for p in pages:
             markdown = p["markdown"]
-            
+
             # Validate markdown for dangerous patterns
             is_valid, error_msg = validate_markdown(markdown)
             if not is_valid:
@@ -160,7 +160,7 @@ def parse_document_task(self, document_id, raw_text=""):
                 )
                 # Still save the content but log the issue for monitoring
                 # Users can edit pages later if needed
-            
+
             validated_pages.append(p)
 
         # 4) Bulk save each page (sanitize markdown content with nh3)

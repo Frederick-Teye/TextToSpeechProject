@@ -78,30 +78,32 @@ document_list_view = DocumentListView.as_view()
 def document_upload(request):
     """
     Handle uploads of new documents from FILE, URL, or TEXT sources.
-    
+
     Rate limiting:
     - Maximum 10 document uploads per hour per user
     - Prevents DoS attacks and excessive server load
     - Returns 429 Too Many Requests if limit exceeded
-    
+
     Uses @transaction.atomic to ensure DB consistency.
     """
     # Check if user has exceeded rate limit
-    if getattr(request, 'limited', False):
-        logger.warning(f"Rate limit exceeded for user {request.user.id} on document upload")
+    if getattr(request, "limited", False):
+        logger.warning(
+            f"Rate limit exceeded for user {request.user.id} on document upload"
+        )
         messages.error(
             request,
             "You have exceeded the maximum number of uploads allowed (10 per hour). "
-            "Please try again later."
+            "Please try again later.",
         )
         return JsonResponse(
             {
                 "success": False,
-                "error": "Rate limit exceeded. Maximum 10 uploads per hour."
+                "error": "Rate limit exceeded. Maximum 10 uploads per hour.",
             },
-            status=429
+            status=429,
         )
-    
+
     if request.method == "POST":
         form = DocumentUploadForm(request.POST, request.FILES)
 
@@ -326,7 +328,7 @@ def page_edit(request, page_id):
     """
     API endpoint to update a page's markdown content.
     Owner or users with CAN_SHARE permission can edit.
-    
+
     Security features:
     - Validates markdown content to prevent injection attacks
     - Sanitizes markdown input (removes dangerous patterns)
@@ -368,8 +370,8 @@ def page_edit(request, page_id):
                 f"User {request.user.id} attempted to save invalid markdown: {error_msg}"
             )
             return JsonResponse(
-                {"success": False, "error": "Content contains invalid patterns"}, 
-                status=400
+                {"success": False, "error": "Content contains invalid patterns"},
+                status=400,
             )
 
         # Sanitize markdown content
@@ -378,8 +380,7 @@ def page_edit(request, page_id):
         except ValueError as e:
             logger.warning(f"Markdown sanitization failed: {str(e)}")
             return JsonResponse(
-                {"success": False, "error": "Content validation failed"}, 
-                status=400
+                {"success": False, "error": "Content validation failed"}, status=400
             )
 
         # Additional HTML sanitization with nh3
@@ -435,7 +436,7 @@ def render_markdown(request):
     """
     API endpoint to render markdown to HTML.
     Used for live preview in the page edit modal.
-    
+
     Security features:
     - Validates markdown content to prevent injection attacks
     - Sanitizes HTML output with nh3
@@ -464,8 +465,8 @@ def render_markdown(request):
                 f"User {request.user.id} attempted to render invalid markdown: {error_msg}"
             )
             return JsonResponse(
-                {"success": False, "error": "Content contains invalid patterns"}, 
-                status=400
+                {"success": False, "error": "Content contains invalid patterns"},
+                status=400,
             )
 
         # Convert markdown to HTML

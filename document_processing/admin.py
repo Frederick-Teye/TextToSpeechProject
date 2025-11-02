@@ -44,12 +44,12 @@ def reprocess_documents(modeladmin, request, queryset):
         doc.error_message = None
         doc.pages.all().delete()  # Essential: Clear out old pages before reprocessing
         doc.save()
-        
+
         # Queue the reprocessing task after the document is saved
         # This prevents the task from running before the DB is updated
         transaction.on_commit(lambda doc_id=doc.id: parse_document_task.delay(doc_id))
         requeued_count += 1
-    
+
     if requeued_count:
         modeladmin.message_user(
             request,

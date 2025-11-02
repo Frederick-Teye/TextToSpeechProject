@@ -212,7 +212,7 @@ CELERY_TASK_TRACK_STARTED = True
 #
 # Best practice: hard_timeout > soft_timeout > typical_task_time
 CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes - allows graceful shutdown
-CELERY_TASK_TIME_LIMIT = 30 * 60       # 30 minutes - hard kill
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes - hard kill
 
 # ==================== CELERY RETRY SETTINGS ====================
 # These settings determine how tasks behave when they fail.
@@ -243,7 +243,7 @@ CACHES = {
             "CONNECTION_POOL_KWARGS": {
                 "max_connections": 50,
                 "retry_on_timeout": True,
-            }
+            },
         },
         "TIMEOUT": 3600,  # Default cache timeout: 1 hour
     },
@@ -258,7 +258,7 @@ CACHES = {
             "IGNORE_EXCEPTIONS": True,
         },
         "TIMEOUT": 3600,
-    }
+    },
 }
 
 # Rate limit cache to use (dedicated Redis database for rate limits)

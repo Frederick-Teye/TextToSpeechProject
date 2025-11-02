@@ -24,3 +24,11 @@ def home(request):
         "preferred_voice": preferred_voice,
     }
     return render(request, "landing/home.html", context)
+
+
+def about(request):
+    """About page explaining the app features and cost-saving sharing strategy."""
+    context = {
+        "linkedin_url": "https://www.linkedin.com/in/frederick-teye-61627b248/",
+    }
+    return render(request, "landing/about.html", context)

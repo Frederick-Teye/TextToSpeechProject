@@ -199,8 +199,11 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    {% if user.is_authenticated %}
+                                <ul class="navbar-nav ms-auto">
+                                        {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'about' %}">About</a>
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Documents
@@ -232,13 +235,20 @@
                     </li>
                     {% else %}
                     <li class="nav-item">
+                        <a class="nav-link" href="{% url 'about' %}">About</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{% url 'account_login' %}">Login</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'account_signup' %}">Sign Up</a>
                     </li>
                     {% endif %}
+
+
                 </ul>
+
+
             </div>
         </div>
     </header>
@@ -264,8 +274,15 @@
 
     <!-- Footer -->
     <footer class="text-white py-3 mt-auto footer-custom-bg">
-        <div class="container text-center text-white-50 small">
-            &copy; {% now "Y" %} TTS Document Converter. All rights reserved.
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start text-white-50 small">
+                    &copy; {% now "Y" %} TTS Document Converter. All rights reserved.
+                </div>
+                <div class="col-md-6 text-center text-md-end text-white-50 small">
+                    Built with ❤️ by <a class="link-primary" href="https://www.linkedin.com/in/frederick-teye-61627b248/" target="_blank" class="text-white-50 text-decoration-none">Frederick Teye</a>
+                </div>
+            </div>
         </div>
     </footer>
 

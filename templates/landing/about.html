@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head_title %}About - TTS Document Converter{% endblock head_title %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="h3 fw-bold mb-3">About TTS Document Converter</h1>
+                <p class="lead text-white-50">
+                    A free, accessible text-to-speech platform designed for students and educators.
+                </p>
+            </div>
+
+            <!-- Mission Section -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-transparent border-0 py-3">
+                    <h2 class="h4 mb-0"><i class="bi bi-heart me-2"></i>Our Mission</h2>
+                </div>
+                <div class="card-body p-4">
+                    <p class="mb-3">
+                        TTS Document Converter is a <strong>free educational tool</strong> that transforms documents into natural-sounding audio.
+                        We're committed to making education more accessible by providing high-quality text-to-speech conversion
+                        powered by AWS Polly's advanced voice synthesis technology.
+                    </p>
+                    <p class="mb-0">
+                        As a student-built platform, we understand the challenges of balancing coursework, accessibility needs,
+                        and budget constraints. That's why we've designed this service to be completely free while maintaining
+                        professional-grade audio quality.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Cost-Saving Sharing Strategy -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-transparent border-0 py-3">
+                    <h2 class="h4 mb-0"><i class="bi bi-share me-2"></i>Smart Sharing for Cost Savings</h2>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info" role="alert">
+                        <i class="bi bi-lightbulb me-2"></i>
+                        <strong>Help us keep this service free!</strong> Share documents with classmates instead of everyone uploading the same file.
+                    </div>
+
+                    <h5 class="mb-3">Why Share Documents?</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0 me-3">
+                                    <i class="bi bi-cash text-success fs-4"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Save Costs</h6>
+                                    <p class="text-white-50 small mb-0">
+                                        Each audio generation costs us money. When multiple students upload the same document,
+                                        we generate duplicate audio files. Sharing means one high-quality audio serves everyone.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0 me-3">
+                                    <i class="bi bi-clock text-primary fs-4"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Faster Access</h6>
+                                    <p class="text-white-50 small mb-0">
+                                        Shared documents are processed once and become immediately available to all authorized users.
+                                        No waiting for duplicate processing.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mb-3 mt-4">How Sharing Works</h5>
+                    <ol class="text-white-50">
+                        <li><strong>Upload Once:</strong> One student uploads the document and waits for processing</li>
+                        <li><strong>Share the Link:</strong> The uploader shares their document with classmates</li>
+                        <li><strong>Generate Together:</strong> All students can generate audio from the same document</li>
+                        <li><strong>Everyone Benefits:</strong> Same audio quality, faster access, lower costs</li>
+                    </ol>
+
+                    <div class="bg-light bg-opacity-10 p-3 rounded mt-3">
+                        <p class="mb-1"><strong>Example:</strong> If 10 students in a class all need audio for the same textbook chapter:</p>
+                        <ul class="mb-0 text-white-50 small">
+                            <li>❌ Without sharing: 10 separate uploads = 10× processing cost</li>
+                            <li>✅ With sharing: 1 upload + 9 shares = 1× processing cost</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-transparent border-0 py-3">
+                    <h2 class="h4 mb-0"><i class="bi bi-star me-2"></i>Key Features</h2>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <h5><i class="bi bi-file-earmark-text me-2"></i>Document Support</h5>
+                            <ul class="text-white-50 small">
+                                <li>PDF documents</li>
+                                <li>Microsoft Word (.docx)</li>
+                                <li>Markdown files (.md)</li>
+                                <li>Web URLs</li>
+                                <li>Plain text input</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <h5><i class="bi bi-mic me-2"></i>Audio Quality</h5>
+                            <ul class="text-white-50 small">
+                                <li>AWS Polly neural voices</li>
+                                <li>Natural speech synthesis</li>
+                                <li>Multiple voice options</li>
+                                <li>High-fidelity audio output</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <h5><i class="bi bi-pencil me-2"></i>Content Editing</h5>
+                            <ul class="text-white-50 small">
+                                <li>Edit extracted text before audio generation</li>
+                                <li>Live markdown preview</li>
+                                <li>Content validation and sanitization</li>
+                                <li>Real-time collaboration features</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <h5><i class="bi bi-people me-2"></i>Sharing & Collaboration</h5>
+                            <ul class="text-white-50 small">
+                                <li>Share documents with classmates</li>
+                                <li>Three permission levels: View, Collaborate, Share</li>
+                                <li>Secure access control</li>
+                                <li>Audit logging for all actions</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- How It Works -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-transparent border-0 py-3">
+                    <h2 class="h4 mb-0"><i class="bi bi-gear me-2"></i>How It Works</h2>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-3 text-center mb-3">
+                            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-2"
+                                style="width: 60px; height: 60px;">
+                                <span class="fw-bold">1</span>
+                            </div>
+                            <h6>Upload</h6>
+                            <p class="text-white-50 small">Upload your document or paste a URL</p>
+                        </div>
+                        <div class="col-md-3 text-center mb-3">
+                            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-2"
+                                style="width: 60px; height: 60px;">
+                                <span class="fw-bold">2</span>
+                            </div>
+                            <h6>Process</h6>
+                            <p class="text-white-50 small">AI extracts and converts text to markdown</p>
+                        </div>
+                        <div class="col-md-3 text-center mb-3">
+                            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-2"
+                                style="width: 60px; height: 60px;">
+                                <span class="fw-bold">3</span>
+                            </div>
+                            <h6>Edit</h6>
+                            <p class="text-white-50 small">Review and edit content if needed</p>
+                        </div>
+                        <div class="col-md-3 text-center mb-3">
+                            <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-2"
+                                style="width: 60px; height: 60px;">
+                                <span class="fw-bold">4</span>
+                            </div>
+                            <h6>Generate</h6>
+                            <p class="text-white-50 small">Create natural-sounding audio</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technical Details -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-transparent border-0 py-3">
+                    <h2 class="h4 mb-0"><i class="bi bi-code-slash me-2"></i>Technical Details</h2>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Backend</h6>
+                            <ul class="text-white-50 small mb-3">
+                                <li>Django 5.2 (Python web framework)</li>
+                                <li>PostgreSQL database</li>
+                                <li>Redis for caching & task queue</li>
+                                <li>Celery for background processing</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>AI & Cloud Services</h6>
+                            <ul class="text-white-50 small mb-3">
+                                <li>AWS Polly (text-to-speech)</li>
+                                <li>AWS S3 (file storage)</li>
+                                <li>PyMuPDF (PDF processing)</li>
+                                <li>pandoc (document conversion)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="text-white-50 small mb-0">
+                        <strong>Security:</strong> All processing happens server-side with enterprise-grade security.
+                        Files are encrypted, access is logged, and sensitive data is never stored permanently.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Call to Action -->
+            <div class="text-center">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-4">
+                        <h5 class="mb-3">Ready to Get Started?</h5>
+                        <p class="text-white-50 mb-4">
+                            Join thousands of students who are already using TTS Document Converter to make learning more accessible.
+                        </p>
+                        <div class="d-flex gap-2 justify-content-center flex-wrap">
+                            <a href="{% url 'document_processing:document_upload' %}" class="btn btn-primary">
+                                <i class="bi bi-cloud-upload me-2"></i>Upload Document
+                            </a>
+                                                        <a href="{% url 'home' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-house me-2"></i>Back to Home
+                            </a>
+
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+

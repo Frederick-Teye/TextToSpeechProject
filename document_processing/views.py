@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 import markdown as md
+import nh3
 
 from .forms import DocumentUploadForm
 from .models import SourceType, TextStatus, Document, DocumentPage
@@ -149,12 +150,15 @@ def page_detail(request, doc_id, page):
 
     # Check if user has access
     is_owner = request.user == page_obj.document.user
-    has_shared_access = DocumentSharing.objects.filter(
+    shared_access = DocumentSharing.objects.filter(
         document=page_obj.document, shared_with=request.user
-    ).exists()
+    ).first()
 
-    if not (is_owner or has_shared_access):
+    if not (is_owner or shared_access):
         raise PermissionDenied
+
+    # Check if user can edit (owner or has CAN_SHARE permission)
+    can_user_edit = is_owner or (shared_access and shared_access.can_share())
 
     # Calculate pagination
     total_pages = page_obj.document.pages.count()
@@ -174,7 +178,7 @@ def page_detail(request, doc_id, page):
         "total_pages": total_pages,
         "previous_page_url": previous_page_url,
         "next_page_url": next_page_url,
-        "can_edit": is_owner,  # Only owner can edit
+        "can_edit": can_user_edit,
     }
 
     return render(request, "document_processing/page_detail.html", context)
@@ -268,7 +272,8 @@ def document_delete(request, pk):
 def page_edit(request, page_id):
     """
     API endpoint to update a page's markdown content.
-    Only the document owner can edit.
+    Owner or users with CAN_SHARE permission can edit.
+    Sanitizes markdown input and HTML output with nh3.
     """
     if request.method != "POST":
         return JsonResponse(
@@ -277,8 +282,14 @@ def page_edit(request, page_id):
 
     page_obj = get_object_or_404(DocumentPage, id=page_id)
 
-    # Check if user is the document owner
-    if request.user != page_obj.document.user:
+    # Check if user is the document owner or has CAN_SHARE permission
+    is_owner = request.user == page_obj.document.user
+    shared_access = DocumentSharing.objects.filter(
+        document=page_obj.document, shared_with=request.user
+    ).first()
+    can_user_edit = is_owner or (shared_access and shared_access.can_share())
+
+    if not can_user_edit:
         return JsonResponse(
             {"success": False, "error": "Permission denied"}, status=403
         )
@@ -291,6 +302,9 @@ def page_edit(request, page_id):
             return JsonResponse(
                 {"success": False, "error": "Content cannot be empty"}, status=400
             )
+
+        # Sanitize markdown input with nh3
+        markdown_content = nh3.clean(markdown_content)
 
         # Update the page content
         page_obj.markdown_content = markdown_content
@@ -307,6 +321,9 @@ def page_edit(request, page_id):
             ],
             output_format="html5",
         )
+
+        # Sanitize HTML output with nh3
+        html = nh3.clean(html)
 
         logger.info(
             f"Page {page_obj.page_number} of document '{page_obj.document.title}' "
@@ -339,6 +356,7 @@ def render_markdown(request):
     """
     API endpoint to render markdown to HTML.
     Used for live preview in the page edit modal.
+    Sanitizes HTML output with nh3.
     """
     if request.method != "POST":
         return JsonResponse(
@@ -368,6 +386,9 @@ def render_markdown(request):
             ],
             output_format="html5",
         )
+
+        # Sanitize HTML output with nh3
+        html = nh3.clean(html)
 
         return JsonResponse(
             {

@@ -7,6 +7,7 @@ import logging
 import requests
 import boto3
 import fitz  # PyMuPDF
+import nh3
 
 from core.settings.celery import app
 from django.conf import settings
@@ -144,12 +145,12 @@ def parse_document_task(self, document_id, raw_text=""):
         if total_len < MIN_CONTENT_LENGTH:
             raise ValueError("No readable text found")
 
-        # 3) Bulk save each page
+        # 3) Bulk save each page (sanitize markdown content)
         objs = [
             DocumentPage(
                 document=doc,
                 page_number=p["page_number"],
-                markdown_content=p["markdown"],
+                markdown_content=nh3.clean(p["markdown"]),
             )
             for p in pages
         ]

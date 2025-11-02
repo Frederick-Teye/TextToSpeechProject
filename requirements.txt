@@ -17,6 +17,7 @@ kombu==5.5.4
 lxml==6.0.0
 mammoth==1.9.1
 Markdown==3.8.2
+nh3==0.2.14
 pillow==10.4.0
 psycopg2-binary==2.9.10 # for heroku postgres add-on
 # pypdf==4.3.1

@@ -945,97 +945,165 @@
 
     // ========== REWIND/FORWARD FUNCTIONALITY ==========
     
+    let mainAudioSyncing = false;
+    let floatingAudioSyncing = false;
+    
     // Rewind button handlers (main player)
-    document.getElementById('rewindBtn').addEventListener('click', function() {
-        const audio = document.getElementById('audioElement');
-        audio.currentTime = Math.max(0, audio.currentTime - 30);
-    });
+    const rewindBtn = document.getElementById('rewindBtn');
+    if (rewindBtn) {
+        rewindBtn.addEventListener('click', function() {
+            const audio = document.getElementById('audioElement');
+            if (audio && audio.src) {
+                audio.currentTime = Math.max(0, audio.currentTime - 30);
+            }
+        });
+    }
 
     // Forward button handlers (main player)
-    document.getElementById('forwardBtn').addEventListener('click', function() {
-        const audio = document.getElementById('audioElement');
-        audio.currentTime = Math.min(audio.duration, audio.currentTime + 30);
-    });
+    const forwardBtn = document.getElementById('forwardBtn');
+    if (forwardBtn) {
+        forwardBtn.addEventListener('click', function() {
+            const audio = document.getElementById('audioElement');
+            if (audio && audio.src) {
+                audio.currentTime = Math.min(audio.duration, audio.currentTime + 30);
+            }
+        });
+    }
 
     // ========== FLOATING AUDIO PLAYER FUNCTIONALITY ==========
     
-    // Sync floating player with main player
-    document.getElementById('audioElement').addEventListener('play', function() {
-        document.getElementById('floatingAudioElement').play();
-    });
+    // Sync floating player with main player (only when main has src)
+    const mainAudio = document.getElementById('audioElement');
+    const floatingAudio = document.getElementById('floatingAudioElement');
+    
+    if (mainAudio && floatingAudio) {
+        // Main player play event
+        mainAudio.addEventListener('play', function() {
+            if (floatingAudio.src && !mainAudioSyncing) {
+                floatingAudioSyncing = true;
+                floatingAudio.play().catch(e => console.warn('Float play error:', e));
+                floatingAudioSyncing = false;
+            }
+        });
 
-    document.getElementById('audioElement').addEventListener('pause', function() {
-        document.getElementById('floatingAudioElement').pause();
-    });
+        // Main player pause event
+        mainAudio.addEventListener('pause', function() {
+            if (floatingAudio.src && !mainAudioSyncing) {
+                floatingAudioSyncing = true;
+                floatingAudio.pause();
+                floatingAudioSyncing = false;
+            }
+        });
 
-    document.getElementById('audioElement').addEventListener('timeupdate', function() {
-        document.getElementById('floatingAudioElement').currentTime = this.currentTime;
-    });
+        // Main player time update - sync to floating
+        mainAudio.addEventListener('timeupdate', function() {
+            if (floatingAudio.src && !mainAudioSyncing && Math.abs(floatingAudio.currentTime - this.currentTime) > 0.5) {
+                floatingAudioSyncing = true;
+                floatingAudio.currentTime = this.currentTime;
+                floatingAudioSyncing = false;
+            }
+        });
 
-    document.getElementById('floatingAudioElement').addEventListener('timeupdate', function() {
-        document.getElementById('audioElement').currentTime = this.currentTime;
-    });
+        // Floating player time update - sync to main
+        floatingAudio.addEventListener('timeupdate', function() {
+            if (mainAudio.src && !floatingAudioSyncing && Math.abs(mainAudio.currentTime - this.currentTime) > 0.5) {
+                mainAudioSyncing = true;
+                mainAudio.currentTime = this.currentTime;
+                mainAudioSyncing = false;
+            }
+        });
+    }
 
     // Floating player rewind button
-    document.getElementById('floatingRewindBtn').addEventListener('click', function() {
-        const audio = document.getElementById('floatingAudioElement');
-        audio.currentTime = Math.max(0, audio.currentTime - 30);
-    });
+    const floatingRewindBtn = document.getElementById('floatingRewindBtn');
+    if (floatingRewindBtn) {
+        floatingRewindBtn.addEventListener('click', function() {
+            if (floatingAudio && floatingAudio.src) {
+                floatingAudio.currentTime = Math.max(0, floatingAudio.currentTime - 30);
+                if (mainAudio && mainAudio.src) {
+                    mainAudio.currentTime = floatingAudio.currentTime;
+                }
+            }
+        });
+    }
 
     // Floating player forward button
-    document.getElementById('floatingForwardBtn').addEventListener('click', function() {
-        const audio = document.getElementById('floatingAudioElement');
-        audio.currentTime = Math.min(audio.duration, audio.currentTime + 30);
-    });
+    const floatingForwardBtn = document.getElementById('floatingForwardBtn');
+    if (floatingForwardBtn) {
+        floatingForwardBtn.addEventListener('click', function() {
+            if (floatingAudio && floatingAudio.src) {
+                floatingAudio.currentTime = Math.min(floatingAudio.duration, floatingAudio.currentTime + 30);
+                if (mainAudio && mainAudio.src) {
+                    mainAudio.currentTime = floatingAudio.currentTime;
+                }
+            }
+        });
+    }
 
     // Floating player play/pause button
-    document.getElementById('floatingPlayPauseBtn').addEventListener('click', function() {
-        const audio = document.getElementById('floatingAudioElement');
-        const mainAudio = document.getElementById('audioElement');
-        if (audio.paused) {
-            audio.play();
-            mainAudio.play();
-            this.innerHTML = '<i class="bi bi-pause-fill"></i>';
-        } else {
-            audio.pause();
-            mainAudio.pause();
-            this.innerHTML = '<i class="bi bi-play-fill"></i>';
-        }
-    });
+    const floatingPlayPauseBtn = document.getElementById('floatingPlayPauseBtn');
+    if (floatingPlayPauseBtn && floatingAudio && mainAudio) {
+        floatingPlayPauseBtn.addEventListener('click', function() {
+            if (floatingAudio && floatingAudio.src) {
+                if (floatingAudio.paused) {
+                    floatingAudio.play().catch(e => console.warn('Float play error:', e));
+                    if (mainAudio.src) {
+                        mainAudio.play().catch(e => console.warn('Main play error:', e));
+                    }
+                } else {
+                    floatingAudio.pause();
+                    if (mainAudio.src) {
+                        mainAudio.pause();
+                    }
+                }
+            }
+        });
+    }
 
-    // Update play/pause button icon
-    document.getElementById('floatingAudioElement').addEventListener('play', function() {
-        document.getElementById('floatingPlayPauseBtn').innerHTML = '<i class="bi bi-pause-fill"></i>';
-    });
+    // Update play/pause button icon on floating audio
+    if (floatingAudio) {
+        floatingAudio.addEventListener('play', function() {
+            const btn = document.getElementById('floatingPlayPauseBtn');
+            if (btn) btn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+        });
 
-    document.getElementById('floatingAudioElement').addEventListener('pause', function() {
-        document.getElementById('floatingPlayPauseBtn').innerHTML = '<i class="bi bi-play-fill"></i>';
-    });
+        floatingAudio.addEventListener('pause', function() {
+            const btn = document.getElementById('floatingPlayPauseBtn');
+            if (btn) btn.innerHTML = '<i class="bi bi-play-fill"></i>';
+        });
+    }
 
     // Toggle floating player visibility
     function toggleFloatingPlayer(show) {
         const floatingPlayer = document.getElementById('floatingAudioPlayer');
-        if (show && document.getElementById('audioElement').src) {
-            floatingPlayer.classList.add('active');
-            document.body.classList.add('has-floating-player');
-        } else {
-            floatingPlayer.classList.remove('active');
-            document.body.classList.remove('has-floating-player');
+        if (floatingPlayer) {
+            if (show && mainAudio && mainAudio.src) {
+                floatingPlayer.classList.add('active');
+                document.body.classList.add('has-floating-player');
+            } else {
+                floatingPlayer.classList.remove('active');
+                document.body.classList.remove('has-floating-player');
+            }
         }
     }
 
-    // Show floating player on audio load on mobile
-    document.getElementById('audioElement').addEventListener('loadedmetadata', function() {
-        if (window.innerWidth < 992) {
-            toggleFloatingPlayer(true);
-        }
-    });
+    // Show floating player on audio metadata load on mobile
+    if (mainAudio) {
+        mainAudio.addEventListener('loadedmetadata', function() {
+            if (window.innerWidth < 992 && this.src) {
+                toggleFloatingPlayer(true);
+            }
+        });
+    }
 
     // Handle window resize to hide floating player on desktop
     window.addEventListener('resize', function() {
         if (window.innerWidth >= 992) {
-            document.getElementById('floatingAudioPlayer').classList.remove('active');
-            document.body.classList.remove('has-floating-player');
+            const floatingPlayer = document.getElementById('floatingAudioPlayer');
+            if (floatingPlayer) {
+                floatingPlayer.classList.remove('active');
+                document.body.classList.remove('has-floating-player');
+            }
         }
     });
 

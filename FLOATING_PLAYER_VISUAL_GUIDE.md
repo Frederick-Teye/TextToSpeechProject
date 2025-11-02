@@ -46,6 +46,7 @@ page_detail.html
 ### Breakpoint: 1200px (lg breakpoint)
 
 #### Desktop View (≥1200px)
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ HEADER (Full Width)                                         │
@@ -81,12 +82,14 @@ page_detail.html
 ```
 
 **Key Points:**
+
 - Sidebar player always visible (position: sticky)
 - Full player controls accessible
 - -30s and +30s buttons visible
 - No floating player shown
 
 #### Tablet View (768px - 1199px)
+
 ```
 ┌────────────────────────────┐
 │ HEADER (Full Width)        │
@@ -122,6 +125,7 @@ page_detail.html
 ```
 
 **Key Points:**
+
 - Sidebar hidden or repositioned
 - Content uses full width
 - Floating player appears on bottom-right
@@ -129,6 +133,7 @@ page_detail.html
 - Mobile-optimized controls
 
 #### Mobile View (<768px - Portrait)
+
 ```
 ┌──────────────────────────┐
 │ HEADER                   │
@@ -167,6 +172,7 @@ page_detail.html
 ```
 
 **Key Points:**
+
 - Full-width content
 - Floating player in bottom-right corner
 - Compact, three-button control layout
@@ -176,27 +182,29 @@ page_detail.html
 ## CSS Grid System
 
 ### Main Container
+
 ```css
 div.row {
-    display: flex;           /* Bootstrap row */
+  display: flex; /* Bootstrap row */
 }
 
 /* Desktop */
 @media (min-width: 992px) {
-    div.col-lg-8 {
-        flex: 0 0 66.67%;    /* 2/3 width */
-    }
-    
-    div.col-lg-4 {
-        flex: 0 0 33.33%;    /* 1/3 width */
-    }
+  div.col-lg-8 {
+    flex: 0 0 66.67%; /* 2/3 width */
+  }
+
+  div.col-lg-4 {
+    flex: 0 0 33.33%; /* 1/3 width */
+  }
 }
 
 /* Mobile */
 @media (max-width: 991px) {
-    div.col-lg-8, div.col-lg-4 {
-        flex: 0 0 100%;      /* Full width */
-    }
+  div.col-lg-8,
+  div.col-lg-4 {
+    flex: 0 0 100%; /* Full width */
+  }
 }
 ```
 
@@ -204,25 +212,26 @@ div.row {
 
 ```css
 .floating-audio-player {
-    position: fixed;        /* Always visible */
-    bottom: 20px;          /* 20px from bottom */
-    right: 20px;           /* 20px from right */
-    width: 320px;
-    max-width: calc(100vw - 40px);  /* Responsive width */
-    z-index: 1030;         /* Above Bootstrap elements */
+  position: fixed; /* Always visible */
+  bottom: 20px; /* 20px from bottom */
+  right: 20px; /* 20px from right */
+  width: 320px;
+  max-width: calc(100vw - 40px); /* Responsive width */
+  z-index: 1030; /* Above Bootstrap elements */
 }
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
-    body.has-floating-player {
-        padding-bottom: 380px;  /* Prevent overlap */
-    }
+  body.has-floating-player {
+    padding-bottom: 380px; /* Prevent overlap */
+  }
 }
 ```
 
 ## Animation Timing
 
 ### Slide-In Animation
+
 ```
 Timeline (300ms)
 ├─ 0ms: opacity=0, translateY(20px)
@@ -232,22 +241,23 @@ Timeline (300ms)
 
 ```css
 @keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .floating-audio-player {
-    animation: slideInUp 0.3s ease-out;
+  animation: slideInUp 0.3s ease-out;
 }
 ```
 
 **Visual Effect:**
+
 ```
 Frame 1:          Frame 2:           Frame 3 (Final):
 ┌─────────┐       ┌─────────┐        ┌─────────┐
@@ -289,51 +299,53 @@ rgba(0, 0, 0, 0.5) - Button shadow
 ```css
 /* Default */
 .btn-outline-warning {
-    color: #ffc107;
-    background-color: transparent;
-    border-color: #ffc107;
+  color: #ffc107;
+  background-color: transparent;
+  border-color: #ffc107;
 }
 
 /* Hover */
 .btn-outline-warning:hover {
-    color: #fff;
-    background-color: #ffc107;
-    border-color: #ffc107;
+  color: #fff;
+  background-color: #ffc107;
+  border-color: #ffc107;
 }
 
 /* Active/Focused */
 .btn-outline-warning:active,
 .btn-outline-warning:focus {
-    box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.5);
+  box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.5);
 }
 ```
 
 ## Typography
 
 ### Font Stack
+
 ```css
 body {
-    font-family: 'Inter', sans-serif;  /* App-wide font */
+  font-family: "Inter", sans-serif; /* App-wide font */
 }
 
 #contentInput,
 .floating-audio-player audio {
-    font-family: monospace;  /* Code display */
+  font-family: monospace; /* Code display */
 }
 ```
 
 ### Font Sizes
+
 ```css
 .player-header {
-    font-size: 0.9rem;     /* Compact header */
+  font-size: 0.9rem; /* Compact header */
 }
 
 .floating-audio-player button {
-    font-size: 0.8rem;     /* Small buttons */
+  font-size: 0.8rem; /* Small buttons */
 }
 
 .floating-audio-player button i {
-    font-size: 0.9rem;     /* Icon size */
+  font-size: 0.9rem; /* Icon size */
 }
 ```
 
@@ -341,16 +353,16 @@ body {
 
 All icons from Bootstrap Icons (v1.11.1):
 
-| Icon | Class | Usage |
-|------|-------|-------|
-| Rewind | `bi-rewind` | -30s button |
-| Fast Forward | `bi-fast-forward` | +30s button |
-| Play Fill | `bi-play-fill` | Play control |
-| Pause Fill | `bi-pause-fill` | Pause control |
-| Volume Up | `bi-volume-up` | Header indicator |
-| X Large | `bi-x-lg` | Close button |
-| Download | `bi-download` | Download button |
-| Trash | `bi-trash` | Delete button |
+| Icon         | Class             | Usage            |
+| ------------ | ----------------- | ---------------- |
+| Rewind       | `bi-rewind`       | -30s button      |
+| Fast Forward | `bi-fast-forward` | +30s button      |
+| Play Fill    | `bi-play-fill`    | Play control     |
+| Pause Fill   | `bi-pause-fill`   | Pause control    |
+| Volume Up    | `bi-volume-up`    | Header indicator |
+| X Large      | `bi-x-lg`         | Close button     |
+| Download     | `bi-download`     | Download button  |
+| Trash        | `bi-trash`        | Delete button    |
 
 ## Event Flow Diagram
 
@@ -372,7 +384,7 @@ User Interactions:
     │ floatingAudioElement.  │
     │ currentTime = newTime  │
     └────────────────────────┘
-    
+
 ┌──────────────────────────┐
 │  Floating Player Click   │
 │  (rewind/forward)        │
@@ -393,16 +405,17 @@ User Interactions:
 
 ## Responsive Breakpoints Summary
 
-| Device | Width | Player | Controls | Notes |
-|--------|-------|--------|----------|-------|
-| Large Desktop | ≥1200px | Sidebar | -30s, +30s | Always visible |
-| Desktop | 992px-1199px | Floating | -30s, +30s | Right side |
-| Tablet | 768px-991px | Floating | -30s, +30s, ▶/⏸ | Right side |
-| Mobile | <768px | Floating | -30s, ▶/⏸, +30s | Right side, 380px padding |
+| Device        | Width        | Player   | Controls        | Notes                     |
+| ------------- | ------------ | -------- | --------------- | ------------------------- |
+| Large Desktop | ≥1200px      | Sidebar  | -30s, +30s      | Always visible            |
+| Desktop       | 992px-1199px | Floating | -30s, +30s      | Right side                |
+| Tablet        | 768px-991px  | Floating | -30s, +30s, ▶/⏸ | Right side                |
+| Mobile        | <768px       | Floating | -30s, ▶/⏸, +30s | Right side, 380px padding |
 
 ## Testing Visual Layout
 
 ### Desktop (1920x1080)
+
 ```
 Expected: Sidebar visible, no floating player
 Screenshot area: Sidebar right side
@@ -410,6 +423,7 @@ Assert: col-lg-4 has content, floating-player hidden
 ```
 
 ### Tablet (768x1024)
+
 ```
 Expected: Floating player bottom-right
 Screenshot area: Bottom-right corner
@@ -417,6 +431,7 @@ Assert: floating-player.active visible, 320px wide
 ```
 
 ### Mobile (375x812)
+
 ```
 Expected: Floating player, compact controls
 Screenshot area: Bottom-right with close button
@@ -428,6 +443,7 @@ Assert: padding-bottom active, player responsive
 **Status:** ✅ Production Ready
 
 **Related Files:**
+
 - `templates/document_processing/page_detail.html`
 - `AUDIO_PLAYER_ENHANCEMENTS.md`
 - `FLOATING_PLAYER_QUICK_START.md`

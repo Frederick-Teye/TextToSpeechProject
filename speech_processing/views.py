@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
@@ -204,7 +205,7 @@ def download_audio(request, audio_id):
 
         # Generate presigned URL
         service = AudioGenerationService()
-        download_url = service.get_presigned_url(audio, expiration=3600)  # 1 hour
+        download_url = service.get_presigned_url(audio)  # Uses settings.AUDIO_PRESIGNED_URL_EXPIRATION_SECONDS
 
         if not download_url:
             return JsonResponse(
@@ -223,7 +224,7 @@ def download_audio(request, audio_id):
                 "success": True,
                 "download_url": download_url,
                 "voice": audio.voice,
-                "expires_in": 3600,
+                "expires_in": settings.AUDIO_DOWNLOAD_EXPIRATION_SECONDS,
             }
         )
 

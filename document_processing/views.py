@@ -4,6 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Count, Prefetch
 from django.http import JsonResponse
@@ -72,7 +73,7 @@ document_list_view = DocumentListView.as_view()
 @login_required
 @ratelimit(
     key="user",  # Rate limit per user
-    rate="10/h",  # 10 uploads per hour
+    rate=f"{settings.RATE_LIMIT_UPLOADS_PER_HOUR}/h",  # uploads per hour
     method="POST",  # Only rate limit POST requests
     block=False,  # Don't block, let us handle the response
 )
@@ -96,14 +97,14 @@ def document_upload(request):
         messages.error(
             request,
             _(
-                "You have exceeded the maximum number of uploads allowed (10 per hour). "
+                f"You have exceeded the maximum number of uploads allowed ({settings.RATE_LIMIT_UPLOADS_PER_HOUR} per hour). "
                 "Please try again later."
             ),
         )
         return JsonResponse(
             {
                 "success": False,
-                "error": _("Rate limit exceeded. Maximum 10 uploads per hour."),
+                "error": _(f"Rate limit exceeded. Maximum {settings.RATE_LIMIT_UPLOADS_PER_HOUR} uploads per hour."),
             },
             status=429,
         )

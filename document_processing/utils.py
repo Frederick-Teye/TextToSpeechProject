@@ -6,12 +6,13 @@ import re
 from pathlib import Path
 from typing import BinaryIO
 from django.utils.module_loading import import_string
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-# Constants for markdown validation
-MAX_MARKDOWN_LENGTH = 1_000_000  # 1MB max per page
-MAX_HEADER_LEVEL = 6
+# Use settings constants instead of hardcoding values
+MAX_MARKDOWN_LENGTH = settings.MARKDOWN_MAX_LENGTH
+MAX_HEADER_LEVEL = 6  # Standard Markdown header limit
 DANGEROUS_MARKDOWN_PATTERNS = [
     r"\$\$.*?\$\$",  # LaTeX math blocks that could execute
     r"<script\b",  # Script tags (should be caught by nh3, but we double-check)
@@ -79,7 +80,7 @@ def sanitize_filename(filename: str) -> str:
         )
 
     # Step 8: Limit length to 200 chars (most filesystems support 255)
-    filename = filename[:200]
+    filename = filename[:settings.UPLOAD_MAX_FILENAME_LENGTH]
 
     return filename
 

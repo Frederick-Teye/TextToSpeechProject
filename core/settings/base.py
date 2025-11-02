@@ -111,6 +111,54 @@ DATABASES = {
 }
 
 
+# ==================== APPLICATION CONSTANTS ====================
+# These constants are used throughout the application for configuration
+# and should be centralized here for easy maintenance.
+
+# File upload and processing
+UPLOAD_MAX_FILENAME_LENGTH = 200  # Max filename length after sanitization (most filesystems support 255)
+UPLOAD_MAX_FILE_SIZE_MB = 100  # Max file upload size in MB
+DOCUMENT_TITLE_MAX_LENGTH = 255  # Max length for document titles
+RATE_LIMIT_UPLOADS_PER_HOUR = 10  # Maximum document uploads per hour per user
+
+# Content processing
+MARKDOWN_MAX_LENGTH = 1_000_000  # 1MB max per page for markdown content
+MIN_CONTENT_LENGTH = 100  # Minimum characters for processed document content
+
+# Audio generation and processing
+POLLY_MAX_CHARS_PER_REQUEST = 3000  # AWS Polly character limit per request
+POLLY_AUDIO_CACHE_SECONDS = 31_536_000  # Cache audio for 1 year (365 days)
+AUDIO_PRESIGNED_URL_EXPIRATION_SECONDS = 3600  # 1 hour for presigned URLs
+AUDIO_DOWNLOAD_EXPIRATION_SECONDS = 3600  # 1 hour
+
+# Audio retention and expiry
+AUDIO_EXPIRY_WARNING_DAYS = 30  # Days before expiry to send warning email
+DEFAULT_RETENTION_MONTHS = 6  # Default audio retention in months
+AUDIO_EXPIRY_CHECK_DEFAULT_DAYS = 30  # Default days for analytics queries
+
+# Dashboard and analytics
+DASHBOARD_MAX_DAYS_LOOKBACK = 365  # Maximum days for analytics queries (1 year)
+DASHBOARD_DEFAULT_DAYS = 30  # Default days for analytics queries
+DASHBOARD_PAGE_SIZE = 50  # Default items per page in dashboard
+DASHBOARD_MIN_PAGE_SIZE = 10  # Minimum items per page
+
+# Time constants (in seconds)
+ONE_HOUR_SECONDS = 3600
+ONE_DAY_SECONDS = 86400
+ONE_YEAR_SECONDS = 31_536_000
+
+# Password reset
+PASSWORD_RESET_TIMEOUT_SECONDS = 259200  # 3 days (default for production)
+
+# Cache and timeout settings
+DEFAULT_CACHE_TIMEOUT_SECONDS = 3600  # 1 hour
+DATABASE_POOL_MAX_CONNECTIONS = 50  # Max database connections in pool
+SOCKET_TIMEOUT_SECONDS = 5  # Socket timeout for network operations
+
+# Error tracking
+MAX_ERROR_MESSAGE_LENGTH = 500  # Max length for error messages in logs
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -252,23 +300,23 @@ CACHES = {
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "CONNECTION_POOL_KWARGS": {
-                "max_connections": 50,
+                "max_connections": DATABASE_POOL_MAX_CONNECTIONS,
                 "retry_on_timeout": True,
             },
         },
-        "TIMEOUT": 3600,  # Default cache timeout: 1 hour
+        "TIMEOUT": DEFAULT_CACHE_TIMEOUT_SECONDS,
     },
     "ratelimit": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": config("REDIS_URL", default="redis://127.0.0.1:6379/2"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "SOCKET_CONNECT_TIMEOUT": 5,
-            "SOCKET_TIMEOUT": 5,
+            "SOCKET_CONNECT_TIMEOUT": SOCKET_TIMEOUT_SECONDS,
+            "SOCKET_TIMEOUT": SOCKET_TIMEOUT_SECONDS,
             "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
             "IGNORE_EXCEPTIONS": True,
         },
-        "TIMEOUT": 3600,
+        "TIMEOUT": DEFAULT_CACHE_TIMEOUT_SECONDS,
     },
 }
 
@@ -279,7 +327,7 @@ RATELIMIT_CACHE = "ratelimit"
 # key format: app:endpoint:rate
 # Example: user uploads limited to 10 per hour
 RATELIMIT_CONFIG = {
-    "document:upload": "10/h",  # 10 uploads per hour per user
+    "document:upload": f"{RATE_LIMIT_UPLOADS_PER_HOUR}/h",  # uploads per hour per user
 }
 
 

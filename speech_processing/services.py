@@ -39,8 +39,8 @@ class AudioGenerationError(Exception):
 class PollyService:
     """Service for interacting with AWS Polly for TTS generation."""
 
-    # Polly has a limit of 3000 characters per request
-    MAX_CHARS_PER_REQUEST = 3000
+    # Use settings constant for Polly character limit
+    MAX_CHARS_PER_REQUEST = settings.POLLY_MAX_CHARS_PER_REQUEST
 
     def __init__(self):
         """Initialize Polly and S3 clients."""
@@ -263,7 +263,7 @@ class PollyService:
                 Key=s3_key,
                 Body=audio_bytes,
                 ContentType="audio/mpeg",
-                CacheControl="public, max-age=31536000",  # Cache for 1 year
+                CacheControl=f"public, max-age={settings.POLLY_AUDIO_CACHE_SECONDS}",
             )
             logger.info(f"Successfully uploaded audio to S3: {s3_key}")
             return s3_key
@@ -583,18 +583,20 @@ class AudioGenerationService:
             logger.error(f"Unexpected error during audio generation: {str(e)}")
             return False, "An unexpected error occurred during audio generation."
 
-    def get_presigned_url(self, audio: 'Audio', expiration: int = 3600) -> Optional[str]:
+    def get_presigned_url(self, audio: 'Audio', expiration: int = None) -> Optional[str]:
         """
         Generate a presigned URL for downloading an audio file.
         URL expires after specified seconds (default: 1 hour).
 
         Args:
             audio: Audio instance
-            expiration: URL expiration time in seconds (default: 3600 = 1 hour)
+            expiration: URL expiration time in seconds (default: configured AUDIO_PRESIGNED_URL_EXPIRATION_SECONDS)
 
         Returns:
             Presigned URL string, or None if generation fails
         """
+        if expiration is None:
+            expiration = settings.AUDIO_PRESIGNED_URL_EXPIRATION_SECONDS
         try:
             url = self.polly_service.s3_client.generate_presigned_url(
                 "get_object",

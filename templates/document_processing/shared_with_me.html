@@ -98,6 +98,9 @@
         const permission = item.permission;
         const canGenerate = item.can_generate_audio;
         const canShare = item.can_share;
+        
+        // Generate the detail URL
+        const detailUrl = `/documents/docs/${doc.id}/`;
 
         // Permission badge
         let permissionBadge = '';
@@ -158,7 +161,7 @@
                     <div class="card-footer bg-dark border-secondary">
                         <div class="d-flex gap-2">
                             ${doc.status === 'COMPLETED' ? `
-                                <a href="{% url 'document_processing:document_detail' 0 %}".replace('0', doc.id) 
+                                <a href="${detailUrl}" 
                                    class="btn btn-sm btn-primary flex-fill">
                                     <i class="bi bi-eye"></i> View
                                 </a>

@@ -1,4 +1,5 @@
 import logging
+import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
@@ -7,6 +8,7 @@ from django.db import transaction
 from django.http import JsonResponse
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
+import markdown as md
 
 from .forms import DocumentUploadForm
 from .models import SourceType, TextStatus, Document, DocumentPage
@@ -146,15 +148,36 @@ def page_detail(request, doc_id, page):
     page_obj = get_object_or_404(DocumentPage, document_id=doc_id, page_number=page)
 
     # Check if user has access
-    has_access = (
-        request.user != page_obj.document.user
-        or DocumentSharing.objects.filter(
-            document=page_obj.document, shared_with=request.user
-        )
-    )
-    if not has_access:
+    is_owner = request.user == page_obj.document.user
+    has_shared_access = DocumentSharing.objects.filter(
+        document=page_obj.document, shared_with=request.user
+    ).exists()
+
+    if not (is_owner or has_shared_access):
         raise PermissionDenied
-    return render(request, "document_processing/page_detail.html", {"page": page_obj})
+
+    # Calculate pagination
+    total_pages = page_obj.document.pages.count()
+
+    # Build URLs for previous and next pages
+    previous_page_url = None
+    next_page_url = None
+
+    if page > 1:
+        previous_page_url = f"/documents/docs/{doc_id}/pages/{page - 1}/"
+
+    if page < total_pages:
+        next_page_url = f"/documents/docs/{doc_id}/pages/{page + 1}/"
+
+    context = {
+        "page": page_obj,
+        "total_pages": total_pages,
+        "previous_page_url": previous_page_url,
+        "next_page_url": next_page_url,
+        "can_edit": is_owner,  # Only owner can edit
+    }
+
+    return render(request, "document_processing/page_detail.html", context)
 
 
 @login_required
@@ -237,5 +260,129 @@ def document_delete(request, pk):
                 "success": False,
                 "message": "An error occurred while deleting the document",
             },
+            status=500,
+        )
+
+
+@login_required
+def page_edit(request, page_id):
+    """
+    API endpoint to update a page's markdown content.
+    Only the document owner can edit.
+    """
+    if request.method != "POST":
+        return JsonResponse(
+            {"success": False, "error": "Invalid request method"}, status=405
+        )
+
+    page_obj = get_object_or_404(DocumentPage, id=page_id)
+
+    # Check if user is the document owner
+    if request.user != page_obj.document.user:
+        return JsonResponse(
+            {"success": False, "error": "Permission denied"}, status=403
+        )
+
+    try:
+        data = json.loads(request.body)
+        markdown_content = data.get("markdown_content", "").strip()
+
+        if not markdown_content:
+            return JsonResponse(
+                {"success": False, "error": "Content cannot be empty"}, status=400
+            )
+
+        # Update the page content
+        page_obj.markdown_content = markdown_content
+        page_obj.save()
+
+        # Convert markdown to HTML for preview
+        html = md.markdown(
+            markdown_content,
+            extensions=[
+                "fenced_code",
+                "codehilite",
+                "tables",
+                "toc",
+            ],
+            output_format="html5",
+        )
+
+        logger.info(
+            f"Page {page_obj.page_number} of document '{page_obj.document.title}' "
+            f"updated by user {request.user.id}"
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Page updated successfully",
+                "html": html,
+                "page_id": page_obj.id,
+            }
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"success": False, "error": "Invalid JSON data"}, status=400
+        )
+    except Exception as e:
+        logger.exception(f"Failed to update page {page_id}")
+        return JsonResponse(
+            {"success": False, "error": "An error occurred while updating the page"},
+            status=500,
+        )
+
+
+@login_required
+def render_markdown(request):
+    """
+    API endpoint to render markdown to HTML.
+    Used for live preview in the page edit modal.
+    """
+    if request.method != "POST":
+        return JsonResponse(
+            {"success": False, "error": "Invalid request method"}, status=405
+        )
+
+    try:
+        data = json.loads(request.body)
+        markdown_content = data.get("markdown", "").strip()
+
+        if not markdown_content:
+            return JsonResponse(
+                {
+                    "success": True,
+                    "html": "<p class='text-white-50'>Preview will appear here...</p>",
+                }
+            )
+
+        # Convert markdown to HTML
+        html = md.markdown(
+            markdown_content,
+            extensions=[
+                "fenced_code",
+                "codehilite",
+                "tables",
+                "toc",
+            ],
+            output_format="html5",
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "html": html,
+            }
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"success": False, "error": "Invalid JSON data"}, status=400
+        )
+    except Exception as e:
+        logger.exception("Failed to render markdown")
+        return JsonResponse(
+            {"success": False, "error": "An error occurred while rendering markdown"},
             status=500,
         )

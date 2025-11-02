@@ -29,14 +29,90 @@
             </div>
 
             <!-- Markdown Content -->
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-transparent border-0">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="bi bi-text-paragraph me-2"></i> Content</h5>
+                    {% if can_edit %}
+                    <button id="editBtn" class="btn btn-sm btn-outline-warning" title="Edit page content">
+                        <i class="bi bi-pencil me-1"></i> Edit
+                    </button>
+                    {% endif %}
                 </div>
-                <div class="card-body markdown-content">
+                <div class="card-body markdown-content" id="contentDisplay">
                     {{ page.markdown_content|md_to_html }}
                 </div>
             </div>
+
+            <!-- Edit Modal -->
+            {% if can_edit %}
+            <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content bg-secondary">
+                        <div class="modal-header border-secondary">
+                            <h5 class="modal-title" id="editModalLabel">
+                                <i class="bi bi-pencil-square me-2"></i> Edit Page {{ page.page_number }}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="contentInput" class="form-label">Markdown Content</label>
+                                <textarea id="contentInput" class="form-control bg-dark border-secondary text-white" 
+                                          rows="12" placeholder="Enter markdown content...">{{ page.markdown_content }}</textarea>
+                                <small class="text-white-50 d-block mt-2">
+                                    <i class="bi bi-info-circle me-1"></i> Supports markdown formatting (headers, bold, links, code blocks, etc.)
+                                </small>
+                            </div>
+                            <div id="previewContainer" class="mb-3">
+                                <label class="form-label">Preview</label>
+                                <div id="previewContent" class="card bg-dark border-secondary p-3 markdown-content" style="min-height: 150px;">
+                                    <p class="text-white-50">Preview will appear here...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-secondary">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="bi bi-x-circle me-1"></i> Cancel
+                            </button>
+                            <button type="button" class="btn btn-primary" id="saveBtn">
+                                <i class="bi bi-check-circle me-1"></i> Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Pagination -->
+            <nav aria-label="Page navigation" class="mt-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    {% if previous_page_url %}
+                    <a href="{{ previous_page_url }}" class="btn btn-outline-primary">
+                        <i class="bi bi-chevron-left me-1"></i> Previous Page
+                    </a>
+                    {% else %}
+                    <button class="btn btn-outline-secondary" disabled>
+                        <i class="bi bi-chevron-left me-1"></i> Previous Page
+                    </button>
+                    {% endif %}
+
+                    <div class="text-center">
+                        <span class="text-white-50">
+                            Page <strong>{{ page.page_number }}</strong> of <strong>{{ total_pages }}</strong>
+                        </span>
+                    </div>
+
+                    {% if next_page_url %}
+                    <a href="{{ next_page_url }}" class="btn btn-outline-primary">
+                        Next Page <i class="bi bi-chevron-right ms-1"></i>
+                    </a>
+                    {% else %}
+                    <button class="btn btn-outline-secondary" disabled>
+                        Next Page <i class="bi bi-chevron-right ms-1"></i>
+                    </button>
+                    {% endif %}
+                </div>
+            </nav>
         </div>
 
         <!-- Audio Player Sidebar (Right Side) -->
@@ -608,6 +684,100 @@
         const bsToast = new bootstrap.Toast(toast);
         bsToast.show();
         setTimeout(() => toast.remove(), 5000);
+    }
+
+    // ========== EDIT FUNCTIONALITY ==========
+    
+    // Get reference to edit button (if it exists)
+    const editBtn = document.getElementById('editBtn');
+    const editModal = document.getElementById('editModal');
+    const contentInput = document.getElementById('contentInput');
+    const previewContent = document.getElementById('previewContent');
+    const saveBtn = document.getElementById('saveBtn');
+
+    if (editBtn) {
+        // Open edit modal
+        editBtn.addEventListener('click', function() {
+            const modal = new bootstrap.Modal(editModal);
+            modal.show();
+        });
+
+        // Update preview as user types
+        contentInput.addEventListener('input', function() {
+            updatePreview(this.value);
+        });
+
+        // Save changes
+        saveBtn.addEventListener('click', async function() {
+            const content = contentInput.value.trim();
+            
+            if (!content) {
+                showToast('error', 'Content cannot be empty');
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+            try {
+                const response = await fetch(`/documents/pages/${pageId}/edit/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({ markdown_content: content })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('success', 'Page updated successfully!');
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(editModal);
+                    modal.hide();
+
+                    // Update display content
+                    updateDisplayContent(data.html);
+                } else {
+                    showToast('error', data.error || 'Failed to update page');
+                }
+            } catch (error) {
+                console.error('Error saving page:', error);
+                showToast('error', 'Failed to save changes');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Save Changes';
+            }
+        });
+    }
+
+    // Function to render markdown preview
+    function updatePreview(markdown) {
+        // For now, use a simple approach: send to server for rendering
+        // In production, you might use a markdown library like marked.js
+        fetch('/documents/pages/render-markdown/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ markdown: markdown })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                previewContent.innerHTML = data.html;
+            }
+        })
+        .catch(error => console.error('Error rendering preview:', error));
+    }
+
+    // Function to update the display content
+    function updateDisplayContent(html) {
+        const contentDisplay = document.getElementById('contentDisplay');
+        contentDisplay.innerHTML = html;
     }
 </script>
 {% endblock content %}

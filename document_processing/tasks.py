@@ -185,9 +185,9 @@ def parse_document_task(self, document_id, raw_text=""):
         doc.status = TextStatus.FAILED
         doc.error_message = str(e)
         log_task_failure(
-            task_name='parse_document_task',
+            task_name="parse_document_task",
             error_exception=e,
-            task_kwargs={'document_id': document_id},
+            task_kwargs={"document_id": document_id},
             document_id=document_id,
             user_id=doc.user.id if doc.user else None,
             retry_count=self.request.retries,
@@ -198,9 +198,9 @@ def parse_document_task(self, document_id, raw_text=""):
         doc.status = TextStatus.FAILED
         doc.error_message = "Failed to fetch URL content"
         log_task_failure(
-            task_name='parse_document_task',
+            task_name="parse_document_task",
             error_exception=e,
-            task_kwargs={'document_id': document_id},
+            task_kwargs={"document_id": document_id},
             document_id=document_id,
             user_id=doc.user.id if doc.user else None,
             retry_count=self.request.retries,
@@ -211,9 +211,9 @@ def parse_document_task(self, document_id, raw_text=""):
         doc.status = TextStatus.FAILED
         doc.error_message = "Processing failed: no readable text"
         log_task_failure(
-            task_name='parse_document_task',
+            task_name="parse_document_task",
             error_exception=e,
-            task_kwargs={'document_id': document_id},
+            task_kwargs={"document_id": document_id},
             document_id=document_id,
             user_id=doc.user.id if doc.user else None,
             retry_count=self.request.retries,
@@ -224,9 +224,9 @@ def parse_document_task(self, document_id, raw_text=""):
         doc.status = TextStatus.FAILED
         doc.error_message = "Processing failed: unsupported or corrupted content"
         log_task_failure(
-            task_name='parse_document_task',
+            task_name="parse_document_task",
             error_exception=e,
-            task_kwargs={'document_id': document_id},
+            task_kwargs={"document_id": document_id},
             document_id=document_id,
             user_id=doc.user.id if doc.user else None,
             retry_count=self.request.retries,

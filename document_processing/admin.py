@@ -169,42 +169,65 @@ class DocumentPageAdmin(admin.ModelAdmin):
 
 @admin.register(TaskFailureAlert)
 class TaskFailureAlertAdmin(admin.ModelAdmin):
-    list_display = ('task_name', 'status', 'user', 'error_summary', 'created_at', 'email_sent')
-    list_filter = ('status', 'task_name', 'email_sent', 'created_at')
-    search_fields = ('error_message', 'user__email', 'document__title')
-    readonly_fields = ('task_name', 'error_message', 'error_traceback', 'task_args', 
-                      'task_kwargs', 'retry_count', 'created_at', 'email_sent_at')
-    date_hierarchy = 'created_at'
-    
-    fieldsets = (
-        ('Alert Information', {
-            'fields': ('task_name', 'status', 'email_sent', 'created_at')
-        }),
-        ('Related Records', {
-            'fields': ('document', 'user')
-        }),
-        ('Task Details', {
-            'classes': ('collapse',),
-            'fields': ('task_args', 'task_kwargs', 'retry_count')
-        }),
-        ('Error Details', {
-            'classes': ('collapse',),
-            'fields': ('error_message', 'error_traceback')
-        }),
-        ('Resolution', {
-            'fields': ('resolution_notes', 'resolved_at', 'email_sent_at')
-        }),
+    list_display = (
+        "task_name",
+        "status",
+        "user",
+        "error_summary",
+        "created_at",
+        "email_sent",
     )
-    
+    list_filter = ("status", "task_name", "email_sent", "created_at")
+    search_fields = ("error_message", "user__email", "document__title")
+    readonly_fields = (
+        "task_name",
+        "error_message",
+        "error_traceback",
+        "task_args",
+        "task_kwargs",
+        "retry_count",
+        "created_at",
+        "email_sent_at",
+    )
+    date_hierarchy = "created_at"
+
+    fieldsets = (
+        (
+            "Alert Information",
+            {"fields": ("task_name", "status", "email_sent", "created_at")},
+        ),
+        ("Related Records", {"fields": ("document", "user")}),
+        (
+            "Task Details",
+            {
+                "classes": ("collapse",),
+                "fields": ("task_args", "task_kwargs", "retry_count"),
+            },
+        ),
+        (
+            "Error Details",
+            {"classes": ("collapse",), "fields": ("error_message", "error_traceback")},
+        ),
+        (
+            "Resolution",
+            {"fields": ("resolution_notes", "resolved_at", "email_sent_at")},
+        ),
+    )
+
     def error_summary(self, obj):
         """Show truncated error message in list view."""
-        return obj.error_message[:50] + '...' if len(obj.error_message) > 50 else obj.error_message
-    error_summary.short_description = 'Error'
-    
+        return (
+            obj.error_message[:50] + "..."
+            if len(obj.error_message) > 50
+            else obj.error_message
+        )
+
+    error_summary.short_description = "Error"
+
     def has_add_permission(self, request):
         # Alerts should only be created programmatically
         return False
-    
+
     def has_delete_permission(self, request, obj=None):
         # Keep alert history for investigation
         return False

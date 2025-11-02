@@ -29,8 +29,9 @@ SECRET_KEY = config("DJANGO_SECRET_KEY")
 ADMINS = [
     (admin_name, admin_email)
     for admin_name, admin_email in [
-        tuple(pair.split(',')) for pair in config("ADMINS", default="").split(';')
-        if pair.strip() and ',' in pair
+        tuple(pair.split(","))
+        for pair in config("ADMINS", default="").split(";")
+        if pair.strip() and "," in pair
     ]
 ] or [("Admin", config("DEFAULT_ADMIN_EMAIL", default="admin@example.com"))]
 

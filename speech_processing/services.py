@@ -57,10 +57,19 @@ class PollyService:
             region_name=settings.AWS_S3_REGION_NAME,
         )
 
-    def chunk_text(self, text):
+    def chunk_text(self, text: str) -> list[str]:
         """
         Split text into chunks that fit within Polly's character limit.
         Tries to split on sentence boundaries for natural audio.
+
+        Args:
+            text: The text to chunk
+
+        Returns:
+            List of text chunks, each <= MAX_CHARS_PER_REQUEST characters
+
+        Raises:
+            AudioGenerationError: If text cannot be chunked properly
         """
         if len(text) <= self.MAX_CHARS_PER_REQUEST:
             return [text]
@@ -103,7 +112,7 @@ class PollyService:
 
         return chunks if chunks else [text[: self.MAX_CHARS_PER_REQUEST]]
 
-    def synthesize_speech(self, text, voice_id):
+    def synthesize_speech(self, text: str, voice_id: str) -> bytes:
         """
         Call Polly to synthesize speech for a single text chunk.
 
@@ -190,10 +199,19 @@ class PollyService:
                 "An unexpected error occurred. Please try again later."
             )
 
-    def merge_audio_chunks(self, audio_chunks):
+    def merge_audio_chunks(self, audio_chunks: list[bytes]) -> bytes:
         """
         Merge multiple audio chunks into a single audio file.
         Uses pydub for audio manipulation.
+
+        Args:
+            audio_chunks: List of MP3 audio data as bytes
+
+        Returns:
+            Merged MP3 audio data as bytes
+
+        Raises:
+            AudioGenerationError: If chunks cannot be merged or are empty
         """
         if not audio_chunks:
             raise AudioGenerationError("No audio chunks to merge")
@@ -220,7 +238,7 @@ class PollyService:
             logger.error(f"Audio merging error: {str(e)}")
             raise AudioGenerationError(f"Failed to merge audio chunks: {str(e)}")
 
-    def upload_to_s3(self, audio_bytes, s3_key):
+    def upload_to_s3(self, audio_bytes: bytes, s3_key: str) -> str:
         """
         Upload audio bytes to S3.
 
@@ -292,15 +310,22 @@ class PollyService:
                 "An unexpected error occurred while saving audio. Try again later."
             )
 
-    def generate_s3_key(self, document_id, page_number, voice_id):
+    def generate_s3_key(self, document_id: int, page_number: int, voice_id: str) -> str:
         """
         Generate a unique S3 key for the audio file.
-        Format: audios/document_{id}/page_{num}/voice_{voice}_{timestamp}.mp3
+
+        Args:
+            document_id: ID of the document
+            page_number: Page number within the document
+            voice_id: Polly voice identifier (e.g., 'Joanna')
+
+        Returns:
+            S3 key in format: audios/document_{id}/page_{num}/voice_{voice}_{timestamp}.mp3
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         return f"audios/document_{document_id}/page_{page_number}/voice_{voice_id}_{timestamp}.mp3"
 
-    def generate_audio(self, text, voice_id, document_id, page_number):
+    def generate_audio(self, text: str, voice_id: str, document_id: int, page_number: int) -> str:
         """
         Full audio generation pipeline:
         1. Chunk text
@@ -308,6 +333,18 @@ class PollyService:
         3. Merge chunks
         4. Upload to S3
         5. Return S3 key
+
+        Args:
+            text: The text content to convert to audio
+            voice_id: Polly voice identifier
+            document_id: ID of the document
+            page_number: Page number within the document
+
+        Returns:
+            S3 key of the generated audio file
+
+        Raises:
+            AudioGenerationError: If any step in the pipeline fails
         """
         logger.info(
             f"Starting audio generation for document {document_id}, page {page_number}, voice {voice_id}"
@@ -363,10 +400,19 @@ class AudioGenerationService:
     def __init__(self):
         self.polly_service = PollyService()
 
-    def check_generation_allowed(self, user, page, voice_id):
+    def check_generation_allowed(self, user, page, voice_id: str) -> tuple[bool, Optional[str]]:
         """
         Check if audio generation is allowed.
-        Returns (allowed, error_message).
+
+        Args:
+            user: User attempting to generate audio
+            page: DocumentPage instance
+            voice_id: Polly voice identifier
+
+        Returns:
+            Tuple of (allowed: bool, error_message: Optional[str])
+            If allowed=True, error_message will be None
+            If allowed=False, error_message contains reason
         """
         # Check global settings
         settings_obj = SiteSettings.get_settings()
@@ -411,13 +457,19 @@ class AudioGenerationService:
         except DocumentSharing.DoesNotExist:
             return False, "You don't have access to this document."
 
-    def create_audio_record(self, page, voice_id, user):
+    def create_audio_record(self, page, voice_id: str, user) -> 'Audio':
         """
         Create an Audio record in the database with PENDING status.
         Uses database-level locking to prevent race conditions where multiple
         requests try to create the same voice for the page.
 
-        Returns the Audio instance if successful.
+        Args:
+            page: DocumentPage instance
+            voice_id: Polly voice identifier
+            user: User creating the audio
+
+        Returns:
+            Audio instance with PENDING status
 
         Raises:
             AudioGenerationError: If voice already exists (duplicate detected)
@@ -469,12 +521,20 @@ class AudioGenerationService:
             logger.error(f"Error creating audio record: {str(e)}")
             raise AudioGenerationError(f"Failed to create audio record: {str(e)}")
 
-    def generate_audio_for_page(self, page, voice_id, user):
+    def generate_audio_for_page(self, page, voice_id: str, user) -> tuple[bool, any]:
         """
         Generate audio for a page with the specified voice.
         This is the main entry point for audio generation.
 
-        Returns: (success, audio_or_error_message)
+        Args:
+            page: DocumentPage instance
+            voice_id: Polly voice identifier
+            user: User requesting audio generation
+
+        Returns:
+            Tuple of (success: bool, result: Audio or str)
+            If success=True, result is the Audio instance
+            If success=False, result is an error message string
         """
         # Check if generation is allowed
         allowed, error_msg = self.check_generation_allowed(user, page, voice_id)
@@ -523,10 +583,17 @@ class AudioGenerationService:
             logger.error(f"Unexpected error during audio generation: {str(e)}")
             return False, "An unexpected error occurred during audio generation."
 
-    def get_presigned_url(self, audio, expiration=3600):
+    def get_presigned_url(self, audio: 'Audio', expiration: int = 3600) -> Optional[str]:
         """
         Generate a presigned URL for downloading an audio file.
         URL expires after specified seconds (default: 1 hour).
+
+        Args:
+            audio: Audio instance
+            expiration: URL expiration time in seconds (default: 3600 = 1 hour)
+
+        Returns:
+            Presigned URL string, or None if generation fails
         """
         try:
             url = self.polly_service.s3_client.generate_presigned_url(

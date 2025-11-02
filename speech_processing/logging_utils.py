@@ -6,17 +6,26 @@ audio-related actions to the AudioAccessLog model.
 """
 
 from functools import wraps
-from django.http import JsonResponse
+from typing import Optional, Callable, Any, Dict
+from django.http import JsonResponse, HttpRequest
+from django.contrib.auth import get_user_model
 from speech_processing.models import AudioAccessLog, AudioAction, AudioGenerationStatus
 import logging
 
 logger = logging.getLogger(__name__)
+User = get_user_model()
 
 
-def get_client_ip(request):
+def get_client_ip(request: HttpRequest) -> str:
     """
     Extract client IP address from request.
     Handles X-Forwarded-For header for proxied requests.
+
+    Args:
+        request: Django HTTP request object
+
+    Returns:
+        Client IP address as a string
     """
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
     if x_forwarded_for:
@@ -26,21 +35,29 @@ def get_client_ip(request):
     return ip
 
 
-def get_user_agent(request):
-    """Extract user agent string from request."""
+def get_user_agent(request: HttpRequest) -> str:
+    """
+    Extract user agent string from request.
+
+    Args:
+        request: Django HTTP request object
+
+    Returns:
+        User agent string, or empty string if not available
+    """
     return request.META.get("HTTP_USER_AGENT", "")
 
 
 def log_audio_action(
-    user,
-    action,
-    audio=None,
-    document=None,
-    status=AudioGenerationStatus.COMPLETED,
-    error_message=None,
-    ip_address=None,
-    user_agent=None,
-):
+    user: User,
+    action: str,
+    audio: Optional["Audio"] = None,
+    document: Optional["Document"] = None,
+    status: str = AudioGenerationStatus.COMPLETED,
+    error_message: Optional[str] = None,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
+) -> Optional[AudioAccessLog]:
     """
     Create an audit log entry for an audio action.
 
@@ -55,7 +72,7 @@ def log_audio_action(
         user_agent: User agent string
 
     Returns:
-        AudioAccessLog instance
+        AudioAccessLog instance or None if creation failed
     """
     try:
         log_entry = AudioAccessLog.objects.create(
@@ -74,7 +91,11 @@ def log_audio_action(
         return None
 
 
-def audit_log(action, extract_audio=None, extract_document=None):
+def audit_log(
+    action: str,
+    extract_audio: Optional[Callable[[Dict[str, Any]], Optional[int]]] = None,
+    extract_document: Optional[Callable[[Dict[str, Any]], Optional[int]]] = None,
+) -> Callable:
     """
     Decorator to automatically log audio actions.
 
@@ -89,6 +110,9 @@ def audit_log(action, extract_audio=None, extract_document=None):
         action: AudioAction choice
         extract_audio: Function to extract audio ID from view kwargs (optional)
         extract_document: Function to extract document ID from view kwargs (optional)
+
+    Returns:
+        Decorated view function
     """
 
     def decorator(view_func):
@@ -166,10 +190,26 @@ def audit_log(action, extract_audio=None, extract_document=None):
     return decorator
 
 
-def log_generation_start(user, page, voice, ip_address=None, user_agent=None):
+def log_generation_start(
+    user,
+    page,
+    voice: str,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
+) -> Optional[AudioAccessLog]:
     """
     Log the start of audio generation.
     Called when generation task is triggered.
+
+    Args:
+        user: User initiating generation
+        page: DocumentPage being processed
+        voice: Voice identifier used
+        ip_address: Client IP address
+        user_agent: User agent string
+
+    Returns:
+        AudioAccessLog instance or None if creation failed
     """
     return log_audio_action(
         user=user,
@@ -184,11 +224,21 @@ def log_generation_start(user, page, voice, ip_address=None, user_agent=None):
 
 
 def log_generation_complete(
-    audio, status=AudioGenerationStatus.COMPLETED, error_message=None
-):
+    audio,
+    status: str = AudioGenerationStatus.COMPLETED,
+    error_message: Optional[str] = None,
+) -> Optional[AudioAccessLog]:
     """
     Log the completion of audio generation.
     Called from Celery task when generation finishes.
+
+    Args:
+        audio: Audio instance that was generated
+        status: Final status (COMPLETED or FAILED)
+        error_message: Error message if generation failed
+
+    Returns:
+        AudioAccessLog instance or None if creation failed
     """
     return log_audio_action(
         user=audio.generated_by,

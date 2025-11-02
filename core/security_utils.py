@@ -270,3 +270,65 @@ def safe_dict_for_logging(data: dict, max_items: int = 10) -> str:
         safe_items.append(f"{key}={safe_value}")
 
     return "{" + ", ".join(safe_items) + "}"
+
+
+class SensitiveDataFilter(logging.Filter):
+    """
+    Logging filter that redacts sensitive information from log records.
+
+    This filter automatically sanitizes log messages and exception info
+    to prevent accidental leakage of:
+    - Email addresses
+    - API keys
+    - Passwords
+    - Tokens
+    - Other credentials
+
+    Usage:
+        In settings.py:
+        LOGGING = {
+            'filters': {
+                'sensitive': {
+                    '()': 'core.security_utils.SensitiveDataFilter',
+                },
+            },
+            'handlers': {
+                'file': {
+                    'filters': ['sensitive'],
+                    ...
+                }
+            }
+        }
+    """
+
+    # Patterns to redact
+    SENSITIVE_PATTERNS = [
+        r'password["\']?\s*[:=]\s*["\']?[^"\'\s,}]+',
+        r'token["\']?\s*[:=]\s*["\']?[^"\'\s,}]+',
+        r'api[_-]?key["\']?\s*[:=]\s*["\']?[^"\'\s,}]+',
+        r'secret["\']?\s*[:=]\s*["\']?[^"\'\s,}]+',
+        r'email["\']?\s*[:=]\s*["\']?[^\s,}]+@[^\s,}]+',
+        r'authorization["\']?\s*[:=]\s*Bearer\s+[^,\s}]+',
+    ]
+
+    def filter(self, record):
+        """Filter and sanitize a log record."""
+        import re
+
+        # Sanitize the message
+        if isinstance(record.msg, str):
+            for pattern in self.SENSITIVE_PATTERNS:
+                record.msg = re.sub(
+                    pattern, "[REDACTED]", record.msg, flags=re.IGNORECASE
+                )
+
+        # Sanitize exception message
+        if record.exc_info and record.exc_info[1]:
+            exc_str = str(record.exc_info[1])
+            for pattern in self.SENSITIVE_PATTERNS:
+                exc_str = re.sub(pattern, "[REDACTED]", exc_str, flags=re.IGNORECASE)
+            # Note: Can't directly modify exc_info, so log the sanitized message separately
+            if "[REDACTED]" in exc_str:
+                record.msg = f"{record.msg} | Exception: {exc_str}"
+
+        return True

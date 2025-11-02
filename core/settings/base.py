@@ -298,6 +298,12 @@ LOGGING = {
     # This setting is crucial. It ensures that loggers defined by Django
     # or other third-party apps are not disabled.
     "disable_existing_loggers": False,
+    # Filters to sanitize sensitive data
+    "filters": {
+        "sensitive_data": {
+            "()": "core.security_utils.SensitiveDataFilter",
+        },
+    },
     # Formatters define the layout of your log messages.
     "formatters": {
         "verbose": {
@@ -313,6 +319,7 @@ LOGGING = {
             "level": "DEBUG",  # Capture all messages from DEBUG level and up.
             "class": "logging.StreamHandler",  # Prints to standard output/error.
             "formatter": "simple",
+            "filters": ["sensitive_data"],  # Apply sensitive data filter
         },
     },
     # Loggers are the entry point into the logging system.

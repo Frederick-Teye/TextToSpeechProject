@@ -382,74 +382,74 @@ class AdminAuditLog(models.Model):
     """
     Audit log for admin and sensitive operations.
     Tracks who did what, when, and from where.
-    
+
     Security-focused tracking for:
     - Dashboard access
     - Configuration changes
     - Sensitive operations
     - Administrative actions
     """
-    
+
     ACTION_CHOICES = [
-        ('VIEW_DASHBOARD', 'Viewed Dashboard'),
-        ('VIEW_ANALYTICS', 'Viewed Analytics'),
-        ('VIEW_ERRORS', 'Viewed Error Monitoring'),
-        ('VIEW_ACTIVITY', 'Viewed User Activity'),
-        ('CHANGE_SETTINGS', 'Changed Settings'),
-        ('EXPORT_DATA', 'Exported Data'),
-        ('DELETE_DATA', 'Deleted Data'),
-        ('USER_ACTION', 'User Action'),
-        ('SYSTEM_ACTION', 'System Action'),
-        ('OTHER', 'Other'),
+        ("VIEW_DASHBOARD", "Viewed Dashboard"),
+        ("VIEW_ANALYTICS", "Viewed Analytics"),
+        ("VIEW_ERRORS", "Viewed Error Monitoring"),
+        ("VIEW_ACTIVITY", "Viewed User Activity"),
+        ("CHANGE_SETTINGS", "Changed Settings"),
+        ("EXPORT_DATA", "Exported Data"),
+        ("DELETE_DATA", "Deleted Data"),
+        ("USER_ACTION", "User Action"),
+        ("SYSTEM_ACTION", "System Action"),
+        ("OTHER", "Other"),
     ]
-    
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='admin_audit_logs',
-        help_text='User who performed the action',
+        related_name="admin_audit_logs",
+        help_text="User who performed the action",
     )
     action = models.CharField(
         max_length=50,
         choices=ACTION_CHOICES,
-        default='OTHER',
-        help_text='Type of action performed',
+        default="OTHER",
+        help_text="Type of action performed",
     )
     description = models.TextField(
-        help_text='Detailed description of the action',
+        help_text="Detailed description of the action",
     )
     ip_address = models.GenericIPAddressField(
         null=True,
         blank=True,
-        help_text='IP address from which action was performed',
+        help_text="IP address from which action was performed",
     )
     user_agent = models.CharField(
         max_length=500,
         blank=True,
-        help_text='User agent string from request',
+        help_text="User agent string from request",
     )
     timestamp = models.DateTimeField(
         auto_now_add=True,
-        help_text='When the action was performed',
+        help_text="When the action was performed",
     )
     changes = models.JSONField(
         null=True,
         blank=True,
-        help_text='JSON record of what changed (if applicable)',
+        help_text="JSON record of what changed (if applicable)",
     )
-    
+
     class Meta:
-        ordering = ['-timestamp']
+        ordering = ["-timestamp"]
         indexes = [
-            models.Index(fields=['-timestamp']),
-            models.Index(fields=['user', '-timestamp']),
-            models.Index(fields=['action', '-timestamp']),
+            models.Index(fields=["-timestamp"]),
+            models.Index(fields=["user", "-timestamp"]),
+            models.Index(fields=["action", "-timestamp"]),
         ]
-        verbose_name = 'Admin Audit Log'
-        verbose_name_plural = 'Admin Audit Logs'
-    
+        verbose_name = "Admin Audit Log"
+        verbose_name_plural = "Admin Audit Logs"
+
     def __str__(self):
-        user_str = self.user.username if self.user else 'Anonymous'
+        user_str = self.user.username if self.user else "Anonymous"
         return f"{user_str} - {self.get_action_display()} - {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"

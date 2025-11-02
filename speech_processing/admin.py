@@ -61,16 +61,24 @@ class SiteSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(AdminAuditLog)
 class AdminAuditLogAdmin(admin.ModelAdmin):
-    list_display = ('user', 'action', 'ip_address', 'timestamp')
-    list_filter = ('action', 'timestamp')
-    search_fields = ('user__email', 'description', 'ip_address')
-    readonly_fields = ('timestamp', 'user', 'action', 'description', 'ip_address', 'user_agent', 'changes')
-    date_hierarchy = 'timestamp'
-    
+    list_display = ("user", "action", "ip_address", "timestamp")
+    list_filter = ("action", "timestamp")
+    search_fields = ("user__email", "description", "ip_address")
+    readonly_fields = (
+        "timestamp",
+        "user",
+        "action",
+        "description",
+        "ip_address",
+        "user_agent",
+        "changes",
+    )
+    date_hierarchy = "timestamp"
+
     def has_add_permission(self, request):
         # Audit logs should only be created programmatically
         return False
-    
+
     def has_delete_permission(self, request, obj=None):
         # Audit logs should not be deleted
         return False

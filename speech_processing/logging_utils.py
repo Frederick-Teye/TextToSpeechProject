@@ -226,10 +226,12 @@ def log_share_action(
     )
 
 
-def log_admin_action(user, action, description, ip_address=None, user_agent=None, changes=None):
+def log_admin_action(
+    user, action, description, ip_address=None, user_agent=None, changes=None
+):
     """
     Log an administrative or sensitive action to the AdminAuditLog.
-    
+
     Args:
         user: User who performed the action
         action: Action type from AdminAuditLog.ACTION_CHOICES
@@ -237,10 +239,10 @@ def log_admin_action(user, action, description, ip_address=None, user_agent=None
         ip_address: Client IP address
         user_agent: User agent string
         changes: JSON-serializable dict of changes made (optional)
-    
+
     Returns:
         AdminAuditLog instance or None if creation failed
-    
+
     Example:
         log_admin_action(
             user=request.user,
@@ -251,7 +253,7 @@ def log_admin_action(user, action, description, ip_address=None, user_agent=None
         )
     """
     from speech_processing.models import AdminAuditLog
-    
+
     try:
         log_entry = AdminAuditLog.objects.create(
             user=user,
@@ -266,4 +268,3 @@ def log_admin_action(user, action, description, ip_address=None, user_agent=None
     except Exception as e:
         logger.error(f"Failed to create admin audit log: {e}")
         return None
-

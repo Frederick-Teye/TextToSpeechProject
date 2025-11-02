@@ -3,11 +3,12 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.db import transaction
 import json
 
 from document_processing.models import DocumentPage
 from speech_processing.models import Audio, SiteSettings, DocumentSharing, AudioAction
-from speech_processing.services import AudioGenerationService
+from speech_processing.services import AudioGenerationService, AudioGenerationError
 from speech_processing.tasks import generate_audio_task, check_audio_generation_status
 from speech_processing.logging_utils import (
     audit_log,
@@ -15,6 +16,10 @@ from speech_processing.logging_utils import (
     log_share_action,
     get_client_ip,
     get_user_agent,
+)
+from core.security_utils import (
+    safe_error_response,
+    log_exception_safely,
 )
 import logging
 
@@ -26,8 +31,19 @@ logger = logging.getLogger(__name__)
 def generate_audio(request, page_id):
     """
     Generate audio for a specific page.
-    POST /speech/generate/<page_id>/
+
+    This endpoint is protected against race conditions where multiple
+    concurrent requests could create duplicate voice audios.
+
+    Endpoint: POST /speech/generate/<page_id>/
     Body: {"voice_id": "Joanna"}
+
+    Returns:
+        - 200: Audio generation started successfully
+        - 400: Invalid request (missing voice_id, invalid JSON)
+        - 403: Permission denied (no access to page, generation disabled)
+        - 409: Conflict (voice already exists for this page)
+        - 500: Server error
     """
     try:
         # Parse request body
@@ -51,8 +67,18 @@ def generate_audio(request, page_id):
         if not allowed:
             return JsonResponse({"success": False, "error": error_msg}, status=403)
 
-        # Create audio record
-        audio = service.create_audio_record(page, voice_id, request.user)
+        # Create audio record (now protected against race conditions)
+        try:
+            audio = service.create_audio_record(page, voice_id, request.user)
+        except AudioGenerationError as e:
+            # Race condition detected: voice already exists
+            logger.warning(
+                f"Race condition prevented: user {request.user.id} tried to create "
+                f"duplicate voice {voice_id} for page {page_id}"
+            )
+            return JsonResponse(
+                {"success": False, "error": str(e)}, status=409  # 409 Conflict
+            )
 
         # Log generation start
         log_generation_start(
@@ -63,8 +89,10 @@ def generate_audio(request, page_id):
             user_agent=get_user_agent(request),
         )
 
-        # Trigger async generation task
-        generate_audio_task.delay(audio.id)
+        # Trigger async generation task (wrapped in transaction.on_commit)
+        # This ensures the audio record is committed to DB before the task runs
+        # Prevents the task from failing because the audio doesn't exist yet
+        transaction.on_commit(lambda: generate_audio_task.delay(audio.id))
 
         return JsonResponse(
             {
@@ -80,7 +108,8 @@ def generate_audio(request, page_id):
             {"success": False, "error": "Invalid JSON data"}, status=400
         )
     except Exception as e:
-        logger.error(f"Audio generation error: {str(e)}")
+        # Log full error for debugging, but don't expose details to user
+        logger.exception(f"Unexpected error in audio generation endpoint")
         return JsonResponse(
             {"success": False, "error": "An error occurred during audio generation"},
             status=500,
@@ -129,10 +158,13 @@ def audio_status(request, audio_id):
         )
 
     except Exception as e:
-        logger.error(f"Audio status error: {str(e)}")
-        return JsonResponse(
-            {"success": False, "error": "An error occurred"}, status=500
+        log_exception_safely(
+            e,
+            context="audio status check",
+            user_id=request.user.id,
+            request_data={"method": "GET", "endpoint": f"audio/{audio_id}/status"},
         )
+        return safe_error_response(status_code=500)
 
 
 @require_http_methods(["GET"])
@@ -195,10 +227,13 @@ def download_audio(request, audio_id):
         )
 
     except Exception as e:
-        logger.error(f"Audio download error: {str(e)}")
-        return JsonResponse(
-            {"success": False, "error": "An error occurred"}, status=500
+        log_exception_safely(
+            e,
+            context="audio download",
+            user_id=request.user.id,
+            request_data={"method": "GET", "endpoint": f"audio/{audio_id}/download"},
         )
+        return safe_error_response(status_code=500)
 
 
 @require_http_methods(["POST"])
@@ -238,10 +273,13 @@ def play_audio(request, audio_id):
         return JsonResponse({"success": True, "message": "Play timestamp updated"})
 
     except Exception as e:
-        logger.error(f"Audio play error: {str(e)}")
-        return JsonResponse(
-            {"success": False, "error": "An error occurred"}, status=500
+        log_exception_safely(
+            e,
+            context="audio play recording",
+            user_id=request.user.id,
+            request_data={"method": "POST", "endpoint": f"audio/{audio_id}/play"},
         )
+        return safe_error_response(status_code=500)
 
 
 @require_http_methods(["DELETE", "POST"])
@@ -279,10 +317,13 @@ def delete_audio(request, audio_id):
         return JsonResponse({"success": True, "message": "Audio deleted successfully"})
 
     except Exception as e:
-        logger.error(f"Audio delete error: {str(e)}")
-        return JsonResponse(
-            {"success": False, "error": "An error occurred"}, status=500
+        log_exception_safely(
+            e,
+            context="audio deletion",
+            user_id=request.user.id,
+            request_data={"method": "POST", "endpoint": f"audio/{audio_id}/delete"},
         )
+        return safe_error_response(status_code=500)
 
 
 @require_http_methods(["GET"])
@@ -365,15 +406,18 @@ def page_audios(request, page_id):
                 },
                 "voices": {"used": used_voices, "available": available_voices},
                 "is_owner": document.user == request.user,
-                "preferred_voice": request.user.preferred_voice_id or "", 
+                "preferred_voice": request.user.preferred_voice_id or "",
             }
         )
 
     except Exception as e:
-        logger.error(f"Page audios error: {str(e)}")
-        return JsonResponse(
-            {"success": False, "error": "An error occurred"}, status=500
+        log_exception_safely(
+            e,
+            context="page audios retrieval",
+            user_id=request.user.id,
+            request_data={"method": "GET", "endpoint": f"page/{page_id}/audios"},
         )
+        return safe_error_response(status_code=500)
 
 
 # ============================================================================
@@ -443,6 +487,15 @@ def share_document(request, document_id):
                 {"success": False, "error": f"User with email '{email}' not found"},
                 status=404,
             )
+        except Exception as e:
+            # Catch any other database or unexpected errors
+            log_exception_safely(
+                e,
+                context=f"looking up user email for sharing",
+                user_id=request.user.id,
+                request_data={"method": "POST", "endpoint": f"share/{document_id}"},
+            )
+            return safe_error_response(status_code=500)
 
         # Check if trying to share with self
         if user_to_share == document.user:
@@ -494,11 +547,13 @@ def share_document(request, document_id):
             {"success": False, "error": "Invalid JSON data"}, status=400
         )
     except Exception as e:
-        logger.error(f"Share document error: {str(e)}")
-        return JsonResponse(
-            {"success": False, "error": "An error occurred while sharing"},
-            status=500,
+        log_exception_safely(
+            e,
+            context="document sharing",
+            user_id=request.user.id,
+            request_data={"method": "POST", "endpoint": f"share/{document_id}"},
         )
+        return safe_error_response(status_code=500)
 
 
 @require_http_methods(["DELETE", "POST"])
@@ -545,10 +600,13 @@ def unshare_document(request, sharing_id):
         )
 
     except Exception as e:
-        logger.error(f"Unshare document error: {str(e)}")
-        return JsonResponse(
-            {"success": False, "error": "An error occurred"}, status=500
+        log_exception_safely(
+            e,
+            context="document unsharing",
+            user_id=request.user.id,
+            request_data={"method": request.method, "endpoint": f"share/{sharing_id}"},
         )
+        return safe_error_response(status_code=500)
 
 
 @require_http_methods(["GET"])
@@ -633,10 +691,13 @@ def document_shares(request, document_id):
         )
 
     except Exception as e:
-        logger.error(f"Document shares error: {str(e)}")
-        return JsonResponse(
-            {"success": False, "error": "An error occurred"}, status=500
+        log_exception_safely(
+            e,
+            context="retrieving document shares",
+            user_id=request.user.id,
+            request_data={"method": "GET", "endpoint": f"share/{document_id}/shares"},
         )
+        return safe_error_response(status_code=500)
 
 
 @require_http_methods(["GET"])
@@ -692,10 +753,13 @@ def shared_with_me(request):
         )
 
     except Exception as e:
-        logger.error(f"Shared with me error: {str(e)}")
-        return JsonResponse(
-            {"success": False, "error": "An error occurred"}, status=500
+        log_exception_safely(
+            e,
+            context="listing shared documents",
+            user_id=request.user.id,
+            request_data={"method": "GET", "endpoint": "shared-with-me"},
         )
+        return safe_error_response(status_code=500)
 
 
 @require_http_methods(["PATCH", "POST"])
@@ -759,7 +823,13 @@ def update_share_permission(request, sharing_id):
             {"success": False, "error": "Invalid JSON data"}, status=400
         )
     except Exception as e:
-        logger.error(f"Update share permission error: {str(e)}")
-        return JsonResponse(
-            {"success": False, "error": "An error occurred"}, status=500
+        log_exception_safely(
+            e,
+            context="updating share permission",
+            user_id=request.user.id,
+            request_data={
+                "method": "PATCH",
+                "endpoint": f"share/{sharing_id}/permission",
+            },
         )
+        return safe_error_response(status_code=500)

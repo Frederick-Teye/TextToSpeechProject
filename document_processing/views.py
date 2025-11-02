@@ -5,15 +5,17 @@ from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import Count, Prefetch
 from django.http import JsonResponse
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django_ratelimit.decorators import ratelimit
 import markdown as md
 import nh3
 
 from .forms import DocumentUploadForm
 from .models import SourceType, TextStatus, Document, DocumentPage
-from .utils import upload_to_s3
+from .utils import upload_to_s3, validate_markdown, sanitize_markdown
 from .tasks import parse_document_task
 from speech_processing.models import DocumentSharing
 
@@ -23,6 +25,11 @@ logger = logging.getLogger(__name__)
 class DocumentListView(LoginRequiredMixin, ListView):
     """
     A view to display a list of documents uploaded by the current user.
+
+    Optimized with prefetch_related to prevent N+1 queries:
+    - Fetches all pages for each document in one query
+    - Fetches all shares for each document in one query
+    - Reduces database queries from 1 + N + N to just 3 queries
     """
 
     model = Document
@@ -31,23 +38,70 @@ class DocumentListView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         """
-        Overrides the default queryset to return only the documents
-        belonging to the currently logged-in user, ordered by the
-        most recently created.
+        Returns only documents belonging to current user with optimized queries.
+
+        This queryset uses:
+        - prefetch_related('pages'): Fetch all pages in one query
+        - prefetch_related('shares'): Fetch all shares in one query
+        - annotate(page_count=...): Add computed field for template
+
+        Example query reduction:
+        BEFORE: 1 query for documents + 100 queries for pages + 100 queries for shares
+        AFTER: 3 queries total (documents + pages + shares)
         """
-        return Document.objects.filter(user=self.request.user).order_by("-created_at")
+        # Create prefetch for pages (will be fetched in second query)
+        pages_prefetch = Prefetch(
+            "pages",
+            DocumentPage.objects.select_related("document").prefetch_related("audios"),
+        )
+
+        return (
+            Document.objects.filter(user=self.request.user)
+            .prefetch_related(pages_prefetch)
+            .prefetch_related("shares")  # Fetch all document shares
+            .annotate(page_count=Count("pages"))  # Add page count for template
+            .order_by("-created_at")
+        )
 
 
 document_list_view = DocumentListView.as_view()
 
 
 @login_required
+@ratelimit(
+    key="user",  # Rate limit per user
+    rate="10/h",  # 10 uploads per hour
+    method="POST",  # Only rate limit POST requests
+    block=False,  # Don't block, let us handle the response
+)
 @transaction.atomic
 def document_upload(request):
     """
     Handle uploads of new documents from FILE, URL, or TEXT sources.
+    
+    Rate limiting:
+    - Maximum 10 document uploads per hour per user
+    - Prevents DoS attacks and excessive server load
+    - Returns 429 Too Many Requests if limit exceeded
+    
     Uses @transaction.atomic to ensure DB consistency.
     """
+    # Check if user has exceeded rate limit
+    if getattr(request, 'limited', False):
+        logger.warning(f"Rate limit exceeded for user {request.user.id} on document upload")
+        messages.error(
+            request,
+            "You have exceeded the maximum number of uploads allowed (10 per hour). "
+            "Please try again later."
+        )
+        return JsonResponse(
+            {
+                "success": False,
+                "error": "Rate limit exceeded. Maximum 10 uploads per hour."
+            },
+            status=429
+        )
+    
     if request.method == "POST":
         form = DocumentUploadForm(request.POST, request.FILES)
 
@@ -272,7 +326,12 @@ def page_edit(request, page_id):
     """
     API endpoint to update a page's markdown content.
     Owner or users with CAN_SHARE permission can edit.
-    Sanitizes markdown input and HTML output with nh3.
+    
+    Security features:
+    - Validates markdown content to prevent injection attacks
+    - Sanitizes markdown input (removes dangerous patterns)
+    - Sanitizes HTML output with nh3
+    - Validates user permissions
     """
     if request.method != "POST":
         return JsonResponse(
@@ -302,7 +361,28 @@ def page_edit(request, page_id):
                 {"success": False, "error": "Content cannot be empty"}, status=400
             )
 
-        # Sanitize markdown input with nh3
+        # Validate markdown for dangerous patterns
+        is_valid, error_msg = validate_markdown(markdown_content)
+        if not is_valid:
+            logger.warning(
+                f"User {request.user.id} attempted to save invalid markdown: {error_msg}"
+            )
+            return JsonResponse(
+                {"success": False, "error": "Content contains invalid patterns"}, 
+                status=400
+            )
+
+        # Sanitize markdown content
+        try:
+            markdown_content = sanitize_markdown(markdown_content)
+        except ValueError as e:
+            logger.warning(f"Markdown sanitization failed: {str(e)}")
+            return JsonResponse(
+                {"success": False, "error": "Content validation failed"}, 
+                status=400
+            )
+
+        # Additional HTML sanitization with nh3
         markdown_content = nh3.clean(markdown_content)
 
         # Update the page content
@@ -355,7 +435,10 @@ def render_markdown(request):
     """
     API endpoint to render markdown to HTML.
     Used for live preview in the page edit modal.
-    Sanitizes HTML output with nh3.
+    
+    Security features:
+    - Validates markdown content to prevent injection attacks
+    - Sanitizes HTML output with nh3
     """
     if request.method != "POST":
         return JsonResponse(
@@ -372,6 +455,17 @@ def render_markdown(request):
                     "success": True,
                     "html": "<p class='text-white-50'>Preview will appear here...</p>",
                 }
+            )
+
+        # Validate markdown for dangerous patterns
+        is_valid, error_msg = validate_markdown(markdown_content)
+        if not is_valid:
+            logger.warning(
+                f"User {request.user.id} attempted to render invalid markdown: {error_msg}"
+            )
+            return JsonResponse(
+                {"success": False, "error": "Content contains invalid patterns"}, 
+                status=400
             )
 
         # Convert markdown to HTML

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.github",
     "widget_tweaks",
     "storages",  # For django-storages (S3)
+    "django_ratelimit",  # For rate limiting
     # This project apps
     "landing",
     "users.apps.UsersConfig",
@@ -195,7 +196,80 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "Africa/Accra"
 CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60
+
+# ==================== CELERY TIMEOUT SETTINGS ====================
+# These settings prevent tasks from hanging indefinitely.
+#
+# SOFT TIMEOUT: 25 minutes
+#   - A signal is sent to the task to gracefully shut down
+#   - Task can clean up resources and log the timeout
+#   - SoftTimeLimitExceeded exception is raised
+#
+# HARD TIMEOUT: 30 minutes
+#   - If task still running after soft timeout, it's forcefully killed
+#   - No graceful cleanup possible
+#   - Should never be reached if soft timeout handler works
+#
+# Best practice: hard_timeout > soft_timeout > typical_task_time
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes - allows graceful shutdown
+CELERY_TASK_TIME_LIMIT = 30 * 60       # 30 minutes - hard kill
+
+# ==================== CELERY RETRY SETTINGS ====================
+# These settings determine how tasks behave when they fail.
+#
+# max_retries: Don't retry indefinitely (prevents infinite loops)
+# default_retry_delay: Wait between retries (gives system time to recover)
+# retry_backoff: exponential backoff (prevents thundering herd)
+CELERY_TASK_MAX_RETRIES = 3
+CELERY_TASK_DEFAULT_RETRY_DELAY = 60  # 1 minute between retries
+CELERY_TASK_AUTORETRY_FOR = (Exception,)  # Auto-retry on any exception
+CELERY_TASK_RETRY_BACKOFF = True  # Use exponential backoff
+CELERY_TASK_RETRY_BACKOFF_MAX = 600  # Max 10 minutes between retries
+CELERY_TASK_RETRY_JIT = True  # Add jitter to prevent thundering herd
+
+
+# ==================== RATE LIMITING SETTINGS ====================
+# These settings control django-ratelimit behavior for protecting against DoS attacks
+#
+# Cache backend for storing rate limit counters
+# Uses Redis to track request counts across requests
+# Falls back to local memory if Redis is unavailable
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": config("REDIS_URL", default="redis://127.0.0.1:6379/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {
+                "max_connections": 50,
+                "retry_on_timeout": True,
+            }
+        },
+        "TIMEOUT": 3600,  # Default cache timeout: 1 hour
+    },
+    "ratelimit": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": config("REDIS_URL", default="redis://127.0.0.1:6379/2"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "SOCKET_CONNECT_TIMEOUT": 5,
+            "SOCKET_TIMEOUT": 5,
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+            "IGNORE_EXCEPTIONS": True,
+        },
+        "TIMEOUT": 3600,
+    }
+}
+
+# Rate limit cache to use (dedicated Redis database for rate limits)
+RATELIMIT_CACHE = "ratelimit"
+
+# Rate limit settings for different endpoints
+# key format: app:endpoint:rate
+# Example: user uploads limited to 10 per hour
+RATELIMIT_CONFIG = {
+    "document:upload": "10/h",  # 10 uploads per hour per user
+}
 
 
 # AWS S3 / Polly Settings (using django-storages and boto3)

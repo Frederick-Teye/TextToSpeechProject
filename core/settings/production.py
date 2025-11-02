@@ -32,18 +32,50 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # Security Enhancements (Highly Recommended for Production)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True
+
+# ==================== COOKIE SECURITY ====================
+# These settings protect against session hijacking and CSRF attacks
 SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=True, cast=bool)
+SESSION_COOKIE_HTTPONLY = config("SESSION_COOKIE_HTTPONLY", default=True, cast=bool)
+SESSION_COOKIE_SAMESITE = config("SESSION_COOKIE_SAMESITE", default="Strict")
+# Explanation of SESSION_COOKIE_SAMESITE options:
+#   "Strict" - Cookie only sent in same-site requests (most secure)
+#   "Lax" - Cookie sent on top-level navigations (default, more compatible)
+#   "None" - Cookie sent in all requests (requires Secure flag)
+
 CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=True, cast=bool)
+CSRF_COOKIE_HTTPONLY = config("CSRF_COOKIE_HTTPONLY", default=True, cast=bool)
+CSRF_COOKIE_SAMESITE = config("CSRF_COOKIE_SAMESITE", default="Strict")
+# CSRF_COOKIE_HTTPONLY = True prevents JavaScript from accessing the CSRF token
+# This makes CSRF attacks from JS much harder
+
+# ==================== HTTP SECURITY HEADERS ====================
 SECURE_HSTS_SECONDS = config(
     "SECURE_HSTS_SECONDS", default=31536000, cast=int
 )  # 1 year
+# Strict-Transport-Security: tells browsers to always use HTTPS
 SECURE_HSTS_INCLUDE_SUBDOMAINS = config(
     "SECURE_HSTS_INCLUDE_SUBDOMAINS", default=True, cast=bool
 )
+# Include subdomains in HSTS policy
 SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=True, cast=bool)
-X_FRAME_OPTIONS = "DENY"  # Protects against clickjacking
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
+# Allow the site to be added to the HSTS preload list
+
+# ==================== CONTENT SECURITY & CLICKJACKING ====================
+X_FRAME_OPTIONS = "DENY"  # Protects against clickjacking (prevents embedding in iframes)
+SECURE_BROWSER_XSS_FILTER = True  # Enables XSS protection header (X-XSS-Protection: 1; mode=block)
+SECURE_CONTENT_TYPE_NOSNIFF = True  # Prevents MIME type sniffing (X-Content-Type-Options: nosniff)
+
+# ==================== REFERRER POLICY ====================
+# This controls what referrer information is sent to external sites
+SECURE_REFERRER_POLICY = config(
+    "SECURE_REFERRER_POLICY", 
+    default="strict-origin-when-cross-origin"
+)
+# Explanation:
+#   "strict-origin-when-cross-origin" - send origin only for cross-origin requests (default, recommended)
+#   "no-referrer" - don't send referrer info at all (most private)
+#   "same-origin" - only send to same site
 
 
 # Email settings for production (real SMTP server)

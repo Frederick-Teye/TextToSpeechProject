@@ -2,6 +2,7 @@ import csv
 import os  # Import os to build the log file path
 from django.conf import settings  # Import settings to find the log file
 from django.contrib import admin, messages
+from django.db import transaction
 from django.http import HttpResponse, FileResponse
 from .models import Document, DocumentPage, TextStatus
 from .tasks import parse_document_task
@@ -28,6 +29,11 @@ class DocumentPageInline(admin.TabularInline):
 # 2. Admin action to re-queue documents (Our refined, robust version)
 @admin.action(description="Re-queue selected documents for processing")
 def reprocess_documents(modeladmin, request, queryset):
+    """
+    Re-queue documents for reprocessing.
+    Uses transaction.on_commit() to ensure DB changes are committed
+    before async tasks are queued (prevents race conditions).
+    """
     requeued_count = 0
     skipped_count = 0
     for doc in queryset:
@@ -38,8 +44,12 @@ def reprocess_documents(modeladmin, request, queryset):
         doc.error_message = None
         doc.pages.all().delete()  # Essential: Clear out old pages before reprocessing
         doc.save()
-        parse_document_task.delay(doc.id)
+        
+        # Queue the reprocessing task after the document is saved
+        # This prevents the task from running before the DB is updated
+        transaction.on_commit(lambda doc_id=doc.id: parse_document_task.delay(doc_id))
         requeued_count += 1
+    
     if requeued_count:
         modeladmin.message_user(
             request,

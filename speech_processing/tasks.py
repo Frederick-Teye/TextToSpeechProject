@@ -10,6 +10,7 @@ from speech_processing.logging_utils import log_generation_complete
 import logging
 import pypandoc
 import re
+import random
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -127,8 +128,24 @@ def generate_audio_task(self, audio_id):
             pass
 
         # Retry the task if retries available
+        # Use exponential backoff with jitter to prevent thundering herd
         if self.request.retries < self.max_retries:
-            raise self.retry(exc=e, countdown=60 * (2**self.request.retries))
+            # Calculate countdown with exponential backoff + random jitter
+            # Base countdown: 60, 120, 240 seconds (for retries 0, 1, 2)
+            base_countdown = 60 * (2**self.request.retries)
+            # Add random jitter: ±20% of base countdown
+            jitter = random.randint(
+                -int(base_countdown * 0.2), int(base_countdown * 0.2)
+            )
+            countdown = base_countdown + jitter
+
+            logger.info(
+                f"Retrying audio generation task for audio {audio_id} "
+                f"(attempt {self.request.retries + 1}/{self.max_retries}) "
+                f"in {countdown} seconds"
+            )
+
+            raise self.retry(exc=e, countdown=countdown)
 
         return {"success": False, "message": str(e), "audio_id": audio_id}
 

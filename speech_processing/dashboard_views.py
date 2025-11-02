@@ -9,6 +9,7 @@ from django.db.models import Count, Q, Avg, Sum
 from django.db.models.functions import TruncDate, TruncMonth
 from django.utils import timezone
 from datetime import timedelta
+import logging
 
 from speech_processing.models import (
     Audio,
@@ -23,6 +24,65 @@ from document_processing.models import Document
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
+
+# Constants for input validation
+MIN_DAYS = 1
+MAX_DAYS = 365
+
+
+def validate_days_parameter(days_str, default=30):
+    """
+    Validate and sanitize the 'days' query parameter.
+    
+    Security validations:
+    - Must be convertible to integer (prevents injection)
+    - Must be between MIN_DAYS (1) and MAX_DAYS (365)
+    - Prevents negative values, zero, or excessive queries
+    
+    Args:
+        days_str: String value from query parameter
+        default: Default value if validation fails (default: 30)
+        
+    Returns:
+        Validated integer number of days (bounded 1-365)
+        
+    Example:
+        >>> validate_days_parameter("30")
+        30
+        >>> validate_days_parameter("-100")
+        30  # Returns default because negative
+        >>> validate_days_parameter("999")
+        365  # Returns MAX_DAYS because too large
+        >>> validate_days_parameter("abc")
+        30  # Returns default because non-numeric
+    """
+    try:
+        days = int(days_str)
+        
+        # Validate bounds
+        if days < MIN_DAYS:
+            logger.warning(
+                f"Dashboard query with invalid days parameter: {days} "
+                f"(minimum {MIN_DAYS}). Using default."
+            )
+            return default
+        
+        if days > MAX_DAYS:
+            logger.warning(
+                f"Dashboard query with excessive days parameter: {days} "
+                f"(maximum {MAX_DAYS}). Limiting to {MAX_DAYS}."
+            )
+            return MAX_DAYS
+        
+        return days
+        
+    except (ValueError, TypeError):
+        logger.warning(
+            f"Dashboard query with non-numeric days parameter: {days_str}. "
+            f"Using default."
+        )
+        return default
 
 
 @staff_member_required
@@ -149,13 +209,15 @@ def analytics_data(request):
     """
     API endpoint for analytics chart data.
     Returns JSON data for frontend charts.
+    
+    Security:
+    - Validates and bounds 'period' query parameter (1-365 days)
+    - Prevents negative values and excessive queries
     """
     period = request.GET.get("period", "30")  # days
-
-    try:
-        days = int(period)
-    except ValueError:
-        days = 30
+    
+    # Validate the days parameter
+    days = validate_days_parameter(period, default=30)
 
     start_date = timezone.now() - timedelta(days=days)
 
@@ -247,13 +309,14 @@ def analytics_data(request):
 def error_monitoring(request):
     """
     Error monitoring page showing failed audio generations.
+    
+    Security:
+    - Validates and bounds 'days' query parameter (1-365 days)
+    - Prevents negative values and excessive queries
     """
-    # Get filter parameters
-    days = request.GET.get("days", "7")
-    try:
-        days = int(days)
-    except ValueError:
-        days = 7
+    # Get filter parameters with validation
+    days_param = request.GET.get("days", "7")
+    days = validate_days_parameter(days_param, default=7)
 
     start_date = timezone.now() - timedelta(days=days)
 
@@ -300,15 +363,15 @@ def error_monitoring(request):
 def user_activity(request):
     """
     User activity report showing detailed user actions.
+    
+    Security:
+    - Validates and bounds 'days' query parameter (1-365 days)
+    - Prevents negative values and excessive queries
     """
-    # Get filter parameters
-    days = request.GET.get("days", "30")
+    # Get filter parameters with validation
+    days_param = request.GET.get("days", "30")
+    days = validate_days_parameter(days_param, default=30)
     user_email = request.GET.get("user", "")
-
-    try:
-        days = int(days)
-    except ValueError:
-        days = 30
 
     start_date = timezone.now() - timedelta(days=days)
 

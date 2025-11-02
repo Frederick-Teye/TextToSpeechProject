@@ -4,11 +4,14 @@ Handles TTS generation, chunking, merging, and S3 upload.
 """
 
 import boto3
+import botocore.exceptions
 import logging
 from io import BytesIO
 from datetime import datetime
+from typing import Tuple, Optional
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from pydub import AudioSegment
 
 from speech_processing.models import (
@@ -23,7 +26,12 @@ logger = logging.getLogger(__name__)
 
 
 class AudioGenerationError(Exception):
-    """Custom exception for audio generation errors."""
+    """
+    Custom exception for audio generation errors.
+
+    This exception is used for all user-facing audio generation failures
+    and includes a message safe to show to users (no credentials, paths, or details).
+    """
 
     pass
 
@@ -98,7 +106,24 @@ class PollyService:
     def synthesize_speech(self, text, voice_id):
         """
         Call Polly to synthesize speech for a single text chunk.
-        Returns audio stream as bytes.
+
+        This method handles various AWS Polly error scenarios:
+        - ThrottlingException: AWS service is overloaded
+        - InvalidParameterValue: Voice ID or other parameter is invalid
+        - ServiceUnavailable: AWS service is down
+        - ConnectionError: Network issue
+        - NoCredentialsError: AWS credentials not found
+
+        Args:
+            text: Text to synthesize (max 3000 chars)
+            voice_id: Valid Polly voice ID (e.g., "Joanna")
+
+        Returns:
+            Bytes containing MP3 audio data
+
+        Raises:
+            AudioGenerationError: With user-friendly message describing the error
+
         """
         try:
             response = self.polly_client.synthesize_speech(
@@ -115,9 +140,55 @@ class PollyService:
             else:
                 raise AudioGenerationError("No audio stream in Polly response")
 
+        except botocore.exceptions.ClientError as e:
+            # AWS service returned an error response
+            error_code = e.response["Error"]["Code"]
+            error_message = e.response["Error"]["Message"]
+
+            if error_code == "ThrottlingException":
+                logger.warning(f"Polly throttled: {error_message}")
+                raise AudioGenerationError(
+                    "AWS service is busy. Please try again in a moment."
+                )
+            elif error_code == "InvalidParameterValue":
+                logger.warning(f"Invalid Polly parameter: {error_message}")
+                raise AudioGenerationError(
+                    f"Invalid voice or text format. Please try a different voice."
+                )
+            elif error_code == "ServiceUnavailable":
+                logger.warning(f"Polly service unavailable: {error_message}")
+                raise AudioGenerationError(
+                    "Audio service is temporarily unavailable. Please try again later."
+                )
+            elif error_code == "AccessDenied":
+                logger.error(f"Access denied to Polly: {error_message}")
+                raise AudioGenerationError(
+                    "System error: AWS access issue. Please contact support."
+                )
+            else:
+                logger.error(f"Polly AWS error ({error_code}): {error_message}")
+                raise AudioGenerationError(
+                    f"Audio generation failed. Please try again later."
+                )
+
+        except botocore.exceptions.ConnectionError as e:
+            logger.error(f"Connection error to Polly: {str(e)}")
+            raise AudioGenerationError(
+                "Network error connecting to audio service. Please try again."
+            )
+
+        except botocore.exceptions.NoCredentialsError:
+            logger.critical("AWS credentials not configured for Polly")
+            raise AudioGenerationError(
+                "System configuration error. Please contact support."
+            )
+
         except Exception as e:
-            logger.error(f"Polly synthesis error: {str(e)}")
-            raise AudioGenerationError(f"Failed to synthesize speech: {str(e)}")
+            # Unexpected error - log for debugging but don't expose details
+            logger.exception(f"Unexpected error in Polly synthesis: {str(e)}")
+            raise AudioGenerationError(
+                "An unexpected error occurred. Please try again later."
+            )
 
     def merge_audio_chunks(self, audio_chunks):
         """
@@ -152,7 +223,21 @@ class PollyService:
     def upload_to_s3(self, audio_bytes, s3_key):
         """
         Upload audio bytes to S3.
-        Returns the S3 key.
+
+        Handles S3-specific errors:
+        - NoCredentialsError: AWS credentials not found
+        - ClientError: S3 service errors (access denied, bucket not found, etc.)
+        - ConnectionError: Network issues
+
+        Args:
+            audio_bytes: MP3 audio data as bytes
+            s3_key: S3 object key/path for the audio file
+
+        Returns:
+            The S3 key if upload successful
+
+        Raises:
+            AudioGenerationError: With user-friendly error message
         """
         try:
             self.s3_client.put_object(
@@ -165,9 +250,47 @@ class PollyService:
             logger.info(f"Successfully uploaded audio to S3: {s3_key}")
             return s3_key
 
+        except botocore.exceptions.ClientError as e:
+            error_code = e.response["Error"]["Code"]
+            error_message = e.response["Error"]["Message"]
+
+            if error_code == "NoSuchBucket":
+                logger.critical(
+                    f"S3 bucket not found: {settings.AWS_STORAGE_BUCKET_NAME}"
+                )
+                raise AudioGenerationError(
+                    "System error: Storage bucket not configured. Contact support."
+                )
+            elif error_code == "AccessDenied":
+                logger.critical(
+                    f"Access denied to S3 bucket: {settings.AWS_STORAGE_BUCKET_NAME}"
+                )
+                raise AudioGenerationError(
+                    "System error: Cannot access storage. Contact support."
+                )
+            else:
+                logger.error(f"S3 error ({error_code}): {error_message}")
+                raise AudioGenerationError(
+                    "Failed to save audio file. Please try again later."
+                )
+
+        except botocore.exceptions.ConnectionError as e:
+            logger.error(f"Connection error to S3: {str(e)}")
+            raise AudioGenerationError(
+                "Network error accessing storage. Please try again."
+            )
+
+        except botocore.exceptions.NoCredentialsError:
+            logger.critical("AWS credentials not configured for S3")
+            raise AudioGenerationError(
+                "System configuration error. Please contact support."
+            )
+
         except Exception as e:
-            logger.error(f"S3 upload error: {str(e)}")
-            raise AudioGenerationError(f"Failed to upload to S3: {str(e)}")
+            logger.exception(f"Unexpected error uploading to S3: {str(e)}")
+            raise AudioGenerationError(
+                "An unexpected error occurred while saving audio. Try again later."
+            )
 
     def generate_s3_key(self, document_id, page_number, voice_id):
         """
@@ -291,17 +414,60 @@ class AudioGenerationService:
     def create_audio_record(self, page, voice_id, user):
         """
         Create an Audio record in the database with PENDING status.
-        Returns the Audio instance.
+        Uses database-level locking to prevent race conditions where multiple
+        requests try to create the same voice for the page.
+
+        Returns the Audio instance if successful.
+
+        Raises:
+            AudioGenerationError: If voice already exists (duplicate detected)
+                                or database error occurs.
         """
-        audio = Audio.objects.create(
-            page=page,
-            voice=voice_id,
-            generated_by=user,
-            s3_key="",  # Will be updated after generation
-            status=AudioGenerationStatus.PENDING,
-            lifetime_status=AudioLifetimeStatus.ACTIVE,
-        )
-        return audio
+        try:
+            with transaction.atomic():
+                # Lock the page to prevent concurrent voice creation
+                # This uses SELECT FOR UPDATE at the database level
+                page_locked = type(page).objects.select_for_update().get(pk=page.pk)
+
+                # Check one more time if voice already exists (double-check pattern)
+                # This is our race condition prevention - check AFTER locking
+                existing = Audio.objects.filter(
+                    page=page_locked,
+                    voice=voice_id,
+                    lifetime_status=AudioLifetimeStatus.ACTIVE,
+                ).exists()
+
+                if existing:
+                    raise AudioGenerationError(
+                        f"Voice {voice_id} is already being used for this page. "
+                        f"Please refresh and try again."
+                    )
+
+                # Now safe to create - we hold the lock
+                audio = Audio.objects.create(
+                    page=page_locked,
+                    voice=voice_id,
+                    generated_by=user,
+                    s3_key="",  # Will be updated after generation
+                    status=AudioGenerationStatus.PENDING,
+                    lifetime_status=AudioLifetimeStatus.ACTIVE,
+                )
+                return audio
+
+        except IntegrityError as e:
+            # Database unique constraint was violated
+            # This shouldn't happen due to locking, but handle it just in case
+            logger.error(f"Integrity error creating audio record: {str(e)}")
+            raise AudioGenerationError(
+                "Voice already used for this page. Please try a different voice."
+            )
+        except AudioGenerationError:
+            # Re-raise our custom errors
+            raise
+        except Exception as e:
+            # Catch any other database or unexpected errors
+            logger.error(f"Error creating audio record: {str(e)}")
+            raise AudioGenerationError(f"Failed to create audio record: {str(e)}")
 
     def generate_audio_for_page(self, page, voice_id, user):
         """

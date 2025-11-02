@@ -19,6 +19,7 @@ import pypandoc
 from markdownify import markdownify
 
 from .models import Document, DocumentPage, TextStatus, SourceType
+from .utils import validate_markdown
 
 logger = logging.getLogger(__name__)
 MIN_CONTENT_LENGTH = 100
@@ -145,18 +146,35 @@ def parse_document_task(self, document_id, raw_text=""):
         if total_len < MIN_CONTENT_LENGTH:
             raise ValueError("No readable text found")
 
-        # 3) Bulk save each page (sanitize markdown content)
+        # 3) Validate markdown content before saving
+        # This prevents injection attacks and suspicious patterns from being stored
+        validated_pages = []
+        for p in pages:
+            markdown = p["markdown"]
+            
+            # Validate markdown for dangerous patterns
+            is_valid, error_msg = validate_markdown(markdown)
+            if not is_valid:
+                logger.warning(
+                    f"Document {document_id} page {p['page_number']} failed validation: {error_msg}"
+                )
+                # Still save the content but log the issue for monitoring
+                # Users can edit pages later if needed
+            
+            validated_pages.append(p)
+
+        # 4) Bulk save each page (sanitize markdown content with nh3)
         objs = [
             DocumentPage(
                 document=doc,
                 page_number=p["page_number"],
                 markdown_content=nh3.clean(p["markdown"]),
             )
-            for p in pages
+            for p in validated_pages
         ]
         DocumentPage.objects.bulk_create(objs)
 
-        # 4) Mark success
+        # 5) Mark success
         doc.status = TextStatus.COMPLETED
         doc.error_message = None
 

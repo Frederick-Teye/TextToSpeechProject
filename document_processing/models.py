@@ -133,10 +133,10 @@ class DocumentPage(models.Model):
 class TaskFailureAlert(models.Model):
     """
     Tracks task failures and stores alert history for monitoring and investigation.
-    
+
     When a Celery task fails, an alert record is created here with full context.
     This allows admins to investigate failures, understand patterns, and debug issues.
-    
+
     Fields:
         - task_name: Name of the failed task (e.g., 'parse_document_task')
         - document: Link to related document (if applicable)
@@ -150,111 +150,92 @@ class TaskFailureAlert(models.Model):
         - resolved_at: When admin resolved the issue (null if unresolved)
         - resolution_notes: Admin notes about the fix
     """
-    
+
     TASK_CHOICES = [
-        ('parse_document_task', 'Parse Document Task'),
-        ('generate_audio_task', 'Generate Audio Task'),
-        ('cleanup_task', 'Cleanup Task'),
-        ('other', 'Other Task'),
+        ("parse_document_task", "Parse Document Task"),
+        ("generate_audio_task", "Generate Audio Task"),
+        ("cleanup_task", "Cleanup Task"),
+        ("other", "Other Task"),
     ]
-    
+
     STATUS_CHOICES = [
-        ('NEW', 'New Alert'),
-        ('ACKNOWLEDGED', 'Acknowledged'),
-        ('INVESTIGATING', 'Under Investigation'),
-        ('RESOLVED', 'Resolved'),
-        ('IGNORED', 'Ignored'),
+        ("NEW", "New Alert"),
+        ("ACKNOWLEDGED", "Acknowledged"),
+        ("INVESTIGATING", "Under Investigation"),
+        ("RESOLVED", "Resolved"),
+        ("IGNORED", "Ignored"),
     ]
-    
+
     task_name = models.CharField(
-        max_length=100,
-        choices=TASK_CHOICES,
-        help_text='Name of the failed Celery task'
+        max_length=100, choices=TASK_CHOICES, help_text="Name of the failed Celery task"
     )
     document = models.ForeignKey(
         Document,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='task_failures',
-        help_text='Related document, if applicable'
+        related_name="task_failures",
+        help_text="Related document, if applicable",
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='task_failures',
-        help_text='User whose action triggered the task'
+        related_name="task_failures",
+        help_text="User whose action triggered the task",
     )
-    error_message = models.TextField(
-        help_text='Error message from the exception'
-    )
+    error_message = models.TextField(help_text="Error message from the exception")
     error_traceback = models.TextField(
-        blank=True,
-        help_text='Full exception traceback for debugging'
+        blank=True, help_text="Full exception traceback for debugging"
     )
     task_args = models.JSONField(
-        default=list,
-        blank=True,
-        help_text='Positional arguments passed to task'
+        default=list, blank=True, help_text="Positional arguments passed to task"
     )
     task_kwargs = models.JSONField(
-        default=dict,
-        blank=True,
-        help_text='Keyword arguments passed to task'
+        default=dict, blank=True, help_text="Keyword arguments passed to task"
     )
-    retry_count = models.IntegerField(
-        default=0,
-        help_text='Number of retry attempts'
-    )
+    retry_count = models.IntegerField(default=0, help_text="Number of retry attempts")
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='NEW',
-        help_text='Current status of the alert'
+        default="NEW",
+        help_text="Current status of the alert",
     )
     created_at = models.DateTimeField(
-        auto_now_add=True,
-        help_text='When the failure occurred'
+        auto_now_add=True, help_text="When the failure occurred"
     )
     resolved_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text='When admin resolved the issue'
+        null=True, blank=True, help_text="When admin resolved the issue"
     )
     resolution_notes = models.TextField(
-        blank=True,
-        help_text='Admin notes about the resolution'
+        blank=True, help_text="Admin notes about the resolution"
     )
     email_sent = models.BooleanField(
-        default=False,
-        help_text='Whether alert email was sent'
+        default=False, help_text="Whether alert email was sent"
     )
     email_sent_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text='When alert email was sent'
+        null=True, blank=True, help_text="When alert email was sent"
     )
-    
+
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=['status', '-created_at']),
-            models.Index(fields=['task_name', '-created_at']),
-            models.Index(fields=['-created_at']),
+            models.Index(fields=["status", "-created_at"]),
+            models.Index(fields=["task_name", "-created_at"]),
+            models.Index(fields=["-created_at"]),
         ]
-        verbose_name = 'Task Failure Alert'
-        verbose_name_plural = 'Task Failure Alerts'
-    
+        verbose_name = "Task Failure Alert"
+        verbose_name_plural = "Task Failure Alerts"
+
     def __str__(self):
         return f"{self.get_task_name_display()} - {self.get_status_display()} - {self.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
-    
-    def mark_resolved(self, notes=''):
+
+    def mark_resolved(self, notes=""):
         """Mark this alert as resolved."""
         from django.utils import timezone
-        self.status = 'RESOLVED'
+
+        self.status = "RESOLVED"
         self.resolved_at = timezone.now()
         self.resolution_notes = notes
         self.save()
-

@@ -14,6 +14,7 @@ from django_ratelimit.decorators import ratelimit
 import markdown as md
 import nh3
 
+from core.decorators import document_access_required, page_access_required, owner_required
 from .forms import DocumentUploadForm
 from .models import SourceType, TextStatus, Document, DocumentPage
 from .utils import upload_to_s3, validate_markdown, sanitize_markdown
@@ -176,49 +177,55 @@ def document_upload(request):
 
 
 @login_required
-def document_detail(request, pk):
-    doc = get_object_or_404(Document, pk=pk)
+@document_access_required(param_name='pk', permission_level='view')
+def document_detail(request, pk, document):
+    """
+    Display a document with all its pages.
 
-    # Check if user has access
-    has_access = (
-        doc.user == request.user
-        or DocumentSharing.objects.filter(
-            document=doc, shared_with=request.user
-        ).exists()
-    )
+    Args:
+        request: HTTP request
+        pk: Document ID
+        document: Document object (injected by decorator)
 
+    Returns:
+        Rendered document detail page
+    """
     # Check if user can share (owner or has CAN_SHARE permission)
     sharing = DocumentSharing.objects.filter(
-        document=doc, shared_with=request.user
+        document=document, shared_with=request.user
     ).first()
-    can_share = doc.user == request.user or (sharing and sharing.can_share())
+    can_share = document.user == request.user or (sharing and sharing.can_share())
 
-    if not has_access:
-        raise PermissionDenied
     pages = []
-    if doc.status == TextStatus.COMPLETED:
-        pages = doc.pages.all()
+    if document.status == TextStatus.COMPLETED:
+        pages = document.pages.all()
     return render(
         request,
         "document_processing/document_detail.html",
-        {"document": doc, "pages": pages, "can_share": can_share},
+        {"document": document, "pages": pages, "can_share": can_share},
     )
 
 
 @login_required
-def page_detail(request, doc_id, page):
-    page_obj = get_object_or_404(DocumentPage, document_id=doc_id, page_number=page)
+@page_access_required(doc_param='doc_id', page_param='page', permission_level='view')
+def page_detail(request, doc_id, page, page_obj):
+    """
+    Display a single page with navigation controls.
 
-    # Check if user has access
+    Args:
+        request: HTTP request
+        doc_id: Document ID
+        page: Page number
+        page_obj: DocumentPage object (injected by decorator)
+
+    Returns:
+        Rendered page detail view
+    """
+    # Check if user can edit (owner or has CAN_SHARE permission)
     is_owner = request.user == page_obj.document.user
     shared_access = DocumentSharing.objects.filter(
         document=page_obj.document, shared_with=request.user
     ).first()
-
-    if not (is_owner or shared_access):
-        raise PermissionDenied
-
-    # Check if user can edit (owner or has CAN_SHARE permission)
     can_user_edit = is_owner or (shared_access and shared_access.can_share())
 
     # Calculate pagination
@@ -246,14 +253,20 @@ def page_detail(request, doc_id, page):
 
 
 @login_required
+@owner_required(doc_param='pk')
 def document_status_api(request, pk):
     """
-    Returns the document’s current processing status in JSON format.
+    Returns the document's current processing status in JSON format.
     Used for front-end polling (e.g., AJAX).
+
+    Args:
+        request: HTTP request
+        pk: Document ID
+
+    Returns:
+        JSON response with document status and error message (if any)
     """
     doc = get_object_or_404(Document, pk=pk)
-    if request.user != doc.user:
-        raise PermissionDenied
     return JsonResponse(
         {
             "status": doc.get_status_display(),

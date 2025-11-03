@@ -11,6 +11,7 @@ urlpatterns = [
     path("audio/<int:audio_id>/download/", views.download_audio, name="download_audio"),
     path("audio/<int:audio_id>/play/", views.play_audio, name="play_audio"),
     path("audio/<int:audio_id>/delete/", views.delete_audio, name="delete_audio"),
+    path("audio/<int:audio_id>/retry/", views.retry_audio, name="retry_audio"),
     # Page audios list
     path("page/<int:page_id>/audios/", views.page_audios, name="page_audios"),
     # Sharing and permissions

@@ -1,15 +1,22 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.utils.translation import gettext as _
+from django_ratelimit.decorators import ratelimit
 import json
 
 from document_processing.models import DocumentPage
-from speech_processing.models import Audio, SiteSettings, DocumentSharing, AudioAction
+from speech_processing.models import (
+    Audio,
+    SiteSettings,
+    DocumentSharing,
+    AudioAction,
+    AudioGenerationStatus,
+)
 from speech_processing.services import AudioGenerationService, AudioGenerationError
 from speech_processing.tasks import generate_audio_task, check_audio_generation_status
 from speech_processing.logging_utils import (
@@ -837,3 +844,128 @@ def update_share_permission(request, sharing_id):
             },
         )
         return safe_error_response(status_code=500)
+
+
+@login_required
+@ratelimit(
+    key="user",  # Rate limit per user
+    rate="10/h",  # 10 retries per hour per user
+    method="POST",  # Only rate limit POST requests
+    block=False,  # Don't block, let us handle the response
+)
+def retry_audio(request, audio_id):
+    """
+    Allow users to retry generation of their failed audio files.
+
+    Rate limiting:
+    - Maximum 10 retries per hour per user to prevent abuse
+    - Only document owners can retry their audio files
+    - Only failed audio files can be retried
+
+    Args:
+        request: HTTP request
+        audio_id: Audio ID
+
+    Returns:
+        JSON response with retry status
+    """
+    # Check if user has exceeded rate limit
+    if getattr(request, "limited", False):
+        logger.warning(f"Rate limit exceeded for user {request.user.id} on audio retry")
+        return JsonResponse(
+            {
+                "success": False,
+                "error": _(
+                    f"You have exceeded the maximum number of retries allowed (10 per hour). "
+                    "Please try again later."
+                ),
+            },
+            status=429,
+        )
+
+    if request.method != "POST":
+        return JsonResponse(
+            {"success": False, "error": _("Invalid request method")}, status=405
+        )
+
+    try:
+        audio = get_object_or_404(Audio, id=audio_id)
+
+        # Check if user has access to this audio (owner or shared access)
+        page = audio.page
+        document = page.document
+
+        has_access = (
+            document.user == request.user
+            or DocumentSharing.objects.filter(
+                document=document, shared_with=request.user
+            ).exists()
+        )
+
+        if not has_access:
+            return JsonResponse(
+                {"success": False, "error": _("You don't have access to this audio")},
+                status=403,
+            )
+
+        # Only allow retrying failed audio files
+        if audio.status != AudioGenerationStatus.FAILED:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": _("Only failed audio files can be retried"),
+                },
+                status=400,
+            )
+
+        # Reset audio status and clear error message
+        audio.status = AudioGenerationStatus.PENDING
+        audio.error_message = None
+        audio.save()
+
+        # Log retry action
+        from speech_processing.logging_utils import (
+            log_generation_start,
+            get_client_ip,
+            get_user_agent,
+        )
+
+        log_generation_start(
+            user=request.user,
+            page=page,
+            voice=audio.voice,
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request),
+        )
+
+        # Re-queue audio generation task
+        transaction.on_commit(lambda: generate_audio_task.delay(audio.id))
+
+        logger.info(
+            f"User {request.user.id} initiated retry for audio {audio.id} "
+            f"(voice: {audio.voice}, page: {page.page_number}, document: {document.title})"
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": _(
+                    "Audio retry has been queued. Generation will begin shortly."
+                ),
+                "audio_id": audio.id,
+            }
+        )
+
+    except Http404:
+        return JsonResponse(
+            {"success": False, "error": _("Audio not found")}, status=404
+        )
+    except Exception as e:
+        logger.exception(f"Failed to retry audio {audio_id}")
+        return JsonResponse(
+            {
+                "success": False,
+                "error": _("An error occurred while retrying the audio"),
+            },
+            status=500,
+        )

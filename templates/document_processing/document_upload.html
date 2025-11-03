@@ -53,8 +53,8 @@
                         </div>
 
                         <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                Submit and Process
+                            <button type="submit" id="submit-btn" class="btn btn-primary btn-lg">
+                                <i class="bi bi-upload me-2"></i>Submit and Process
                             </button>
                         </div>
                     </form>
@@ -70,6 +70,8 @@
         const fileGroup = document.getElementById("file-input-group");
         const urlGroup = document.getElementById("url-input-group");
         const textGroup = document.getElementById("text-input-group");
+        const submitBtn = document.getElementById("submit-btn");
+        const form = document.querySelector("form");
 
         function toggleInputs() {
             // Get the value of the currently checked radio button
@@ -82,6 +84,22 @@
             urlGroup.style.display = selectedValue === "URL" ? "block" : "none";
             textGroup.style.display = selectedValue === "TEXT" ? "block" : "none";
         }
+
+        // Handle form submission to prevent double-clicks
+        form.addEventListener("submit", function(e) {
+            // Disable the submit button
+            submitBtn.disabled = true;
+            
+            // Change button text to show loading state
+            submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Processing...';
+            
+            // Add visual feedback
+            submitBtn.classList.add('btn-secondary');
+            submitBtn.classList.remove('btn-primary');
+            
+            // The form will still submit normally, but the button is disabled
+            // This prevents the user from clicking it again
+        });
 
         // Add an event listener to each radio button
         radios.forEach(radio => radio.addEventListener("change", toggleInputs));

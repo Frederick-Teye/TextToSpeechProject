@@ -528,3 +528,98 @@ def render_markdown(request):
             {"success": False, "error": "An error occurred while rendering markdown"},
             status=500,
         )
+
+
+@login_required
+@ratelimit(
+    key="user",  # Rate limit per user
+    rate="5/h",  # 5 retries per hour per user
+    method="POST",  # Only rate limit POST requests
+    block=False,  # Don't block, let us handle the response
+)
+@owner_required(doc_param="pk")
+def retry_document_processing(request, pk):
+    """
+    Allow users to retry processing of their failed documents.
+
+    Rate limiting:
+    - Maximum retries per hour per user to prevent abuse
+    - Only document owners can retry their documents
+    - Only failed documents can be retried
+
+    Args:
+        request: HTTP request
+        pk: Document ID
+
+    Returns:
+        JSON response with retry status
+    """
+    # Check if user has exceeded rate limit
+    if getattr(request, "limited", False):
+        logger.warning(
+            f"Rate limit exceeded for user {request.user.id} on document retry"
+        )
+        return JsonResponse(
+            {
+                "success": False,
+                "error": _(
+                    f"You have exceeded the maximum number of retries allowed (5 per hour). "
+                    "Please try again later."
+                ),
+            },
+            status=429,
+        )
+
+    if request.method != "POST":
+        return JsonResponse(
+            {"success": False, "error": _("Invalid request method")}, status=405
+        )
+
+    try:
+        document = get_object_or_404(Document, pk=pk, user=request.user)
+
+        # Only allow retrying failed documents
+        if document.status != TextStatus.FAILED:
+            return JsonResponse(
+                {"success": False, "error": _("Only failed documents can be retried")},
+                status=400,
+            )
+
+        # Reset document status and clear error message
+        document.status = TextStatus.PENDING
+        document.error_message = None
+        document.save()
+
+        # Clear any existing pages to allow reprocessing
+        document.pages.all().delete()
+
+        # Schedule background reprocessing
+        transaction.on_commit(lambda: parse_document_task.delay(document.id))
+
+        logger.info(
+            f"User {request.user.id} initiated retry for document {document.id} ({document.title})"
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": _(
+                    "Document retry has been queued. Processing will begin shortly."
+                ),
+                "document_id": document.id,
+            }
+        )
+
+    except Document.DoesNotExist:
+        return JsonResponse(
+            {"success": False, "error": _("Document not found")}, status=404
+        )
+    except Exception as e:
+        logger.exception(f"Failed to retry document {pk}")
+        return JsonResponse(
+            {
+                "success": False,
+                "error": _("An error occurred while retrying the document"),
+            },
+            status=500,
+        )

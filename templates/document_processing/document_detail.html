@@ -108,7 +108,7 @@
             </div>
         </div>
         {% elif document.status == 'FAILED' %}
-        <div class="alert alert-info text-center py-5">
+        <div class="alert alert-danger text-center py-5">
             <i class="bi bi-x-circle display-1 d-block mb-3"></i>
             <h4>Processing failed</h4>
             <p class="mb-3">
@@ -118,9 +118,14 @@
                 Please try uploading the document again.
                 {% endif %}
             </p>
-            <a href="{% url 'document_processing:document_list' %}" class="btn btn-primary">
-                <i class="bi bi-arrow-left me-2"></i>Back to Documents
-            </a>
+            <div class="d-flex justify-content-center gap-2">
+                <button id="retry-btn" class="btn btn-primary" onclick="retryDocument()">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Retry Processing
+                </button>
+                <a href="{% url 'document_processing:document_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Documents
+                </a>
+            </div>
         </div>
         {% else %}
         <div class="alert alert-info text-center py-5">
@@ -138,6 +143,44 @@
     const docId = {{ document.id }};
     const statusBadge = document.getElementById("status-badge");
     const pagesEl = document.getElementById("pages");
+
+    function retryDocument() {
+        const retryBtn = document.getElementById("retry-btn");
+        const originalText = retryBtn.innerHTML;
+        
+        // Disable button and show loading state
+        retryBtn.disabled = true;
+        retryBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>Retrying...';
+        
+        fetch("{% url 'document_processing:document_retry' document.id %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message and reload page
+                alert("Document retry has been queued. Processing will begin shortly.");
+                window.location.reload();
+            } else {
+                // Show error message
+                alert("Failed to retry document: " + data.error);
+                // Re-enable button
+                retryBtn.disabled = false;
+                retryBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error("Retry error:", error);
+            alert("An error occurred while retrying the document.");
+            // Re-enable button
+            retryBtn.disabled = false;
+            retryBtn.innerHTML = originalText;
+        });
+    }
 
     function checkStatus() {
         fetch("{% url 'document_processing:status_api' document.id %}")

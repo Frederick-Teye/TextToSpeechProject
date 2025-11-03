@@ -1,4 +1,5 @@
 import csv
+import logging
 import os  # Import os to build the log file path
 from django.conf import settings  # Import settings to find the log file
 from django.contrib import admin, messages
@@ -6,6 +7,8 @@ from django.db import transaction
 from django.http import HttpResponse, FileResponse
 from .models import Document, DocumentPage, TextStatus, TaskFailureAlert
 from .tasks import parse_document_task
+
+logger = logging.getLogger(__name__)
 
 
 # 1. Inline to show pages on the Document admin page (This is a key feature)
@@ -167,6 +170,102 @@ class DocumentPageAdmin(admin.ModelAdmin):
         return False
 
 
+@admin.action(description="Retry selected failed tasks")
+def retry_failed_tasks(modeladmin, request, queryset):
+    """
+    Retry failed tasks by re-queuing them for processing.
+    Only retries tasks that are eligible for retry (not already resolved).
+    """
+    from .tasks import parse_document_task
+    from speech_processing.tasks import generate_audio_task
+    from django.db import transaction
+    from django.utils import timezone
+
+    retried_count = 0
+    skipped_count = 0
+
+    for alert in queryset:
+        # Skip already resolved alerts
+        if alert.status == "RESOLVED":
+            skipped_count += 1
+            continue
+
+        # Determine which task to retry based on task_name
+        task_func = None
+        task_args = []
+        task_kwargs = {}
+
+        if alert.task_name == "parse_document_task" and alert.document:
+            task_func = parse_document_task
+            task_kwargs = {"document_id": alert.document.id}
+            # Reset document status to allow reprocessing
+            alert.document.status = "PENDING"
+            alert.document.error_message = None
+            alert.document.save()
+
+        elif alert.task_name == "generate_audio_task":
+            # For audio tasks, extract audio_id from task_kwargs and retry
+            audio_id = alert.task_kwargs.get("audio_id") if alert.task_kwargs else None
+            if audio_id:
+                from speech_processing.models import Audio, AudioGenerationStatus
+
+                try:
+                    audio = Audio.objects.get(id=audio_id)
+                    # Reset audio status to allow regeneration
+                    audio.status = AudioGenerationStatus.PENDING
+                    audio.error_message = None
+                    audio.save()
+
+                    task_func = generate_audio_task
+                    task_args = [audio_id]
+                except Audio.DoesNotExist:
+                    logger.warning(f"Audio {audio_id} not found for retry, skipping")
+                    skipped_count += 1
+                    continue
+            else:
+                logger.warning(
+                    f"No audio_id found in task_kwargs for audio task alert {alert.id}, skipping"
+                )
+                skipped_count += 1
+                continue
+
+        if task_func:
+            try:
+                # Queue the retry task
+                transaction.on_commit(
+                    lambda t=task_func, a=task_args, k=task_kwargs: t.delay(*a, **k)
+                )
+
+                # Update alert status and increment retry count
+                alert.retry_count += 1
+                alert.status = "ACKNOWLEDGED"  # Mark as being retried
+                alert.resolution_notes = f"Retried at {timezone.now()} by {request.user.email}\n{alert.resolution_notes}".strip()
+                alert.save()
+
+                retried_count += 1
+
+            except Exception as e:
+                logger.exception(f"Failed to retry task {alert.id}")
+                modeladmin.message_user(
+                    request,
+                    f"Failed to retry task {alert.id}: {str(e)}",
+                    messages.ERROR,
+                )
+
+    if retried_count:
+        modeladmin.message_user(
+            request,
+            f"Successfully queued {retried_count} tasks for retry.",
+            messages.SUCCESS,
+        )
+    if skipped_count:
+        modeladmin.message_user(
+            request,
+            f"Skipped {skipped_count} tasks (already resolved or not eligible for retry).",
+            messages.WARNING,
+        )
+
+
 @admin.register(TaskFailureAlert)
 class TaskFailureAlertAdmin(admin.ModelAdmin):
     list_display = (
@@ -174,6 +273,7 @@ class TaskFailureAlertAdmin(admin.ModelAdmin):
         "status",
         "user",
         "error_summary",
+        "resolved_by",
         "created_at",
         "email_sent",
     )
@@ -187,9 +287,12 @@ class TaskFailureAlertAdmin(admin.ModelAdmin):
         "task_kwargs",
         "retry_count",
         "created_at",
+        "resolved_by",
+        "resolved_at",
         "email_sent_at",
     )
     date_hierarchy = "created_at"
+    actions = [retry_failed_tasks]
 
     fieldsets = (
         (
@@ -210,7 +313,14 @@ class TaskFailureAlertAdmin(admin.ModelAdmin):
         ),
         (
             "Resolution",
-            {"fields": ("resolution_notes", "resolved_at", "email_sent_at")},
+            {
+                "fields": (
+                    "resolution_notes",
+                    "resolved_by",
+                    "resolved_at",
+                    "email_sent_at",
+                )
+            },
         ),
     )
 

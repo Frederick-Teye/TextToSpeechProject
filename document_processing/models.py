@@ -208,6 +208,14 @@ class TaskFailureAlert(models.Model):
     resolved_at = models.DateTimeField(
         null=True, blank=True, help_text="When admin resolved the issue"
     )
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_task_failures",
+        help_text="Admin who resolved the issue",
+    )
     resolution_notes = models.TextField(
         blank=True, help_text="Admin notes about the resolution"
     )
@@ -231,11 +239,12 @@ class TaskFailureAlert(models.Model):
     def __str__(self):
         return f"{self.get_task_name_display()} - {self.get_status_display()} - {self.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
 
-    def mark_resolved(self, notes=""):
+    def mark_resolved(self, notes="", resolved_by=None):
         """Mark this alert as resolved."""
         from django.utils import timezone
 
         self.status = "RESOLVED"
         self.resolved_at = timezone.now()
+        self.resolved_by = resolved_by
         self.resolution_notes = notes
         self.save()

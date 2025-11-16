@@ -849,7 +849,7 @@ def update_share_permission(request, sharing_id):
 @login_required
 @ratelimit(
     key="user",  # Rate limit per user
-    rate="10/h",  # 10 retries per hour per user
+    rate=settings.AUDIO_RETRY_RATE_LIMIT,  # 10 retries per hour per user
     method="POST",  # Only rate limit POST requests
     block=False,  # Don't block, let us handle the response
 )
@@ -875,17 +875,15 @@ def retry_audio(request, audio_id):
         return JsonResponse(
             {
                 "success": False,
-                "error": _(
-                    f"You have exceeded the maximum number of retries allowed (10 per hour). "
-                    "Please try again later."
-                ),
+                "error": settings.ERROR_RATE_LIMIT_EXCEEDED_AUDIO_RETRY,
             },
-            status=429,
+            status=settings.HTTP_429_TOO_MANY_REQUESTS,
         )
 
     if request.method != "POST":
         return JsonResponse(
-            {"success": False, "error": _("Invalid request method")}, status=405
+            {"success": False, "error": settings.ERROR_INVALID_REQUEST_METHOD},
+            status=settings.HTTP_405_METHOD_NOT_ALLOWED,
         )
 
     try:
@@ -904,8 +902,8 @@ def retry_audio(request, audio_id):
 
         if not has_access:
             return JsonResponse(
-                {"success": False, "error": _("You don't have access to this audio")},
-                status=403,
+                {"success": False, "error": settings.ERROR_PERMISSION_DENIED},
+                status=settings.HTTP_403_FORBIDDEN,
             )
 
         # Only allow retrying failed audio files
@@ -913,9 +911,9 @@ def retry_audio(request, audio_id):
             return JsonResponse(
                 {
                     "success": False,
-                    "error": _("Only failed audio files can be retried"),
+                    "error": settings.ERROR_ONLY_FAILED_AUDIO_CAN_BE_RETRIED,
                 },
-                status=400,
+                status=settings.HTTP_400_BAD_REQUEST,
             )
 
         # Reset audio status and clear error message
@@ -958,14 +956,15 @@ def retry_audio(request, audio_id):
 
     except Http404:
         return JsonResponse(
-            {"success": False, "error": _("Audio not found")}, status=404
+            {"success": False, "error": settings.ERROR_AUDIO_NOT_FOUND},
+            status=settings.HTTP_404_NOT_FOUND,
         )
     except Exception as e:
         logger.exception(f"Failed to retry audio {audio_id}")
         return JsonResponse(
             {
                 "success": False,
-                "error": _("An error occurred while retrying the audio"),
+                "error": settings.ERROR_AN_ERROR_OCCURRED_AUDIO_RETRY,
             },
-            status=500,
+            status=settings.HTTP_500_INTERNAL_SERVER_ERROR,
         )

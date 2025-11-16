@@ -601,6 +601,10 @@
     let availableAudios = [];
     let isOwner = false;
 
+    // Variables for audio player syncing
+    let mainAudioSyncing = false;
+    let floatingAudioSyncing = false;
+
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
         loadPageAudios();
@@ -753,7 +757,7 @@
     }
 
     // Load audio into player
-    function loadAudio(audio) {
+    async function loadAudio(audio) {
         if (audio.status !== 'COMPLETED') {
             return;
         }
@@ -764,14 +768,18 @@
         document.getElementById('noAudioMessage').classList.add('d-none');
         document.getElementById('audioPlayer').classList.remove('d-none');
         
-        // Set audio source
-        const audioElement = document.getElementById('audioElement');
-        audioElement.src = audio.s3_url;
-        
-        // Also set floating player audio on mobile
-        const floatingAudioElement = document.getElementById('floatingAudioElement');
-        floatingAudioElement.src = audio.s3_url;
-        document.getElementById('floatingVoiceLabel').textContent = audio.voice;
+        // Get fresh URL and set src immediately
+        const freshUrl = await getFreshAudioUrl(audio.id);
+        if (freshUrl) {
+            document.getElementById('audioElement').src = freshUrl;
+            document.getElementById('floatingAudioElement').src = freshUrl; // Also for floating player
+        } else {
+            showToast('error', 'Failed to load audio for playback.');
+            // Hide player, show no audio message
+            document.getElementById('noAudioMessage').classList.remove('d-none');
+            document.getElementById('audioPlayer').classList.add('d-none');
+            return;
+        }
         
         // Show floating player on mobile
         if (window.innerWidth < 992) {
@@ -802,10 +810,7 @@
             }
         });
         
-        // Track play
-        audioElement.addEventListener('play', function() {
-            trackPlay(currentAudioId);
-        }, { once: true });
+        // Track play - but don't do it here, wait for actual play
     }
 
     // Generate audio
@@ -946,17 +951,22 @@
         }
     });
 
-    // Track play
-    async function trackPlay(audioId) {
+    // Get fresh audio URL for playback
+    async function getFreshAudioUrl(audioId) {
         try {
-            await fetch(`/speech/audio/${audioId}/play/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            });
+            const response = await fetch(`/speech/audio/${audioId}/download/`);
+            const data = await response.json();
+            
+            if (data.success) {
+                return data.download_url;
+            } else {
+                showToast('error', 'Failed to get audio URL: ' + (data.error || 'Unknown error'));
+                return null;
+            }
         } catch (error) {
-            console.error('Error tracking play:', error);
+            console.error('Error getting fresh audio URL:', error);
+            showToast('error', 'Failed to load audio');
+            return null;
         }
     }
 
@@ -1127,10 +1137,25 @@
         contentDisplay.innerHTML = html;
     }
 
-    // ========== REWIND/FORWARD FUNCTIONALITY ==========
+    // ========== AUDIO PLAYBACK HANDLERS ==========
     
-    let mainAudioSyncing = false;
-    let floatingAudioSyncing = false;
+    // Main audio element play handler
+    const mainAudioElement = document.getElementById('audioElement');
+    if (mainAudioElement) {
+        mainAudioElement.addEventListener('play', async function() {
+            // Track play
+            trackPlay(currentAudioId);
+        }, { once: false }); // Allow multiple plays
+    }
+
+    // Floating audio element play handler
+    const floatingAudioElement = document.getElementById('floatingAudioElement');
+    if (floatingAudioElement) {
+        floatingAudioElement.addEventListener('play', async function() {
+            // Track play
+            trackPlay(currentAudioId);
+        }, { once: false }); // Allow multiple plays
+    }
     
     // Rewind button handlers (main player)
     const rewindBtn = document.getElementById('rewindBtn');

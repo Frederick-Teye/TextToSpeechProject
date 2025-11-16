@@ -533,7 +533,7 @@ def render_markdown(request):
 @login_required
 @ratelimit(
     key="user",  # Rate limit per user
-    rate="5/h",  # 5 retries per hour per user
+    rate=settings.DOCUMENT_RETRY_RATE_LIMIT,  # 5 retries per hour per user
     method="POST",  # Only rate limit POST requests
     block=False,  # Don't block, let us handle the response
 )
@@ -562,17 +562,15 @@ def retry_document_processing(request, pk):
         return JsonResponse(
             {
                 "success": False,
-                "error": _(
-                    f"You have exceeded the maximum number of retries allowed (5 per hour). "
-                    "Please try again later."
-                ),
+                "error": settings.ERROR_RATE_LIMIT_EXCEEDED_DOCUMENT_RETRY,
             },
-            status=429,
+            status=settings.HTTP_429_TOO_MANY_REQUESTS,
         )
 
     if request.method != "POST":
         return JsonResponse(
-            {"success": False, "error": _("Invalid request method")}, status=405
+            {"success": False, "error": settings.ERROR_INVALID_REQUEST_METHOD},
+            status=settings.HTTP_405_METHOD_NOT_ALLOWED,
         )
 
     try:
@@ -581,8 +579,11 @@ def retry_document_processing(request, pk):
         # Only allow retrying failed documents
         if document.status != TextStatus.FAILED:
             return JsonResponse(
-                {"success": False, "error": _("Only failed documents can be retried")},
-                status=400,
+                {
+                    "success": False,
+                    "error": settings.ERROR_ONLY_FAILED_DOCUMENTS_CAN_BE_RETRIED,
+                },
+                status=settings.HTTP_400_BAD_REQUEST,
             )
 
         # Reset document status and clear error message
@@ -612,14 +613,15 @@ def retry_document_processing(request, pk):
 
     except Document.DoesNotExist:
         return JsonResponse(
-            {"success": False, "error": _("Document not found")}, status=404
+            {"success": False, "error": settings.ERROR_DOCUMENT_NOT_FOUND},
+            status=settings.HTTP_404_NOT_FOUND,
         )
     except Exception as e:
         logger.exception(f"Failed to retry document {pk}")
         return JsonResponse(
             {
                 "success": False,
-                "error": _("An error occurred while retrying the document"),
+                "error": settings.ERROR_AN_ERROR_OCCURRED_DOCUMENT_RETRY,
             },
-            status=500,
+            status=settings.HTTP_500_INTERNAL_SERVER_ERROR,
         )

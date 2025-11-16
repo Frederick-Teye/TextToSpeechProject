@@ -592,17 +592,75 @@ class AudioGenerationService:
     ) -> Optional[str]:
         """
         Generate a presigned URL for downloading an audio file.
-        URL expires after specified seconds (default: 1 hour).
+
+        Intelligently handles both new CloudFront-signed URLs and legacy S3 URLs:
+
+        For NEW audio files (post-CloudFront implementation):
+        - Uses CloudFront signed URLs for both development and production
+        - Provides: time-limited access, cryptographic signing (RSA-SHA1),
+          global CDN distribution, better caching and performance
+
+        For OLD audio files (pre-CloudFront implementation):
+        - Falls back to S3 presigned URLs directly (maintains compatibility)
+        - Existing audio files continue to work without re-generation
+
+        This ensures backward compatibility while enabling new features:
+        - Time-limited access (default: 1 hour)
+        - Reduced S3 request load for new files
+        - IP restriction capability (optional)
+        - Seamless migration path for users
 
         Args:
             audio: Audio instance
             expiration: URL expiration time in seconds (default: configured AUDIO_PRESIGNED_URL_EXPIRATION_SECONDS)
 
         Returns:
-            Presigned URL string, or None if generation fails
+            Signed CloudFront URL string (new files), S3 presigned URL (old/fallback), or None if all fail
         """
         if expiration is None:
             expiration = settings.AUDIO_PRESIGNED_URL_EXPIRATION_SECONDS
+
+        try:
+            # Always try CloudFront signed URLs first (for new audio files)
+            from core.cloudfront_utils import (
+                get_audio_signed_url,
+                CloudFrontSigningError,
+            )
+
+            try:
+                logger.debug(f"Generating CloudFront signed URL for audio {audio.id}")
+                return get_audio_signed_url(audio, expiration_seconds=expiration)
+            except CloudFrontSigningError as e:
+                logger.warning(
+                    f"CloudFront signing failed for audio {audio.id}: {str(e)}"
+                )
+                # Fallback to direct S3 presigned URL
+                # This handles:
+                # 1. Old audio files (pre-CloudFront implementation)
+                # 2. CloudFront configuration issues
+                # 3. Missing/invalid private keys
+                logger.info(f"Falling back to S3 presigned URL for audio {audio.id}")
+                return self._get_s3_presigned_url(audio, expiration)
+
+        except Exception as e:
+            logger.error(f"Failed to generate download URL for audio: {str(e)}")
+            return None
+
+    def _get_s3_presigned_url(self, audio: "Audio", expiration: int) -> Optional[str]:
+        """
+        Generate a direct S3 presigned URL for downloading an audio file.
+
+        This is used as a fallback in production or for development environments.
+        S3 presigned URLs provide direct access to S3 objects without requiring
+        AWS credentials, but are less secure than CloudFront signed URLs.
+
+        Args:
+            audio: Audio instance
+            expiration: URL expiration time in seconds
+
+        Returns:
+            S3 presigned URL string, or None if generation fails
+        """
         try:
             url = self.polly_service.s3_client.generate_presigned_url(
                 "get_object",
@@ -612,7 +670,8 @@ class AudioGenerationService:
                 },
                 ExpiresIn=expiration,
             )
+            logger.debug(f"Generated S3 presigned URL for audio {audio.id}")
             return url
         except Exception as e:
-            logger.error(f"Failed to generate presigned URL: {str(e)}")
+            logger.error(f"Failed to generate S3 presigned URL: {str(e)}")
             return None

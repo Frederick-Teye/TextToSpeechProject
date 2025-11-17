@@ -130,13 +130,13 @@ MIN_CONTENT_LENGTH = 100  # Minimum characters for processed document content
 # Audio generation and processing
 POLLY_MAX_CHARS_PER_REQUEST = 3000  # AWS Polly character limit per request
 POLLY_AUDIO_CACHE_SECONDS = 31_536_000  # Cache audio for 1 year (365 days)
-AUDIO_PRESIGNED_URL_EXPIRATION_SECONDS = 3600  # 1 hour for presigned URLs
+
+# Audio presigned/signed URL expiration (in seconds)
+AUDIO_PRESIGNED_URL_EXPIRATION_SECONDS = 3600  # 1 hour
 AUDIO_DOWNLOAD_EXPIRATION_SECONDS = 3600  # 1 hour
 
-# Audio retention and expiry
-AUDIO_EXPIRY_WARNING_DAYS = 30  # Days before expiry to send warning email
-DEFAULT_RETENTION_MONTHS = 6  # Default audio retention in months
-AUDIO_EXPIRY_CHECK_DEFAULT_DAYS = 30  # Default days for analytics queries
+# CloudFront signed URL expiration (in seconds)
+CLOUDFRONT_EXPIRATION = 3600  # 1 hour
 
 # Dashboard and analytics
 DASHBOARD_MAX_DAYS_LOOKBACK = 365  # Maximum days for analytics queries (1 year)
@@ -159,6 +159,33 @@ SOCKET_TIMEOUT_SECONDS = 5  # Socket timeout for network operations
 
 # Error tracking
 MAX_ERROR_MESSAGE_LENGTH = 500  # Max length for error messages in logs
+
+# ==================== HTTP STATUS CODE CONSTANTS ====================
+# Standard HTTP status codes used throughout the application
+HTTP_200_OK = 200
+HTTP_400_BAD_REQUEST = 400
+HTTP_403_FORBIDDEN = 403
+HTTP_404_NOT_FOUND = 404
+HTTP_405_METHOD_NOT_ALLOWED = 405
+HTTP_409_CONFLICT = 409
+HTTP_429_TOO_MANY_REQUESTS = 429
+HTTP_500_INTERNAL_SERVER_ERROR = 500
+
+# ==================== ERROR MESSAGE CONSTANTS ====================
+# Common error messages used across the application
+ERROR_VOICE_ID_REQUIRED = "Voice ID is required"
+ERROR_INVALID_JSON_DATA = "Invalid JSON data"
+ERROR_PERMISSION_DENIED = "Permission denied"
+ERROR_DOCUMENT_NOT_FOUND = "Document not found"
+ERROR_AUDIO_NOT_FOUND = "Audio not found"
+ERROR_INVALID_REQUEST_METHOD = "Invalid request method"
+ERROR_ONLY_FAILED_DOCUMENTS_CAN_BE_RETRIED = "Only failed documents can be retried"
+ERROR_ONLY_FAILED_AUDIO_CAN_BE_RETRIED = "Only failed audio files can be retried"
+ERROR_RATE_LIMIT_EXCEEDED_AUDIO_RETRY = "You have exceeded the maximum number of retries allowed (10 per hour). Please try again later."
+ERROR_RATE_LIMIT_EXCEEDED_DOCUMENT_RETRY = "You have exceeded the maximum number of retries allowed (5 per hour). Please try again later."
+ERROR_AN_ERROR_OCCURRED_AUDIO_GENERATION = "An error occurred during audio generation"
+ERROR_AN_ERROR_OCCURRED_DOCUMENT_RETRY = "An error occurred while retrying the document"
+ERROR_AN_ERROR_OCCURRED_AUDIO_RETRY = "An error occurred while retrying the audio"
 
 
 # Password validation
@@ -195,10 +222,20 @@ USE_I18N = True
 USE_TZ = True
 
 
+# ==================== ENVIRONMENT CONFIGURATION ====================
+# Determines which environment-specific settings to use
+# Set via environment variable: ENVIRONMENT=production or development
+ENVIRONMENT = config("ENVIRONMENT", default="development")
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "static_cdn/"
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 
 # # Media files (user uploads)
@@ -332,6 +369,10 @@ RATELIMIT_CONFIG = {
     "document:upload": f"{RATE_LIMIT_UPLOADS_PER_HOUR}/h",  # uploads per hour per user
 }
 
+# Rate limits for retry operations
+AUDIO_RETRY_RATE_LIMIT = "10/h"  # Maximum audio retries per hour per user
+DOCUMENT_RETRY_RATE_LIMIT = "5/h"  # Maximum document retries per hour per user
+
 
 # AWS S3 / Polly Settings (using django-storages and boto3)
 AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID")
@@ -402,6 +443,12 @@ LOGGING = {
         "speech_processing": {
             "handlers": ["console"],
             "level": "DEBUG",  # Show all debug messages from your app.
+            "propagate": True,
+        },
+        # This will catch logs from the `core` app.
+        "core": {
+            "handlers": ["console"],
+            "level": "DEBUG",
             "propagate": True,
         },
         # You can add other apps here as your project grows.

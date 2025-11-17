@@ -1,8 +1,9 @@
 from .base import *
 from decouple import config, Csv
 import dj_database_url
-import os
+from storages.backends.s3boto3 import S3Boto3Storage
 
+# === DEBUGGING ===
 DEBUG = False
 
 # Security: Ensure SECRET_KEY is always from environment variables in production
@@ -16,22 +17,70 @@ ALLOWED_HOSTS = config(
 # Production Database (Heroku Postgres Add-on)
 DATABASES = {"default": dj_database_url.parse(config("DATABASE_URL"))}
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-STATIC_ROOT = BASE_DIR / "static_cdn"
+# === STATIC FILES (CSS, JS, Images) ===
+# PUBLIC - served directly from CloudFront, NO signing needed
+STATIC_URL = f"https://{config('STATIC_CLOUDFRONT_DOMAIN')}/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Static files storage for production (WhiteNoise for efficiency)
-# WhiteNoise will serve static files directly from your Django app
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+class StaticStorage(S3Boto3Storage):
+    """Storage for static files - served publicly from CloudFront"""
+    location = 'static'
+    default_acl = None  # Use CloudFront OAI instead
+    file_overwrite = False
+    custom_domain = config('STATIC_CLOUDFRONT_DOMAIN')
+    querystring_auth = False  # NO signing for static files
 
-# AWS S3 for media files (user uploads and generated audio)
-# DEFAULT_FILE_STORAGE is set in base.py to 'storages.backends.s3boto3.S3Boto3Storage'
-# AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET_NAME, AWS_DEFAULT_REGION are from env
-# The caching headers (AWS_HEADERS) are defined in base.py and will apply here.
+STATICFILES_STORAGE = 'core.settings.production.StaticStorage'
 
-# Security Enhancements (Highly Recommended for Production)
+# === MEDIA FILES (User-Generated Audio) ===
+# PRIVATE - served via signed CloudFront URLs
+MEDIA_URL = f"https://{config('CLOUDFRONT_DOMAIN')}/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+class MediaStorage(S3Boto3Storage):
+    """Storage for media files (audio) - requires signed URLs"""
+    location = 'media'
+    default_acl = None
+    file_overwrite = False
+    custom_domain = config('CLOUDFRONT_DOMAIN')
+    querystring_auth = False  # We handle signing separately
+
+DEFAULT_FILE_STORAGE = 'core.settings.production.MediaStorage'
+
+# === AWS S3 CONFIGURATION ===
+AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
+AWS_DEFAULT_REGION = config('AWS_DEFAULT_REGION', default='us-east-1')
+
+# Storage buckets
+AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')  # Audio bucket
+AWS_STATIC_BUCKET_NAME = config('AWS_STATIC_BUCKET_NAME')  # Static bucket
+
+# S3 optimization
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=31536000',  # 1 year for static files (they're versioned)
+}
+
+# === CLOUDFRONT SIGNED URLS (Audio Only) ===
+CLOUDFRONT_DOMAIN = config('CLOUDFRONT_DOMAIN')
+CLOUDFRONT_KEY_ID = config('CLOUDFRONT_KEY_ID')
+CLOUDFRONT_PRIVATE_KEY = config('CLOUDFRONT_PRIVATE_KEY')
+CLOUDFRONT_EXPIRATION = 3600  # 1 hour
+
+# Static CloudFront (no signing)
+STATIC_CLOUDFRONT_DOMAIN = config('STATIC_CLOUDFRONT_DOMAIN')
+
+# Environment identifier
+ENVIRONMENT = config('ENVIRONMENT', default='production')
+
+# ==================== PROXY & SECURITY HEADERS (ECS) ====================
+# Required for ECS deployments with ALB/NLB that use X-Forwarded headers
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = True
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
+# HTTPS enforcement (may cause issues with ALB, handled by ALB instead)
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
 
 # ==================== COOKIE SECURITY ====================
 # These settings protect against session hijacking and CSRF attacks

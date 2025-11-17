@@ -44,3 +44,6 @@ celeryd.pid # Celery worker PID file
 
 # Static CDN folder
 static_cdn/
+
+GEMINI.md
+DOCKER_GUIDE.md

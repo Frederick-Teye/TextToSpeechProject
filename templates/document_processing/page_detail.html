@@ -1,1353 +1,1473 @@
-{% extends "base.html" %}
-{% load custom_tags %}
-
-{% block head_title %}Page {{ page.page_number }} - {{ page.document.title }}{% endblock head_title %}
-
+{% extends "base.html" %} 
+{% load custom_tags %} 
+{% block head_title %}
+    Page {{ page.page_number }} - {{ page.document.title }}
+{% endblock head_title %} 
 {% block content %}
 <div class="container-fluid py-4">
-    <div class="row">
-        <!-- Main Content Area (Left Side) -->
-        <div class="col-lg-8">
-            <!-- Page Header -->
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h1 class="h3 mb-2">
-                                <i class="bi bi-file-earmark-text me-2"></i> {{ page.document.title }}
-                            </h1>
-                            <h5 class="text-white-50">
-                                <i class="bi bi-file-earmark me-2"></i> Page {{ page.page_number }}
-                            </h5>
-                        </div>
-                        <a href="{% url 'document_processing:document_detail' page.document.id %}"
-                            class="btn btn-outline-primary">
-                            <i class="bi bi-arrow-left me-1"></i> Back to Document
-                        </a>
-                    </div>
-                </div>
+  <div class="row">
+    <!-- Main Content Area (Left Side) -->
+    <div class="col-lg-8">
+      <!-- Page Header -->
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h1 class="h3 mb-2">
+                <i class="bi bi-file-earmark-text me-2"></i>
+                {{ page.document.title }}
+              </h1>
+              <h5 class="text-white-50">
+                <i class="bi bi-file-earmark me-2"></i> 
+                Page {{ page.page_number }}
+              </h5>
             </div>
-
-            <!-- Markdown Content -->
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-text-paragraph me-2"></i> Content</h5>
-                    {% if can_edit %}
-                    <button id="editBtn" class="btn btn-sm btn-outline-warning" title="Edit page content">
-                        <i class="bi bi-pencil me-1"></i> Edit
-                    </button>
-                    {% endif %}
-                </div>
-                <div class="card-body markdown-content" id="contentDisplay">
-                    {{ page.markdown_content|md_to_html }}
-                </div>
-            </div>
-
-            <!-- Edit Modal -->
-            {% if can_edit %}
-            <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-                <!-- Modal dialog - fullscreen on mobile, 100% width on desktop -->
-                <div class="modal-dialog modal-fullscreen-lg-down edit-modal-dialog" style="max-height: 100vh;">
-                    <div class="modal-content bg-secondary h-100 d-flex flex-column" style="height: 100vh;">
-                        <div class="modal-header border-secondary">
-                            <h5 class="modal-title" id="editModalLabel">
-                                <i class="bi bi-pencil-square me-2"></i> Edit Page {{ page.page_number }}
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        
-                        <!-- Modal body with responsive layout -->
-                        <div class="modal-body flex-grow-1 overflow-hidden p-3 edit-modal-body">
-                            <div class="edit-modal-content">
-                                <!-- Left side: Editor (45% width) -->
-                                <div class="edit-editor-pane">
-                                    <label for="contentInput" class="form-label mb-2">
-                                        <i class="bi bi-pencil me-1"></i> Markdown Content
-                                    </label>
-                                    <textarea id="contentInput" class="form-control bg-dark border-secondary text-white flex-grow-1" 
-                                              placeholder="Enter markdown content..."
-                                              style="resize: none; font-family: monospace; font-size: 0.95rem; min-height: 0;">{{ page.markdown_content }}</textarea>
-                                    <small class="text-white-50 d-block mt-2">
-                                        <i class="bi bi-info-circle me-1"></i> Supports markdown formatting (headers, bold, links, code blocks, etc.)
-                                    </small>
-                                </div>
-                                
-                                <!-- Right side: Preview (45% width) -->
-                                <div class="edit-preview-pane">
-                                    <label class="form-label mb-2">
-                                        <i class="bi bi-eye me-1"></i> Live Preview
-                                    </label>
-                                    <div id="previewContent" class="card bg-dark border-secondary p-3 markdown-content" 
-                                         style="min-height: 0; overflow-y: auto; flex: 1;">
-                                        <p class="text-white-50">Preview will appear here...</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="modal-footer border-secondary">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                <i class="bi bi-x-circle me-1"></i> Cancel
-                            </button>
-                            <button type="button" class="btn btn-primary" id="saveBtn">
-                                <i class="bi bi-check-circle me-1"></i> Save Changes
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Pagination -->
-            <nav aria-label="Page navigation" class="mt-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    {% if previous_page_url %}
-                    <a href="{{ previous_page_url }}" class="btn btn-outline-primary">
-                        <i class="bi bi-chevron-left me-1"></i> Previous Page
-                    </a>
-                    {% else %}
-                    <button class="btn btn-outline-secondary" disabled>
-                        <i class="bi bi-chevron-left me-1"></i> Previous Page
-                    </button>
-                    {% endif %}
-
-                    <div class="text-center">
-                        <span class="text-white-50">
-                            Page <strong>{{ page.page_number }}</strong> of <strong>{{ total_pages }}</strong>
-                        </span>
-                    </div>
-
-                    {% if next_page_url %}
-                    <a href="{{ next_page_url }}" class="btn btn-outline-primary">
-                        Next Page <i class="bi bi-chevron-right ms-1"></i>
-                    </a>
-                    {% else %}
-                    <button class="btn btn-outline-secondary" disabled>
-                        Next Page <i class="bi bi-chevron-right ms-1"></i>
-                    </button>
-                    {% endif %}
-                </div>
-            </nav>
+            <a
+              href="{% url 'document_processing:document_detail' page.document.id %}"
+              class="btn btn-outline-primary"
+            >
+              <i class="bi bi-arrow-left me-1"></i> Back to Document
+            </a>
+          </div>
         </div>
+      </div>
 
-        <!-- Audio Player Sidebar (Right Side) -->
-        <div class="col-lg-4">
-            <div class="position-sticky" style="top: 20px;">
-                <!-- Audio Player Card -->
-                <div class="card shadow-sm border-0 mb-3 special-card">
-                    <div class="card-header bg-transparent border-0">
-                        <h5 class="mb-0">
-                            <i class="bi bi-music-note-beamed me-2"></i> Audio Player
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <!-- Audio Player Component -->
-                        <div id="audioPlayerContainer" class="mb-3">
-                            <div id="noAudioMessage" class="text-center text-white-50 py-4">
-                                <i class="bi bi-speaker display-6 d-block mb-2"></i>
-                                <p class="mt-2 mb-0">No audio available yet</p>
-                                <small>Generate audio to listen to this page</small>
-                            </div>
-
-                            <!-- Audio Player (Hidden initially) -->
-                            <div id="audioPlayer" class="d-none">
-                                <div class="mb-3">
-                                    <label class="form-label small text-white-50">
-                                        <i class="bi bi-mic me-1"></i> Playing: <strong id="currentVoice"></strong>
-                                    </label>
-                                    <audio id="audioElement" class="w-100" controls>
-                                        Your browser does not support the audio element.
-                                    </audio>
-                                </div>
-
-                                <!-- Audio Control Buttons with Rewind/Forward -->
-                                <div class="d-flex gap-2 mb-3">
-                                    <button id="rewindBtn" class="btn btn-sm btn-outline-warning"
-                                        title="Rewind 30 seconds">
-                                        <i class="bi bi-rewind me-1"></i> -30s
-                                    </button>
-                                    <button id="forwardBtn" class="btn btn-sm btn-outline-warning"
-                                        title="Forward 30 seconds">
-                                        <i class="bi bi-fast-forward me-1"></i> +30s
-                                    </button>
-                                </div>
-
-                                <div class="d-flex gap-2">
-                                    <button id="downloadBtn" class="btn btn-sm btn-outline-primary flex-fill"
-                                        title="Download">
-                                        <i class="bi bi-download me-1"></i> Download
-                                    </button>
-                                    <button id="deleteBtn" class="btn btn-sm btn-outline-danger"
-                                        title="Delete (Owner Only)">
-                                        <i class="bi bi-trash me-1"></i>
-                                    </button>
-                                </div>
-
-                                <div class="mt-2 small text-white-50">
-                                    <div><i class="bi bi-person me-1"></i> Generated by: <span id="generatedBy"></span>
-                                    </div>
-                                    <div><i class="bi bi-clock me-1"></i> Created: <span id="createdAt"></span></div>
-                                    <div id="expiryInfo"><i class="bi bi-hourglass me-1"></i> Expires in: <span
-                                            id="expiresIn"></span> days</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Voice Selector -->
-                        <div id="voiceSelector" class="mb-3">
-                            <label for="voiceSelect" class="form-label">
-                                <i class="bi bi-mic-fill me-1"></i> Select Voice
-                            </label>
-                            <select id="voiceSelect" class="form-select border-0 shadow-sm">
-                                <option value="">Loading voices...</option>
-                            </select>
-                        </div>
-
-                        <!-- Generate Button -->
-                        <button id="generateBtn" class="btn btn-primary w-100 mb-3" disabled>
-                            <i class="bi bi-play-circle me-2"></i> Generate Audio
-                        </button>
-
-                        <!-- Generation Progress -->
-                        <div id="generationProgress" class="alert alert-info d-none">
-                            <div class="d-flex align-items-center">
-                                <div class="spinner-border spinner-border-sm me-2" role="status">
-                                    <span class="visually-hidden">Generating...</span>
-                                </div>
-                                <div>
-                                    <strong>Generating audio...</strong>
-                                    <p class="mb-0 small" id="progressMessage">This may take a moment</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quota Card -->
-                <div class="card shadow-sm border-0 mb-3">
-                    <div class="card-header bg-transparent border-0">
-                        <h6 class="mb-0">
-                            <i class="bi bi-speedometer2 me-2"></i> Audio Quota
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-white-50">Used:</span>
-                            <strong><span id="quotaUsed">-</span> / <span id="quotaMax">-</span></strong>
-                        </div>
-                        <div class="progress mb-2" style="height: 10px;">
-                            <div id="quotaProgress" class="progress-bar" role="progressbar" style="width: 0%"
-                                aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                            </div>
-                        </div>
-                        <small class="text-white-50">
-                            <span id="quotaAvailable">-</span> audio(s) remaining
-                        </small>
-                    </div>
-                </div>
-
-                <!-- Available Audios List -->
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-transparent border-0">
-                        <h6 class="mb-0">
-                            <i class="bi bi-collection me-2"></i> Available Audios (<span id="audioCount">0</span>)
-                        </h6>
-                    </div>
-                    <div class="card-body" id="audiosList">
-                        <div class="text-center text-white-50 py-2">
-                            <div class="spinner-border spinner-border-sm" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <!-- Markdown Content -->
+      <div class="card shadow-sm border-0 mb-4">
+        <div
+          class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center"
+        >
+          <h5 class="mb-0">
+            <i class="bi bi-text-paragraph me-2"></i> Content
+          </h5>
+          {% if can_edit %}
+          <button
+            id="editBtn"
+            class="btn btn-sm btn-outline-warning"
+            title="Edit page content"
+          >
+            <i class="bi bi-pencil me-1"></i> Edit
+          </button>
+          {% endif %}
         </div>
+        <div class="card-body markdown-content" id="contentDisplay">
+          {{ page.markdown_content|md_to_html }}
+        </div>
+      </div>
+
+      <!-- Edit Modal -->
+      {% if can_edit %}
+      <div
+        class="modal fade"
+        id="editModal"
+        tabindex="-1"
+        aria-labelledby="editModalLabel"
+        aria-hidden="true"
+      >
+        <!-- Modal dialog - fullscreen on all screen sizes -->
+        <div
+          class="modal-dialog modal-fullscreen edit-modal-dialog"
+          style="max-height: 100vh"
+        >
+          <div
+            class="modal-content bg-secondary h-100 d-flex flex-column"
+            style="height: 100vh"
+          >
+            <div class="modal-header border-secondary">
+              <h5 class="modal-title" id="editModalLabel">
+                <i class="bi bi-pencil-square me-2"></i> 
+                Edit Page {{ page.page_number }}
+              </h5>
+              <button
+                type="button"
+                class="btn-close btn-close-white"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+
+            <!-- Modal body with responsive layout -->
+            <div
+              class="modal-body flex-grow-1 overflow-hidden p-3 edit-modal-body"
+            >
+              <div class="edit-modal-content">
+                <!-- Left side: Editor (45% width) -->
+                <div class="edit-editor-pane">
+                  <label for="contentInput" class="form-label mb-2">
+                    <i class="bi bi-pencil me-1"></i> Markdown Content
+                  </label>
+                  <textarea
+                    id="contentInput"
+                    class="form-control bg-dark border-secondary text-white flex-grow-1"
+                    placeholder="Enter markdown content..."
+                    style="
+                      resize: none;
+                      font-family: monospace;
+                      font-size: 0.95rem;
+                      min-height: 0;
+                    "
+                  >
+{{ page.markdown_content }}</textarea
+                  >
+                  <small class="text-white-50 d-block mt-2">
+                    <i class="bi bi-info-circle me-1"></i> Supports markdown
+                    formatting (headers, bold, links, code blocks, etc.)
+                  </small>
+                </div>
+
+                <!-- Right side: Preview (45% width) -->
+                <div class="edit-preview-pane">
+                  <label class="form-label mb-2">
+                    <i class="bi bi-eye me-1"></i> Live Preview
+                  </label>
+                  <div
+                    id="previewContent"
+                    class="card bg-dark border-secondary p-3 markdown-content"
+                    style="min-height: 0; overflow-y: auto; flex: 1"
+                  >
+                    <p class="text-white-50">Preview will appear here...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer border-secondary">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                <i class="bi bi-x-circle me-1"></i> Cancel
+              </button>
+              <button type="button" class="btn btn-primary" id="saveBtn">
+                <i class="bi bi-check-circle me-1"></i> Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Pagination -->
+      <nav aria-label="Page navigation" class="mt-4">
+        <div class="d-flex justify-content-between align-items-center">
+          {% if previous_page_url %}
+          <a href="{{ previous_page_url }}" class="btn btn-outline-primary">
+            <i class="bi bi-chevron-left me-1"></i> Previous Page
+          </a>
+          {% else %}
+          <button class="btn btn-outline-secondary" disabled>
+            <i class="bi bi-chevron-left me-1"></i> Previous Page
+          </button>
+          {% endif %}
+
+          <div class="text-center">
+            <span class="text-white-50">
+              Page <strong>{{ page.page_number }}</strong> of
+              <strong>{{ total_pages }}</strong>
+            </span>
+          </div>
+
+          {% if next_page_url %}
+          <a href="{{ next_page_url }}" class="btn btn-outline-primary">
+            Next Page <i class="bi bi-chevron-right ms-1"></i>
+          </a>
+          {% else %}
+          <button class="btn btn-outline-secondary" disabled>
+            Next Page <i class="bi bi-chevron-right ms-1"></i>
+          </button>
+          {% endif %}
+        </div>
+      </nav>
     </div>
+
+    <!-- Audio Player Sidebar (Right Side) -->
+    <div class="col-lg-4">
+      <div class="position-sticky" style="top: 20px">
+        <!-- Audio Player Card -->
+        <div class="card shadow-sm border-0 mb-3 special-card">
+          <div class="card-header bg-transparent border-0">
+            <h5 class="mb-0">
+              <i class="bi bi-music-note-beamed me-2"></i> Audio Player
+            </h5>
+          </div>
+          <div class="card-body">
+            <!-- Audio Player Component -->
+            <div id="audioPlayerContainer" class="mb-3">
+              <div id="noAudioMessage" class="text-center text-white-50 py-4">
+                <i class="bi bi-speaker display-6 d-block mb-2"></i>
+                <p class="mt-2 mb-0">No audio available yet</p>
+                <small>Generate audio to listen to this page</small>
+              </div>
+
+              <!-- Audio Player (Hidden initially) -->
+              <div id="audioPlayer" class="d-none">
+                <div class="mb-3">
+                  <label class="form-label small text-white-50">
+                    <i class="bi bi-mic me-1"></i> Playing:
+                    <strong id="currentVoice"></strong>
+                  </label>
+                  <audio id="audioElement" class="w-100" controls>
+                    Your browser does not support the audio element.
+                  </audio>
+                </div>
+
+                <!-- Audio Control Buttons with Rewind/Forward -->
+                <div class="d-flex gap-2 mb-3">
+                  <button
+                    id="rewindBtn"
+                    class="btn btn-sm btn-outline-warning"
+                    title="Rewind 30 seconds"
+                  >
+                    <i class="bi bi-rewind me-1"></i> -30s
+                  </button>
+                  <button
+                    id="forwardBtn"
+                    class="btn btn-sm btn-outline-warning"
+                    title="Forward 30 seconds"
+                  >
+                    <i class="bi bi-fast-forward me-1"></i> +30s
+                  </button>
+                </div>
+
+                <div class="d-flex gap-2">
+                  <button
+                    id="downloadBtn"
+                    class="btn btn-sm btn-outline-primary flex-fill"
+                    title="Download"
+                  >
+                    <i class="bi bi-download me-1"></i> Download
+                  </button>
+                  <button
+                    id="deleteBtn"
+                    class="btn btn-sm btn-outline-danger"
+                    title="Delete (Owner Only)"
+                  >
+                    <i class="bi bi-trash me-1"></i>
+                  </button>
+                </div>
+
+                <div class="mt-2 small text-white-50">
+                  <div>
+                    <i class="bi bi-person me-1"></i> Generated by:
+                    <span id="generatedBy"></span>
+                  </div>
+                  <div>
+                    <i class="bi bi-clock me-1"></i> Created:
+                    <span id="createdAt"></span>
+                  </div>
+                  <div id="expiryInfo">
+                    <i class="bi bi-hourglass me-1"></i> Expires in:
+                    <span id="expiresIn"></span> days
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Voice Selector -->
+            <div id="voiceSelector" class="mb-3">
+              <label for="voiceSelect" class="form-label">
+                <i class="bi bi-mic-fill me-1"></i> Select Voice
+              </label>
+              <select id="voiceSelect" class="form-select border-0 shadow-sm">
+                <option value="">Loading voices...</option>
+              </select>
+            </div>
+
+            <!-- Generate Button -->
+            <button
+              id="generateBtn"
+              class="btn btn-primary w-100 mb-3"
+              disabled
+            >
+              <i class="bi bi-play-circle me-2"></i> Generate Audio
+            </button>
+
+            <!-- Generation Progress -->
+            <div id="generationProgress" class="alert alert-info d-none">
+              <div class="d-flex align-items-center">
+                <div
+                  class="spinner-border spinner-border-sm me-2"
+                  role="status"
+                >
+                  <span class="visually-hidden">Generating...</span>
+                </div>
+                <div>
+                  <strong>Generating audio...</strong>
+                  <p class="mb-0 small" id="progressMessage">
+                    This may take a moment
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quota Card -->
+        <div class="card shadow-sm border-0 mb-3">
+          <div class="card-header bg-transparent border-0">
+            <h6 class="mb-0">
+              <i class="bi bi-speedometer2 me-2"></i> Audio Quota
+            </h6>
+          </div>
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="text-white-50">Used:</span>
+              <strong
+                ><span id="quotaUsed">-</span> /
+                <span id="quotaMax">-</span></strong
+              >
+            </div>
+            <div class="progress mb-2" style="height: 10px">
+              <div
+                id="quotaProgress"
+                class="progress-bar"
+                role="progressbar"
+                style="width: 0%"
+                aria-valuenow="0"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              ></div>
+            </div>
+            <small class="text-white-50">
+              <span id="quotaAvailable">-</span> audio(s) remaining
+            </small>
+          </div>
+        </div>
+
+        <!-- Available Audios List -->
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-transparent border-0">
+            <h6 class="mb-0">
+              <i class="bi bi-collection me-2"></i> Available Audios (<span
+                id="audioCount"
+                >0</span
+              >)
+            </h6>
+          </div>
+          <div class="card-body" id="audiosList">
+            <div class="text-center text-white-50 py-2">
+              <div class="spinner-border spinner-border-sm" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Toast Container -->
-<div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3"></div>
+<div
+  id="toastContainer"
+  class="toast-container position-fixed top-0 end-0 p-3"
+></div>
 
 <!-- Floating Audio Player (Mobile Only) -->
 <div id="floatingAudioPlayer" class="floating-audio-player">
-    <div class="player-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <i class="bi bi-volume-up me-1"></i> <span id="floatingVoiceLabel">Audio Player</span>
-            </div>
-            <button class="float-minimize-btn" id="floatingMinimizeBtn" title="Minimize player">
-                <i class="bi bi-dash-lg"></i>
-            </button>
-        </div>
+  <div class="player-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <i class="bi bi-volume-up me-1"></i>
+        <span id="floatingVoiceLabel">Audio Player</span>
+      </div>
+      <button
+        class="float-minimize-btn"
+        id="floatingMinimizeBtn"
+        title="Minimize player"
+      >
+        <i class="bi bi-dash-lg"></i>
+      </button>
     </div>
-    
-    <!-- Expanded content -->
-    <div id="floatingPlayerContent" class="floating-player-content">
-        <audio id="floatingAudioElement" class="w-100">
-            Your browser does not support the audio element.
-        </audio>
-        <div class="player-controls">
-            <button class="btn btn-sm btn-outline-warning" id="floatingRewindBtn" title="Rewind 30 seconds">
-                <i class="bi bi-rewind"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-warning flex-grow-1" id="floatingPlayPauseBtn" title="Play/Pause">
-                <i class="bi bi-play-fill"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-warning" id="floatingForwardBtn" title="Forward 30 seconds">
-                <i class="bi bi-fast-forward"></i>
-            </button>
-        </div>
+  </div>
+
+  <!-- Expanded content -->
+  <div id="floatingPlayerContent" class="floating-player-content">
+    <audio id="floatingAudioElement" class="w-100">
+      Your browser does not support the audio element.
+    </audio>
+    <div class="player-controls">
+      <button
+        class="btn btn-sm btn-outline-warning"
+        id="floatingRewindBtn"
+        title="Rewind 30 seconds"
+      >
+        <i class="bi bi-rewind"></i>
+      </button>
+      <button
+        class="btn btn-sm btn-outline-warning flex-grow-1"
+        id="floatingPlayPauseBtn"
+        title="Play/Pause"
+      >
+        <i class="bi bi-play-fill"></i>
+      </button>
+      <button
+        class="btn btn-sm btn-outline-warning"
+        id="floatingForwardBtn"
+        title="Forward 30 seconds"
+      >
+        <i class="bi bi-fast-forward"></i>
+      </button>
     </div>
+  </div>
 </div>
 
 <style>
-    .markdown-content {
-        line-height: 1.8;
-        font-size: 1.05rem;
-    }
+  .markdown-content {
+    line-height: 1.8;
+    font-size: 1.05rem;
+  }
 
-    .markdown-content h1, .markdown-content h2, .markdown-content h3 {
-        margin-top: 1.5rem;
-        margin-bottom: 1rem;
-    }
+  .markdown-content h1,
+  .markdown-content h2,
+  .markdown-content h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+  }
 
-    .markdown-content p {
-        margin-bottom: 1rem;
-    }
+  .markdown-content p {
+    margin-bottom: 1rem;
+  }
 
-    .markdown-content code {
-        background-color: #2d3238;
-        padding: 0.2rem 0.4rem;
-        border-radius: 3px;
-    }
+  .markdown-content code {
+    background-color: #2d3238;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+  }
 
-    .markdown-content pre {
-        background-color: #2d3238;
-        padding: 1rem;
-        border-radius: 5px;
-        overflow-x: auto;
-    }
+  .markdown-content pre {
+    background-color: #2d3238;
+    padding: 1rem;
+    border-radius: 5px;
+    overflow-x: auto;
+  }
 
-    .audio-item {
-        border-bottom: 1px solid #495057;
-        padding: 0.75rem 0;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
+  .audio-item {
+    border-bottom: 1px solid #495057;
+    padding: 0.75rem 0;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
 
-    .audio-item:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-    }
+  .audio-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
 
-    .audio-item:last-child {
-        border-bottom: none;
-    }
+  .audio-item:last-child {
+    border-bottom: none;
+  }
 
-    .audio-item.active {
-        background-color: rgba(13, 110, 253, 0.1);
-    }
+  .audio-item.active {
+    background-color: rgba(13, 110, 253, 0.1);
+  }
 
-    /* Edit Modal Styles */
+  /* Edit Modal Styles */
+  .edit-modal-dialog {
+    width: 100%;
+    margin: 0;
+  }
+
+  @media (min-width: 992px) {
     .edit-modal-dialog {
-        width: 100%;
-        margin: 0;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0;
     }
 
-    @media (min-width: 992px) {
-        .edit-modal-dialog {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0;
-        }
-        
-        .modal-fullscreen-lg-down .modal-dialog {
-            max-width: 100% !important;
-        }
+    .modal-fullscreen .modal-dialog {
+      max-width: 100% !important;
+      height: 100vh !important;
     }
+  }
 
-    .edit-modal-body {
-        display: flex;
-        height: 100%;
-        padding: 12px !important;
+  .edit-modal-body {
+    display: flex;
+    height: 100%;
+    padding: 12px !important;
+  }
+
+  .edit-modal-content {
+    display: flex;
+    width: 100%;
+    gap: 12px;
+    height: 100%;
+  }
+
+  .edit-editor-pane {
+    flex: 0 0 45%;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .edit-preview-pane {
+    flex: 0 0 45%;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .edit-editor-pane label,
+  .edit-preview-pane label {
+    margin-bottom: 8px;
+    flex-shrink: 0;
+  }
+
+  .edit-editor-pane textarea,
+  .edit-preview-pane #previewContent {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .edit-editor-pane .text-white-50 {
+    margin-top: 8px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 991px) {
+    .position-sticky {
+      position: static !important;
     }
+  }
 
-    .edit-modal-content {
-        display: flex;
-        width: 100%;
-        gap: 12px;
-        height: 100%;
+  /* Floating Audio Player for Mobile */
+  .floating-audio-player {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 320px;
+    max-width: calc(100vw - 40px);
+    background-color: #242930;
+    border: 1px solid #495057;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    z-index: 1030;
+    padding: 16px;
+    animation: slideInUp 0.3s ease-out;
+  }
+
+  .floating-audio-player.active {
+    display: block;
+  }
+
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
     }
-
-    .edit-editor-pane {
-        flex: 0 0 45%;
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
+  }
 
-    .edit-preview-pane {
-        flex: 0 0 45%;
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
-    }
+  .floating-audio-player .float-minimize-btn {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+    margin-left: auto;
+  }
 
-    .edit-editor-pane label,
-    .edit-preview-pane label {
-        margin-bottom: 8px;
-        flex-shrink: 0;
-    }
+  .floating-audio-player .float-minimize-btn:hover {
+    color: #fff;
+  }
 
-    .edit-editor-pane textarea,
-    .edit-preview-pane #previewContent {
-        flex: 1;
-        min-height: 0;
-        overflow-y: auto;
-    }
+  .floating-audio-player .player-header {
+    font-size: 0.9rem;
+    color: #adb5bd;
+    margin-bottom: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-    .edit-editor-pane .text-white-50 {
-        margin-top: 8px;
-        flex-shrink: 0;
-    }
+  .floating-audio-player .player-header .d-flex {
+    gap: 8px;
+  }
 
-    @media (max-width: 991px) {
-        .position-sticky {
-            position: static !important;
-        }
-    }
+  /* Minimized state */
+  .floating-audio-player.minimized {
+    width: auto;
+    min-width: 140px;
+    padding: 10px;
+  }
 
-    /* Floating Audio Player for Mobile */
+  .floating-audio-player.minimized .floating-player-content {
+    display: none;
+  }
+
+  .floating-audio-player.minimized .player-header {
+    margin-bottom: 0;
+  }
+
+  .floating-audio-player.minimized .float-minimize-btn i::before {
+    content: "\F567"; /* bi-plus-lg */
+  }
+
+  .floating-audio-player audio {
+    width: 100%;
+    margin-bottom: 12px;
+    height: 32px;
+  }
+
+  .floating-audio-player .player-controls {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .floating-audio-player .player-controls button {
+    flex: 1;
+    min-width: 45px;
+    padding: 8px 6px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .floating-audio-player .player-controls button i {
+    font-size: 0.9rem;
+  }
+
+  /* Hide floating player on desktop */
+  @media (min-width: 992px) {
     .floating-audio-player {
-        display: none;
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        width: 320px;
-        max-width: calc(100vw - 40px);
-        background-color: #242930;
-        border: 1px solid #495057;
-        border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        z-index: 1030;
-        padding: 16px;
-        animation: slideInUp 0.3s ease-out;
+      display: none !important;
+    }
+  }
+
+  /* Adjust main content on mobile when floating player is visible and expanded */
+  @media (max-width: 991px) {
+    body.has-floating-player-expanded {
+      padding-bottom: 0px;
+    }
+  }
+
+  /* Minimized player takes less space */
+  @media (max-width: 991px) {
+    body.has-floating-player-minimized {
+      padding-bottom: 0;
+    }
+  }
+
+  /* Edit Modal Responsive Styling */
+  #editModal .modal-body {
+    padding: 12px;
+  }
+
+  /* On all screens: Keep side-by-side layout with 45% split */
+  @media (max-width: 768px) {
+    #editModal .modal-content {
+      height: 100vh;
     }
 
-    .floating-audio-player.active {
-        display: block;
+    #editModal .modal-body > div {
+      flex-direction: row;
+      gap: 12px;
     }
 
-    @keyframes slideInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    #editModal .modal-body > div > div {
+      flex: 0 0 calc(50% - 6px) !important;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
     }
 
-    .floating-audio-player .float-minimize-btn {
-        background: none;
-        border: none;
-        color: #999;
-        cursor: pointer;
-        font-size: 1rem;
-        padding: 4px 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: color 0.2s;
-        margin-left: auto;
+    #editModal textarea {
+      min-height: 0;
+      flex: 1;
     }
 
-    .floating-audio-player .float-minimize-btn:hover {
-        color: #fff;
+    #editModal #previewContent {
+      min-height: 0;
+      flex: 1;
+      overflow-y: auto;
     }
 
-    .floating-audio-player .player-header {
-        font-size: 0.9rem;
-        color: #adb5bd;
-        margin-bottom: 12px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+    /* Reduce font sizes on mobile */
+    #editModal textarea {
+      font-size: 0.85rem;
     }
 
-    .floating-audio-player .player-header .d-flex {
-        gap: 8px;
+    #editModal .form-label {
+      font-size: 0.85rem;
+      margin-bottom: 8px;
     }
 
-    /* Minimized state */
-    .floating-audio-player.minimized {
-        width: auto;
-        min-width: 140px;
-        padding: 10px;
-    }
-
-    .floating-audio-player.minimized .floating-player-content {
-        display: none;
-    }
-
-    .floating-audio-player.minimized .player-header {
-        margin-bottom: 0;
-    }
-
-    .floating-audio-player.minimized .float-minimize-btn i::before {
-        content: "\F567"; /* bi-plus-lg */
-    }
-
-    .floating-audio-player audio {
-        width: 100%;
-        margin-bottom: 12px;
-        height: 32px;
-    }
-
-    .floating-audio-player .player-controls {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-    }
-
-    .floating-audio-player .player-controls button {
-        flex: 1;
-        min-width: 45px;
-        padding: 8px 6px;
-        font-size: 0.8rem;
-        white-space: nowrap;
-    }
-
-    .floating-audio-player .player-controls button i {
-        font-size: 0.9rem;
-    }
-
-    /* Hide floating player on desktop */
-    @media (min-width: 992px) {
-        .floating-audio-player {
-            display: none !important;
-        }
-    }
-
-    /* Adjust main content on mobile when floating player is visible and expanded */
-    @media (max-width: 991px) {
-        body.has-floating-player-expanded {
-            padding-bottom: 0px;
-        }
-    }
-
-    /* Minimized player takes less space */
-    @media (max-width: 991px) {
-        body.has-floating-player-minimized {
-            padding-bottom: 0;
-        }
-    }
-
-    /* Edit Modal Responsive Styling */
     #editModal .modal-body {
-        padding: 12px;
+      padding: 8px;
     }
-
-    /* On all screens: Keep side-by-side layout with 45% split */
-    @media (max-width: 768px) {
-        #editModal .modal-content {
-            height: 100vh;
-        }
-
-        #editModal .modal-body > div {
-            flex-direction: row;
-            gap: 12px;
-        }
-
-        #editModal .modal-body > div > div {
-            flex: 0 0 calc(50% - 6px) !important;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
-        }
-
-        #editModal textarea {
-            min-height: 0;
-            flex: 1;
-        }
-
-        #editModal #previewContent {
-            min-height: 0;
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        /* Reduce font sizes on mobile */
-        #editModal textarea {
-            font-size: 0.85rem;
-        }
-
-        #editModal .form-label {
-            font-size: 0.85rem;
-            margin-bottom: 8px;
-        }
-
-        #editModal .modal-body {
-            padding: 8px;
-        }
-    }
+  }
 </style>
 
 <script>
-    const pageId = {{ page.id }};
-    const documentId = {{ page.document.id }};
-    let currentAudioId = null;
-    let availableAudios = [];
-    let isOwner = false;
+  const pageId = {{ page.id }};
+  const documentId = {{ page.document.id }};
+  let currentAudioId = null;
+  let availableAudios = [];
+  let isOwner = false;
 
-    // Variables for audio player syncing
-    let mainAudioSyncing = false;
-    let floatingAudioSyncing = false;
+  // Variables for audio player syncing
+  let mainAudioSyncing = false;
+  let floatingAudioSyncing = false;
 
-    // Initialize on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        loadPageAudios();
-    });
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', function() {
+      loadPageAudios();
+  });
 
-    // Load all audios for this page
-    async function loadPageAudios() {
-            try {
-                const response = await fetch(`/speech/page/${pageId}/audios/`);
-                const data = await response.json();
+  // Load all audios for this page
+  async function loadPageAudios() {
+          try {
+              const response = await fetch(`/speech/page/${pageId}/audios/`);
+              const data = await response.json();
 
-                if (data.success) {
-                    availableAudios = data.audios;
-                    isOwner = data.is_owner;
+              if (data.success) {
+                  availableAudios = data.audios;
+                  isOwner = data.is_owner;
 
-                    // Update quota display
-                    updateQuotaDisplay(data.quota);
+                  // Update quota display
+                  updateQuotaDisplay(data.quota);
 
-                    // Update voice selector with available voices
-                    updateVoiceSelector(data.voices.available, data.quota.available, data.preferred_voice);
+                  // Update voice selector with available voices
+                  updateVoiceSelector(data.voices.available, data.quota.available, data.preferred_voice);
 
-                    // Update audios list
-                    updateAudiosList(data.audios);
+                  // Update audios list
+                  updateAudiosList(data.audios);
 
-                    // If there are audios, load the first one
-                    if (data.audios.length > 0) {
-                        loadAudio(data.audios[0]);
-                    }
-                } else {
-                    showToast('error', data.error || 'Failed to load audios');
-                }
-            } catch (error) {
-                showToast('error', 'Failed to load audios');
-            }
-        }
+                  // If there are audios, load the first one
+                  if (data.audios.length > 0) {
+                      loadAudio(data.audios[0]);
+                  }
+              } else {
+                  showToast('error', data.error || 'Failed to load audios');
+              }
+          } catch (error) {
+              showToast('error', 'Failed to load audios');
+          }
+      }
 
-    // Update quota display
-    function updateQuotaDisplay(quota) {
-        document.getElementById('quotaUsed').textContent = quota.used;
-        document.getElementById('quotaMax').textContent = quota.max;
-        document.getElementById('quotaAvailable').textContent = quota.available;
-        
-        const percentage = (quota.used / quota.max) * 100;
-        const progressBar = document.getElementById('quotaProgress');
-        progressBar.style.width = percentage + '%';
-        progressBar.setAttribute('aria-valuenow', percentage);
-        
-        // Color code based on usage
-        progressBar.className = 'progress-bar';
-        if (percentage >= 100) {
-            progressBar.classList.add('bg-danger');
-        } else if (percentage >= 75) {
-            progressBar.classList.add('bg-warning');
-        } else {
-            progressBar.classList.add('bg-success');
-        }
-    }
+  // Update quota display
+  function updateQuotaDisplay(quota) {
+      document.getElementById('quotaUsed').textContent = quota.used;
+      document.getElementById('quotaMax').textContent = quota.max;
+      document.getElementById('quotaAvailable').textContent = quota.available;
 
-    // Update voice selector
-    function updateVoiceSelector(availableVoices, quotaAvailable, preferredVoice = '') {
-        const select = document.getElementById('voiceSelect');
-        const generateBtn = document.getElementById('generateBtn');
-        
-        select.innerHTML = '';
-        
-        if (quotaAvailable === 0) {
-            select.innerHTML = '<option value="">Quota limit reached</option>';
-            generateBtn.disabled = true;
-            return;
-        }
-        
-        if (availableVoices.length === 0) {
-            select.innerHTML = '<option value="">All voices used</option>';
-            generateBtn.disabled = true;
-            return;
-        }
-        
-        select.innerHTML = '<option value="">-- Select a voice --</option>';
-        availableVoices.forEach(voice => {
-            const option = document.createElement('option');
-            option.value = voice;
-            option.textContent = voice;
-            if (voice == preferredVoice) {
-                option.selected = true;  // Preselect if available and not used
-            }
-            select.appendChild(option);
-        });
-        
-        // generateBtn.disabled = false;
-        generateBtn.disabled = !select.value;
-        
-        // Enable generate button when voice selected
-        select.addEventListener('change', async function() {
-            generateBtn.disabled = !this.value;
+      const percentage = (quota.used / quota.max) * 100;
+      const progressBar = document.getElementById('quotaProgress');
+      progressBar.style.width = percentage + '%';
+      progressBar.setAttribute('aria-valuenow', percentage);
 
-            // Save preference if changed
-            if (this.value) {
-                try {
-                    await fetch('/users/update-voice-preference/', {
-                        method: 'POST',
-                        headers: {
-                            'Context-Type': 'application/json',
-                            'X-CSRFToken': getCookie('csrftoken')
-                        },
-                        body: JSON.stringify({voice_id: this.value})
-                    });
-                } catch (error) {
-                    console.error('Failed to save preference:', error);
-                }
-            }
-        });
-    }
+      // Color code based on usage
+      progressBar.className = 'progress-bar';
+      if (percentage >= 100) {
+          progressBar.classList.add('bg-danger');
+      } else if (percentage >= 75) {
+          progressBar.classList.add('bg-warning');
+      } else {
+          progressBar.classList.add('bg-success');
+      }
+  }
 
-    // Update audios list
-    function updateAudiosList(audios) {
-        const container = document.getElementById('audiosList');
-        const countEl = document.getElementById('audioCount');
-        
-        countEl.textContent = audios.length;
-        
-        if (audios.length === 0) {
-            container.innerHTML = '<p class="text-white-50 small mb-0">No audios generated yet</p>';
-            return;
-        }
-        
-        container.innerHTML = audios.map(audio => `
-            <div class="audio-item" data-audio-id="${audio.id}" onclick="loadAudioById(${audio.id})">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong><i class="bi bi-mic"></i> ${audio.voice}</strong>
-                        ${audio.status === 'GENERATING' ? '<span class="badge bg-warning ms-2">Generating...</span>' : ''}
-                        ${audio.status === 'FAILED' ? '<span class="badge bg-danger ms-2">Failed</span>' : ''}
-                        ${audio.status === 'COMPLETED' ? '<i class="bi bi-check-circle-fill text-success ms-2"></i>' : ''}
-                    </div>
-                    ${audio.status === 'COMPLETED' ? '<i class="bi bi-play-circle"></i>' : ''}
-                </div>
-                <small class="text-white-50 d-block mt-1">
-                    ${audio.generated_by}
-                </small>
-            </div>
-        `).join('');
-    }
+  // Update voice selector
+  function updateVoiceSelector(availableVoices, quotaAvailable, preferredVoice = '') {
+      const select = document.getElementById('voiceSelect');
+      const generateBtn = document.getElementById('generateBtn');
 
-    // Load audio by ID
-    function loadAudioById(audioId) {
-        const audio = availableAudios.find(a => a.id === audioId);
-        if (audio) {
-            loadAudio(audio);
-        }
-    }
+      select.innerHTML = '';
 
-    // Load audio into player
-    async function loadAudio(audio) {
-        if (audio.status !== 'COMPLETED') {
-            return;
-        }
-        
-        currentAudioId = audio.id;
-        
-        // Show player, hide "no audio" message
-        document.getElementById('noAudioMessage').classList.add('d-none');
-        document.getElementById('audioPlayer').classList.remove('d-none');
-        
-        // Get fresh URL and set src immediately
-        const freshUrl = await getFreshAudioUrl(audio.id);
-        if (freshUrl) {
-            document.getElementById('audioElement').src = freshUrl;
-            document.getElementById('floatingAudioElement').src = freshUrl; // Also for floating player
-        } else {
-            showToast('error', 'Failed to load audio for playback.');
-            // Hide player, show no audio message
-            document.getElementById('noAudioMessage').classList.remove('d-none');
-            document.getElementById('audioPlayer').classList.add('d-none');
-            return;
-        }
-        
-        // Show floating player on mobile
-        if (window.innerWidth < 992) {
-            toggleFloatingPlayer(true);
-        }
-        
-        // Update metadata
-        document.getElementById('currentVoice').textContent = audio.voice;
-        document.getElementById('generatedBy').textContent = audio.generated_by;
-        document.getElementById('createdAt').textContent = new Date(audio.created_at).toLocaleDateString();
-        
-        // Update expiry info
-        if (audio.days_until_expiry !== null) {
-            document.getElementById('expiryInfo').classList.remove('d-none');
-            document.getElementById('expiresIn').textContent = audio.days_until_expiry;
-        } else {
-            document.getElementById('expiryInfo').classList.add('d-none');
-        }
-        
-        // Show/hide delete button based on ownership
-        document.getElementById('deleteBtn').style.display = isOwner ? 'block' : 'none';
-        
-        // Highlight active audio in list
-        document.querySelectorAll('.audio-item').forEach(item => {
-            item.classList.remove('active');
-            if (parseInt(item.dataset.audioId) === currentAudioId) {
-                item.classList.add('active');
-            }
-        });
-        
-        // Track play - but don't do it here, wait for actual play
-    }
+      if (quotaAvailable === 0) {
+          select.innerHTML = '<option value="">Quota limit reached</option>';
+          generateBtn.disabled = true;
+          return;
+      }
 
-    // Generate audio
-    document.getElementById('generateBtn').addEventListener('click', async function() {
-        const voice = document.getElementById('voiceSelect').value;
-        
-        if (!voice) {
-            showToast('error', 'Please select a voice');
-            return;
-        }
-        
-        // Show progress
-        document.getElementById('generationProgress').classList.remove('d-none');
-        this.disabled = true;
-        
-        try {
-            const response = await fetch(`/speech/generate/${pageId}/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({ voice_id: voice })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                showToast('success', data.message);
-                // Poll for status
-                pollAudioStatus(data.audio_id);
-            } else {
-                showToast('error', data.error);
-                document.getElementById('generationProgress').classList.add('d-none');
-                this.disabled = false;
-            }
-        } catch (error) {
-            console.error('Error generating audio:', error);
-            showToast('error', 'Failed to generate audio');
-            document.getElementById('generationProgress').classList.add('d-none');
-            this.disabled = false;
-        }
-    });
+      if (availableVoices.length === 0) {
+          select.innerHTML = '<option value="">All voices used</option>';
+          generateBtn.disabled = true;
+          return;
+      }
 
-    // Poll audio generation status
-    async function pollAudioStatus(audioId) {
-        const maxAttempts = 60;  // 2 minutes max
-        let attempts = 0;
-        
-        const interval = setInterval(async () => {
-            attempts++;
-            
-            if (attempts > maxAttempts) {
-                clearInterval(interval);
-                document.getElementById('generationProgress').classList.add('d-none');
-                document.getElementById('generateBtn').disabled = false;
-                showToast('error', 'Generation timeout. Please refresh the page.');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/speech/audio/${audioId}/status/`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    if (data.status === 'COMPLETED') {
-                        clearInterval(interval);
-                        document.getElementById('generationProgress').classList.add('d-none');
-                        showToast('success', 'Audio generated successfully!');
-                        // Reload audios
-                        loadPageAudios();
-                    } else if (data.status === 'FAILED') {
-                        clearInterval(interval);
-                        document.getElementById('generationProgress').classList.add('d-none');
-                        document.getElementById('generateBtn').disabled = false;
-                        showToast('error', 'Audio generation failed: ' + (data.error_message || 'Unknown error'));
-                    }
-                }
-            } catch (error) {
-                console.error('Error checking status:', error);
-            }
-        }, 2000);  // Poll every 2 seconds
-    }
+      select.innerHTML = '<option value="">-- Select a voice --</option>';
+      availableVoices.forEach(voice => {
+          const option = document.createElement('option');
+          option.value = voice;
+          option.textContent = voice;
+          if (voice == preferredVoice) {
+              option.selected = true;  // Preselect if available and not used
+          }
+          select.appendChild(option);
+      });
 
-    // Download audio
-    document.getElementById('downloadBtn').addEventListener('click', async function() {
-        if (!currentAudioId) return;
-        
-        try {
-            const response = await fetch(`/speech/audio/${currentAudioId}/download/`);
-            const data = await response.json();
-            
-            if (data.success) {
-                // Open download URL in new tab
-                window.open(data.download_url, '_blank');
-                showToast('success', 'Download started');
-            } else {
-                showToast('error', data.error);
-            }
-        } catch (error) {
-            console.error('Error downloading audio:', error);
-            showToast('error', 'Failed to download audio');
-        }
-    });
+      // generateBtn.disabled = false;
+      generateBtn.disabled = !select.value;
 
-    // Delete audio
-    document.getElementById('deleteBtn').addEventListener('click', async function() {
-        if (!currentAudioId) return;
-        
-        if (!confirm('Are you sure you want to delete this audio? This action cannot be undone.')) {
-            return;
-        }
-        
-        try {
-            const response = await fetch(`/speech/audio/${currentAudioId}/delete/`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                showToast('success', data.message);
-                currentAudioId = null;
-                // Reload audios
-                loadPageAudios();
-                // Hide player
-                document.getElementById('noAudioMessage').classList.remove('d-none');
-                document.getElementById('audioPlayer').classList.add('d-none');
-            } else {
-                showToast('error', data.error);
-            }
-        } catch (error) {
-            console.error('Error deleting audio:', error);
-            showToast('error', 'Failed to delete audio');
-        }
-    });
+      // Enable generate button when voice selected
+      select.addEventListener('change', async function() {
+          generateBtn.disabled = !this.value;
 
-    // Get fresh audio URL for playback
-    async function getFreshAudioUrl(audioId) {
-        try {
-            const response = await fetch(`/speech/audio/${audioId}/download/`);
-            const data = await response.json();
-            
-            if (data.success) {
-                return data.download_url;
-            } else {
-                showToast('error', 'Failed to get audio URL: ' + (data.error || 'Unknown error'));
-                return null;
-            }
-        } catch (error) {
-            console.error('Error getting fresh audio URL:', error);
-            showToast('error', 'Failed to load audio');
-            return null;
-        }
-    }
+          // Save preference if changed
+          if (this.value) {
+              try {
+                  await fetch('/users/update-voice-preference/', {
+                      method: 'POST',
+                      headers: {
+                          'Context-Type': 'application/json',
+                          'X-CSRFToken': getCookie('csrftoken')
+                      },
+                      body: JSON.stringify({voice_id: this.value})
+                  });
+              } catch (error) {
+                  console.error('Failed to save preference:', error);
+              }
+          }
+      });
+  }
 
-    // Utility: Get CSRF token
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
+  // Update audios list
+  function updateAudiosList(audios) {
+      const container = document.getElementById('audiosList');
+      const countEl = document.getElementById('audioCount');
 
-    // Utility: Show toast notification
-    function showToast(type, message) {
-        const toastContainer = document.getElementById('toastContainer');
-        const toast = document.createElement('div');
-        toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0`;
-        toast.setAttribute('role', 'alert');
-        toast.innerHTML = `
-            <div class="d-flex">
-                <div class="toast-body">${message}</div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
-        `;
-        toastContainer.appendChild(toast);
-        const bsToast = new bootstrap.Toast(toast);
-        bsToast.show();
-        setTimeout(() => toast.remove(), 5000);
-    }
+      countEl.textContent = audios.length;
 
-    // ========== EDIT FUNCTIONALITY ==========
-    
-    // Get reference to edit button (if it exists)
-    const editBtn = document.getElementById('editBtn');
-    const editModal = document.getElementById('editModal');
-    const contentInput = document.getElementById('contentInput');
-    const previewContent = document.getElementById('previewContent');
-    const saveBtn = document.getElementById('saveBtn');
+      if (audios.length === 0) {
+          container.innerHTML = '<p class="text-white-50 small mb-0">No audios generated yet</p>';
+          return;
+      }
 
-    if (editBtn && editModal && contentInput && saveBtn) {
-        let hasChanges = false;
-        let originalContent = contentInput.value;
+      container.innerHTML = audios.map(audio => `
+          <div class="audio-item" data-audio-id="${audio.id}" onclick="loadAudioById(${audio.id})">
+              <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                      <strong><i class="bi bi-mic"></i> ${audio.voice}</strong>
+                      ${audio.status === 'GENERATING' ? '<span class="badge bg-warning ms-2">Generating...</span>' : ''}
+                      ${audio.status === 'FAILED' ? '<span class="badge bg-danger ms-2">Failed</span>' : ''}
+                      ${audio.status === 'COMPLETED' ? '<i class="bi bi-check-circle-fill text-success ms-2"></i>' : ''}
+                  </div>
+                  ${audio.status === 'COMPLETED' ? '<i class="bi bi-play-circle"></i>' : ''}
+              </div>
+              <small class="text-white-50 d-block mt-1">
+                  ${audio.generated_by}
+              </small>
+          </div>
+      `).join('');
+  }
 
-        // Open edit modal
-        editBtn.addEventListener('click', function() {
-            hasChanges = false;
-            originalContent = contentInput.value;
-            
-            // Show initial preview when opening modal
-            updatePreview(contentInput.value);
-            
-            const modal = new bootstrap.Modal(editModal);
-            modal.show();
-        });
+  // Load audio by ID
+  function loadAudioById(audioId) {
+      const audio = availableAudios.find(a => a.id === audioId);
+      if (audio) {
+          loadAudio(audio);
+      }
+  }
 
-        // Update preview as user types with debouncing
-        let previewTimeout;
-        contentInput.addEventListener('input', function() {
-            hasChanges = (this.value !== originalContent);
-            
-            // Debounce preview updates to avoid excessive API calls
-            clearTimeout(previewTimeout);
-            previewTimeout = setTimeout(() => {
-                updatePreview(this.value);
-            }, 300);
-        });
+  // Load audio into player
+  async function loadAudio(audio) {
+      if (audio.status !== 'COMPLETED') {
+          return;
+      }
 
-        // Warn before closing if there are unsaved changes
-        editModal.addEventListener('hide.bs.modal', function(e) {
-            if (hasChanges) {
-                const confirmClose = confirm('You have unsaved changes. Are you sure you want to close without saving?');
-                if (!confirmClose) {
-                    e.preventDefault();
-                    return false;
-                }
-                hasChanges = false;
-            }
-        });
+      currentAudioId = audio.id;
 
-        // Save changes
-        saveBtn.addEventListener('click', async function() {
-            const content = contentInput.value.trim();
-            
-            if (!content) {
-                showToast('error', 'Content cannot be empty');
-                return;
-            }
+      // Show player, hide "no audio" message
+      document.getElementById('noAudioMessage').classList.add('d-none');
+      document.getElementById('audioPlayer').classList.remove('d-none');
 
-            saveBtn.disabled = true;
-            const originalHtml = saveBtn.innerHTML;
-            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+      // Get fresh URL and set src immediately
+      const freshUrl = await getFreshAudioUrl(audio.id);
+      if (freshUrl) {
+          document.getElementById('audioElement').src = freshUrl;
+          document.getElementById('floatingAudioElement').src = freshUrl; // Also for floating player
+      } else {
+          showToast('error', 'Failed to load audio for playback.');
+          // Hide player, show no audio message
+          document.getElementById('noAudioMessage').classList.remove('d-none');
+          document.getElementById('audioPlayer').classList.add('d-none');
+          return;
+      }
 
-            try {
-                const response = await fetch(`/documents/pages/${pageId}/edit/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    body: JSON.stringify({ markdown_content: content })
-                });
+      // Show floating player on mobile
+      if (window.innerWidth < 992) {
+          toggleFloatingPlayer(true);
+      }
 
-                const data = await response.json();
+      // Update metadata
+      document.getElementById('currentVoice').textContent = audio.voice;
+      document.getElementById('generatedBy').textContent = audio.generated_by;
+      document.getElementById('createdAt').textContent = new Date(audio.created_at).toLocaleDateString();
 
-                if (data.success) {
-                    showToast('success', 'Page updated successfully!');
-                    hasChanges = false;
-                    originalContent = content;
-                    
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(editModal);
-                    if (modal) {
-                        modal.hide();
-                    }
+      // Update expiry info
+      if (audio.days_until_expiry !== null) {
+          document.getElementById('expiryInfo').classList.remove('d-none');
+          document.getElementById('expiresIn').textContent = audio.days_until_expiry;
+      } else {
+          document.getElementById('expiryInfo').classList.add('d-none');
+      }
 
-                    // Update display content
-                    updateDisplayContent(data.html);
-                } else {
-                    showToast('error', data.error || 'Failed to update page');
-                    saveBtn.disabled = false;
-                    saveBtn.innerHTML = originalHtml;
-                }
-            } catch (error) {
-                console.error('Error saving page:', error);
-                showToast('error', 'Failed to save changes');
-                saveBtn.disabled = false;
-                saveBtn.innerHTML = originalHtml;
-            }
-        });
+      // Show/hide delete button based on ownership
+      document.getElementById('deleteBtn').style.display = isOwner ? 'block' : 'none';
 
-        // Modal shown event - focus on textarea
-        editModal.addEventListener('shown.bs.modal', function() {
-            contentInput.focus();
-        });
-    }
+      // Highlight active audio in list
+      document.querySelectorAll('.audio-item').forEach(item => {
+          item.classList.remove('active');
+          if (parseInt(item.dataset.audioId) === currentAudioId) {
+              item.classList.add('active');
+          }
+      });
 
-    // Function to render markdown preview
-    function updatePreview(markdown) {
-        // For now, use a simple approach: send to server for rendering
-        // In production, you might use a markdown library like marked.js
-        fetch('/documents/pages/render-markdown/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ markdown: markdown })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                previewContent.innerHTML = data.html;
-            }
-        })
-        .catch(error => console.error('Error rendering preview:', error));
-    }
+      // Track play - but don't do it here, wait for actual play
+  }
 
-    // Function to update the display content
-    function updateDisplayContent(html) {
-        const contentDisplay = document.getElementById('contentDisplay');
-        contentDisplay.innerHTML = html;
-    }
+  // Generate audio
+  document.getElementById('generateBtn').addEventListener('click', async function() {
+      const voice = document.getElementById('voiceSelect').value;
 
-    // ========== AUDIO PLAYBACK HANDLERS ==========
-    
-    // Main audio element play handler
-    const mainAudioElement = document.getElementById('audioElement');
-    if (mainAudioElement) {
-        mainAudioElement.addEventListener('play', async function() {
-            // Track play
-            trackPlay(currentAudioId);
-        }, { once: false }); // Allow multiple plays
-    }
+      if (!voice) {
+          showToast('error', 'Please select a voice');
+          return;
+      }
 
-    // Floating audio element play handler
-    const floatingAudioElement = document.getElementById('floatingAudioElement');
-    if (floatingAudioElement) {
-        floatingAudioElement.addEventListener('play', async function() {
-            // Track play
-            trackPlay(currentAudioId);
-        }, { once: false }); // Allow multiple plays
-    }
-    
-    // Rewind button handlers (main player)
-    const rewindBtn = document.getElementById('rewindBtn');
-    if (rewindBtn) {
-        rewindBtn.addEventListener('click', function() {
-            const audio = document.getElementById('audioElement');
-            if (audio && audio.src) {
-                audio.currentTime = Math.max(0, audio.currentTime - 30);
-            }
-        });
-    }
+      // Show progress
+      document.getElementById('generationProgress').classList.remove('d-none');
+      this.disabled = true;
 
-    // Forward button handlers (main player)
-    const forwardBtn = document.getElementById('forwardBtn');
-    if (forwardBtn) {
-        forwardBtn.addEventListener('click', function() {
-            const audio = document.getElementById('audioElement');
-            if (audio && audio.src) {
-                audio.currentTime = Math.min(audio.duration, audio.currentTime + 30);
-            }
-        });
-    }
+      try {
+          const response = await fetch(`/speech/generate/${pageId}/`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': getCookie('csrftoken')
+              },
+              body: JSON.stringify({ voice_id: voice })
+          });
 
-    // ========== FLOATING AUDIO PLAYER FUNCTIONALITY ==========
-    
-    // Sync floating player with main player (only when main has src)
-    const mainAudio = document.getElementById('audioElement');
-    const floatingAudio = document.getElementById('floatingAudioElement');
-    
-    if (mainAudio && floatingAudio) {
-        // Main player play event
-        mainAudio.addEventListener('play', function() {
-            if (floatingAudio.src && !mainAudioSyncing) {
-                floatingAudioSyncing = true;
-                floatingAudio.play().catch(e => console.warn('Float play error:', e));
-                floatingAudioSyncing = false;
-            }
-        });
+          const data = await response.json();
 
-        // Main player pause event
-        mainAudio.addEventListener('pause', function() {
-            if (floatingAudio.src && !mainAudioSyncing) {
-                floatingAudioSyncing = true;
-                floatingAudio.pause();
-                floatingAudioSyncing = false;
-            }
-        });
+          if (data.success) {
+              showToast('success', data.message);
+              // Poll for status
+              pollAudioStatus(data.audio_id);
+          } else {
+              showToast('error', data.error);
+              document.getElementById('generationProgress').classList.add('d-none');
+              this.disabled = false;
+          }
+      } catch (error) {
+          console.error('Error generating audio:', error);
+          showToast('error', 'Failed to generate audio');
+          document.getElementById('generationProgress').classList.add('d-none');
+          this.disabled = false;
+      }
+  });
 
-        // Main player time update - sync to floating
-        mainAudio.addEventListener('timeupdate', function() {
-            if (floatingAudio.src && !mainAudioSyncing && Math.abs(floatingAudio.currentTime - this.currentTime) > 0.5) {
-                floatingAudioSyncing = true;
-                floatingAudio.currentTime = this.currentTime;
-                floatingAudioSyncing = false;
-            }
-        });
+  // Poll audio generation status
+  async function pollAudioStatus(audioId) {
+      const maxAttempts = 60;  // 2 minutes max
+      let attempts = 0;
 
-        // Floating player time update - sync to main
-        floatingAudio.addEventListener('timeupdate', function() {
-            if (mainAudio.src && !floatingAudioSyncing && Math.abs(mainAudio.currentTime - this.currentTime) > 0.5) {
-                mainAudioSyncing = true;
-                mainAudio.currentTime = this.currentTime;
-                mainAudioSyncing = false;
-            }
-        });
-    }
+      const interval = setInterval(async () => {
+          attempts++;
 
-    // Floating player rewind button
-    const floatingRewindBtn = document.getElementById('floatingRewindBtn');
-    if (floatingRewindBtn) {
-        floatingRewindBtn.addEventListener('click', function() {
-            if (floatingAudio && floatingAudio.src) {
-                floatingAudio.currentTime = Math.max(0, floatingAudio.currentTime - 30);
-                if (mainAudio && mainAudio.src) {
-                    mainAudio.currentTime = floatingAudio.currentTime;
-                }
-            }
-        });
-    }
+          if (attempts > maxAttempts) {
+              clearInterval(interval);
+              document.getElementById('generationProgress').classList.add('d-none');
+              document.getElementById('generateBtn').disabled = false;
+              showToast('error', 'Generation timeout. Please refresh the page.');
+              return;
+          }
 
-    // Floating player forward button
-    const floatingForwardBtn = document.getElementById('floatingForwardBtn');
-    if (floatingForwardBtn) {
-        floatingForwardBtn.addEventListener('click', function() {
-            if (floatingAudio && floatingAudio.src) {
-                floatingAudio.currentTime = Math.min(floatingAudio.duration, floatingAudio.currentTime + 30);
-                if (mainAudio && mainAudio.src) {
-                    mainAudio.currentTime = floatingAudio.currentTime;
-                }
-            }
-        });
-    }
+          try {
+              const response = await fetch(`/speech/audio/${audioId}/status/`);
+              const data = await response.json();
 
-    // Floating player play/pause button
-    const floatingPlayPauseBtn = document.getElementById('floatingPlayPauseBtn');
-    if (floatingPlayPauseBtn && floatingAudio && mainAudio) {
-        floatingPlayPauseBtn.addEventListener('click', function() {
-            if (floatingAudio && floatingAudio.src) {
-                if (floatingAudio.paused) {
-                    floatingAudio.play().catch(e => console.warn('Float play error:', e));
-                    if (mainAudio.src) {
-                        mainAudio.play().catch(e => console.warn('Main play error:', e));
-                    }
-                } else {
-                    floatingAudio.pause();
-                    if (mainAudio.src) {
-                        mainAudio.pause();
-                    }
-                }
-            }
-        });
-    }
+              if (data.success) {
+                  if (data.status === 'COMPLETED') {
+                      clearInterval(interval);
+                      document.getElementById('generationProgress').classList.add('d-none');
+                      showToast('success', 'Audio generated successfully!');
+                      // Reload audios
+                      loadPageAudios();
+                  } else if (data.status === 'FAILED') {
+                      clearInterval(interval);
+                      document.getElementById('generationProgress').classList.add('d-none');
+                      document.getElementById('generateBtn').disabled = false;
+                      showToast('error', 'Audio generation failed: ' + (data.error_message || 'Unknown error'));
+                  }
+              }
+          } catch (error) {
+              console.error('Error checking status:', error);
+          }
+      }, 2000);  // Poll every 2 seconds
+  }
 
-    // Update play/pause button icon on floating audio
-    if (floatingAudio) {
-        floatingAudio.addEventListener('play', function() {
-            const btn = document.getElementById('floatingPlayPauseBtn');
-            if (btn) btn.innerHTML = '<i class="bi bi-pause-fill"></i>';
-        });
+  // Download audio
+  document.getElementById('downloadBtn').addEventListener('click', async function() {
+      if (!currentAudioId) return;
 
-        floatingAudio.addEventListener('pause', function() {
-            const btn = document.getElementById('floatingPlayPauseBtn');
-            if (btn) btn.innerHTML = '<i class="bi bi-play-fill"></i>';
-        });
-    }
+      try {
+          const response = await fetch(`/speech/audio/${currentAudioId}/download/`);
+          const data = await response.json();
 
-    // Minimize/Maximize floating player
-    const minimizeBtn = document.getElementById('floatingMinimizeBtn');
-    const floatingPlayer = document.getElementById('floatingAudioPlayer');
-    
-    if (minimizeBtn && floatingPlayer) {
-        minimizeBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            floatingPlayer.classList.toggle('minimized');
-            
-            // Toggle icon between minus and plus
-            const icon = minimizeBtn.querySelector('i');
-            if (floatingPlayer.classList.contains('minimized')) {
-                icon.className = 'bi bi-plus-lg';
-                minimizeBtn.setAttribute('title', 'Maximize player');
-                // Remove expanded padding, add minimized
-                document.body.classList.remove('has-floating-player-expanded');
-                document.body.classList.add('has-floating-player-minimized');
-            } else {
-                icon.className = 'bi bi-dash-lg';
-                minimizeBtn.setAttribute('title', 'Minimize player');
-                // Add expanded padding, remove minimized
-                document.body.classList.remove('has-floating-player-minimized');
-                document.body.classList.add('has-floating-player-expanded');
-            }
-        });
-    }
+          if (data.success) {
+              // Open download URL in new tab
+              window.open(data.download_url, '_blank');
+              showToast('success', 'Download started');
+          } else {
+              showToast('error', data.error);
+          }
+      } catch (error) {
+          console.error('Error downloading audio:', error);
+          showToast('error', 'Failed to download audio');
+      }
+  });
 
-    // Toggle floating player visibility
-    function toggleFloatingPlayer(show) {
-        const floatingPlayer = document.getElementById('floatingAudioPlayer');
-        if (floatingPlayer) {
-            if (show && mainAudio && mainAudio.src) {
-                floatingPlayer.classList.add('active');
-                // Player shows expanded by default
-                if (!floatingPlayer.classList.contains('minimized')) {
-                    document.body.classList.add('has-floating-player-expanded');
-                    document.body.classList.remove('has-floating-player-minimized');
-                }
-            } else {
-                floatingPlayer.classList.remove('active');
-                // Remove all player-related padding when hidden
-                document.body.classList.remove('has-floating-player-expanded');
-                document.body.classList.remove('has-floating-player-minimized');
-            }
-        }
-    }
+  // Delete audio
+  document.getElementById('deleteBtn').addEventListener('click', async function() {
+      if (!currentAudioId) return;
 
-    // Show floating player on audio metadata load on mobile
-    if (mainAudio) {
-        mainAudio.addEventListener('loadedmetadata', function() {
-            if (window.innerWidth < 992 && this.src) {
-                toggleFloatingPlayer(true);
-            }
-        });
-    }
+      if (!confirm('Are you sure you want to delete this audio? This action cannot be undone.')) {
+          return;
+      }
 
-    // Handle window resize to hide floating player on desktop
-    window.addEventListener('resize', function() {
-        if (window.innerWidth >= 992) {
-            const floatingPlayer = document.getElementById('floatingAudioPlayer');
-            if (floatingPlayer) {
-                floatingPlayer.classList.remove('active');
-                document.body.classList.remove('has-floating-player');
-            }
-        }
-    });
+      try {
+          const response = await fetch(`/speech/audio/${currentAudioId}/delete/`, {
+              method: 'DELETE',
+              headers: {
+                  'X-CSRFToken': getCookie('csrftoken')
+              }
+          });
 
+          const data = await response.json();
+
+          if (data.success) {
+              showToast('success', data.message);
+              currentAudioId = null;
+              // Reload audios
+              loadPageAudios();
+              // Hide player
+              document.getElementById('noAudioMessage').classList.remove('d-none');
+              document.getElementById('audioPlayer').classList.add('d-none');
+          } else {
+              showToast('error', data.error);
+          }
+      } catch (error) {
+          console.error('Error deleting audio:', error);
+          showToast('error', 'Failed to delete audio');
+      }
+  });
+
+  // Get fresh audio URL for playback
+  async function getFreshAudioUrl(audioId) {
+      try {
+          const response = await fetch(`/speech/audio/${audioId}/download/`);
+          const data = await response.json();
+
+          if (data.success) {
+              return data.download_url;
+          } else {
+              showToast('error', 'Failed to get audio URL: ' + (data.error || 'Unknown error'));
+              return null;
+          }
+      } catch (error) {
+          console.error('Error getting fresh audio URL:', error);
+          showToast('error', 'Failed to load audio');
+          return null;
+      }
+  }
+
+  // Utility: Get CSRF token
+  function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                  cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                  break;
+              }
+          }
+      }
+      return cookieValue;
+  }
+
+  // Utility: Show toast notification
+  function showToast(type, message) {
+      const toastContainer = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0`;
+      toast.setAttribute('role', 'alert');
+      toast.innerHTML = `
+          <div class="d-flex">
+              <div class="toast-body">${message}</div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+          </div>
+      `;
+      toastContainer.appendChild(toast);
+      const bsToast = new bootstrap.Toast(toast);
+      bsToast.show();
+      setTimeout(() => toast.remove(), 5000);
+  }
+
+  // ========== EDIT FUNCTIONALITY ==========
+
+  // Get reference to edit button (if it exists)
+  const editBtn = document.getElementById('editBtn');
+  const editModal = document.getElementById('editModal');
+  const contentInput = document.getElementById('contentInput');
+  const previewContent = document.getElementById('previewContent');
+  const saveBtn = document.getElementById('saveBtn');
+
+  if (editBtn && editModal && contentInput && saveBtn) {
+      let hasChanges = false;
+      let originalContent = contentInput.value;
+
+      // Open edit modal
+      editBtn.addEventListener('click', function() {
+          hasChanges = false;
+          originalContent = contentInput.value;
+
+          // Show initial preview when opening modal
+          updatePreview(contentInput.value);
+
+          const modal = new bootstrap.Modal(editModal);
+          modal.show();
+      });
+
+      // Update preview as user types with debouncing
+      let previewTimeout;
+      contentInput.addEventListener('input', function() {
+          hasChanges = (this.value !== originalContent);
+
+          // Debounce preview updates to avoid excessive API calls
+          clearTimeout(previewTimeout);
+          previewTimeout = setTimeout(() => {
+              updatePreview(this.value);
+          }, 300);
+      });
+
+      // Warn before closing if there are unsaved changes
+      editModal.addEventListener('hide.bs.modal', function(e) {
+          if (hasChanges) {
+              const confirmClose = confirm('You have unsaved changes. Are you sure you want to close without saving?');
+              if (!confirmClose) {
+                  e.preventDefault();
+                  return false;
+              }
+              hasChanges = false;
+          }
+      });
+
+      // Save changes
+      saveBtn.addEventListener('click', async function() {
+          const content = contentInput.value.trim();
+
+          if (!content) {
+              showToast('error', 'Content cannot be empty');
+              return;
+          }
+
+          saveBtn.disabled = true;
+          const originalHtml = saveBtn.innerHTML;
+          saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+          try {
+              const response = await fetch(`/documents/pages/${pageId}/edit/`, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'X-CSRFToken': getCookie('csrftoken')
+                  },
+                  body: JSON.stringify({ markdown_content: content })
+              });
+
+              const data = await response.json();
+
+              if (data.success) {
+                  showToast('success', 'Page updated successfully!');
+                  hasChanges = false;
+                  originalContent = content;
+
+                  // Close modal
+                  const modal = bootstrap.Modal.getInstance(editModal);
+                  if (modal) {
+                      modal.hide();
+                  }
+
+                  // Update display content
+                  updateDisplayContent(data.html);
+              } else {
+                  showToast('error', data.error || 'Failed to update page');
+                  saveBtn.disabled = false;
+                  saveBtn.innerHTML = originalHtml;
+              }
+          } catch (error) {
+              console.error('Error saving page:', error);
+              showToast('error', 'Failed to save changes');
+              saveBtn.disabled = false;
+              saveBtn.innerHTML = originalHtml;
+          }
+      });
+
+      // Modal shown event - focus on textarea
+      editModal.addEventListener('shown.bs.modal', function() {
+          contentInput.focus();
+      });
+  }
+
+  // Function to render markdown preview
+  function updatePreview(markdown) {
+      // For now, use a simple approach: send to server for rendering
+      // In production, you might use a markdown library like marked.js
+      fetch('/documents/pages/render-markdown/', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ markdown: markdown })
+      })
+      .then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              previewContent.innerHTML = data.html;
+          }
+      })
+      .catch(error => console.error('Error rendering preview:', error));
+  }
+
+  // Function to update the display content
+  function updateDisplayContent(html) {
+      const contentDisplay = document.getElementById('contentDisplay');
+      contentDisplay.innerHTML = html;
+  }
+
+  // ========== AUDIO PLAYBACK HANDLERS ==========
+
+  // Track audio play (stub function for future analytics)
+  async function trackPlay(audioId) {
+      // TODO: Implement play tracking/analytics if needed
+      console.log('Audio play tracked:', audioId);
+  }
+
+  // Main audio element play handler
+  const mainAudioElement = document.getElementById('audioElement');
+  if (mainAudioElement) {
+      mainAudioElement.addEventListener('play', async function() {
+          // Track play
+          trackPlay(currentAudioId);
+      }, { once: false }); // Allow multiple plays
+  }
+
+  // Floating audio element play handler
+  const floatingAudioElement = document.getElementById('floatingAudioElement');
+  if (floatingAudioElement) {
+      floatingAudioElement.addEventListener('play', async function() {
+          // Track play
+          trackPlay(currentAudioId);
+      }, { once: false }); // Allow multiple plays
+  }
+
+  // Rewind button handlers (main player)
+  const rewindBtn = document.getElementById('rewindBtn');
+  if (rewindBtn) {
+      rewindBtn.addEventListener('click', function() {
+          const audio = document.getElementById('audioElement');
+          if (audio && audio.src) {
+              audio.currentTime = Math.max(0, audio.currentTime - 30);
+          }
+      });
+  }
+
+  // Forward button handlers (main player)
+  const forwardBtn = document.getElementById('forwardBtn');
+  if (forwardBtn) {
+      forwardBtn.addEventListener('click', function() {
+          const audio = document.getElementById('audioElement');
+          if (audio && audio.src) {
+              audio.currentTime = Math.min(audio.duration, audio.currentTime + 30);
+          }
+      });
+  }
+
+  // ========== FLOATING AUDIO PLAYER FUNCTIONALITY ==========
+
+  // Sync floating player with main player (only when main has src)
+  const mainAudio = document.getElementById('audioElement');
+  const floatingAudio = document.getElementById('floatingAudioElement');
+
+  if (mainAudio && floatingAudio) {
+      // Main player play event
+      mainAudio.addEventListener('play', function() {
+          if (floatingAudio.src && !mainAudioSyncing) {
+              floatingAudioSyncing = true;
+              floatingAudio.play().catch(e => console.warn('Float play error:', e));
+              floatingAudioSyncing = false;
+          }
+      });
+
+      // Main player pause event
+      mainAudio.addEventListener('pause', function() {
+          if (floatingAudio.src && !mainAudioSyncing) {
+              floatingAudioSyncing = true;
+              floatingAudio.pause();
+              floatingAudioSyncing = false;
+          }
+      });
+
+      // Main player time update - sync to floating
+      mainAudio.addEventListener('timeupdate', function() {
+          if (floatingAudio.src && !mainAudioSyncing && Math.abs(floatingAudio.currentTime - this.currentTime) > 0.5) {
+              floatingAudioSyncing = true;
+              floatingAudio.currentTime = this.currentTime;
+              floatingAudioSyncing = false;
+          }
+      });
+
+      // Floating player time update - sync to main
+      floatingAudio.addEventListener('timeupdate', function() {
+          if (mainAudio.src && !floatingAudioSyncing && Math.abs(mainAudio.currentTime - this.currentTime) > 0.5) {
+              mainAudioSyncing = true;
+              mainAudio.currentTime = this.currentTime;
+              mainAudioSyncing = false;
+          }
+      });
+  }
+
+  // Floating player rewind button
+  const floatingRewindBtn = document.getElementById('floatingRewindBtn');
+  if (floatingRewindBtn) {
+      floatingRewindBtn.addEventListener('click', function() {
+          if (floatingAudio && floatingAudio.src) {
+              floatingAudio.currentTime = Math.max(0, floatingAudio.currentTime - 30);
+              if (mainAudio && mainAudio.src) {
+                  mainAudio.currentTime = floatingAudio.currentTime;
+              }
+          }
+      });
+  }
+
+  // Floating player forward button
+  const floatingForwardBtn = document.getElementById('floatingForwardBtn');
+  if (floatingForwardBtn) {
+      floatingForwardBtn.addEventListener('click', function() {
+          if (floatingAudio && floatingAudio.src) {
+              floatingAudio.currentTime = Math.min(floatingAudio.duration, floatingAudio.currentTime + 30);
+              if (mainAudio && mainAudio.src) {
+                  mainAudio.currentTime = floatingAudio.currentTime;
+              }
+          }
+      });
+  }
+
+  // Floating player play/pause button
+  const floatingPlayPauseBtn = document.getElementById('floatingPlayPauseBtn');
+  if (floatingPlayPauseBtn && floatingAudio && mainAudio) {
+      floatingPlayPauseBtn.addEventListener('click', function() {
+          if (floatingAudio && floatingAudio.src) {
+              if (floatingAudio.paused) {
+                  floatingAudio.play().catch(e => console.warn('Float play error:', e));
+                  if (mainAudio.src) {
+                      mainAudio.play().catch(e => console.warn('Main play error:', e));
+                  }
+              } else {
+                  floatingAudio.pause();
+                  if (mainAudio.src) {
+                      mainAudio.pause();
+                  }
+              }
+          }
+      });
+  }
+
+  // Update play/pause button icon on floating audio
+  if (floatingAudio) {
+      floatingAudio.addEventListener('play', function() {
+          const btn = document.getElementById('floatingPlayPauseBtn');
+          if (btn) btn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+      });
+
+      floatingAudio.addEventListener('pause', function() {
+          const btn = document.getElementById('floatingPlayPauseBtn');
+          if (btn) btn.innerHTML = '<i class="bi bi-play-fill"></i>';
+      });
+  }
+
+  // Minimize/Maximize floating player
+  const minimizeBtn = document.getElementById('floatingMinimizeBtn');
+  const floatingPlayer = document.getElementById('floatingAudioPlayer');
+
+  if (minimizeBtn && floatingPlayer) {
+      minimizeBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          floatingPlayer.classList.toggle('minimized');
+
+          // Toggle icon between minus and plus
+          const icon = minimizeBtn.querySelector('i');
+          if (floatingPlayer.classList.contains('minimized')) {
+              icon.className = 'bi bi-plus-lg';
+              minimizeBtn.setAttribute('title', 'Maximize player');
+              // Remove expanded padding, add minimized
+              document.body.classList.remove('has-floating-player-expanded');
+              document.body.classList.add('has-floating-player-minimized');
+          } else {
+              icon.className = 'bi bi-dash-lg';
+              minimizeBtn.setAttribute('title', 'Minimize player');
+              // Add expanded padding, remove minimized
+              document.body.classList.remove('has-floating-player-minimized');
+              document.body.classList.add('has-floating-player-expanded');
+          }
+      });
+  }
+
+  // Toggle floating player visibility
+  function toggleFloatingPlayer(show) {
+      const floatingPlayer = document.getElementById('floatingAudioPlayer');
+      if (floatingPlayer) {
+          if (show && mainAudio && mainAudio.src) {
+              floatingPlayer.classList.add('active');
+              // Player shows expanded by default
+              if (!floatingPlayer.classList.contains('minimized')) {
+                  document.body.classList.add('has-floating-player-expanded');
+                  document.body.classList.remove('has-floating-player-minimized');
+              }
+          } else {
+              floatingPlayer.classList.remove('active');
+              // Remove all player-related padding when hidden
+              document.body.classList.remove('has-floating-player-expanded');
+              document.body.classList.remove('has-floating-player-minimized');
+          }
+      }
+  }
+
+  // Show floating player on audio metadata load on mobile
+  if (mainAudio) {
+      mainAudio.addEventListener('loadedmetadata', function() {
+          if (window.innerWidth < 992 && this.src) {
+              toggleFloatingPlayer(true);
+          }
+      });
+  }
+
+  // Handle window resize to hide floating player on desktop
+  window.addEventListener('resize', function() {
+      if (window.innerWidth >= 992) {
+          const floatingPlayer = document.getElementById('floatingAudioPlayer');
+          if (floatingPlayer) {
+              floatingPlayer.classList.remove('active');
+              document.body.classList.remove('has-floating-player');
+          }
+      }
+  });
 </script>
 {% endblock content %}

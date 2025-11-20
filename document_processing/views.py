@@ -308,7 +308,8 @@ def document_status_api(request, pk):
     doc = get_object_or_404(Document, pk=pk)
     return JsonResponse(
         {
-            "status": doc.get_status_display(),
+            "status": doc.status,
+            "display_status": doc.get_status_display(),
             "error": doc.error_message,  # Optional: if you have an error_message field
         }
     )

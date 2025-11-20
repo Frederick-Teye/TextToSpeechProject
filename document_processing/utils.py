@@ -133,7 +133,7 @@ def upload_to_s3(file_obj: BinaryIO, user_id: int, file_name: str) -> str:
     try:
         # Dynamically load the storage class from settings
         # This allows for flexible storage backends (S3, local, etc.)
-        storage_class = import_string(settings.DEFAULT_FILE_STORAGE)
+        storage_class = import_string(settings.STORAGES["default"]["BACKEND"])
         storage = storage_class()  # Instantiate the storage backend
 
         # Reset file pointer to beginning in case it was read before
@@ -160,6 +160,7 @@ def upload_to_s3(file_obj: BinaryIO, user_id: int, file_name: str) -> str:
             f"s3_key={key}, user_id={user_id}"
         )
 
+        # Returns: media/uploads/{user_id}/{uuid}_{safe_filename}
         return "media/" + key
 
     except ValueError as e:

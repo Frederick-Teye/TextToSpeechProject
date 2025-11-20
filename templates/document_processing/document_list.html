@@ -18,6 +18,15 @@
     </div>
 
     {% if documents %}
+    <!-- Pagination Info -->
+    {% if page_obj %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <p class="text-white-50 mb-0">
+            Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} document{{ page_obj.paginator.count|pluralize }}
+        </p>
+    </div>
+    {% endif %}
+
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         {% for document in documents %}
         <div class="col" id="document-card-{{ document.id }}">
@@ -57,6 +66,52 @@
         </div>
         {% endfor %}
     </div>
+
+    <!-- Pagination Controls -->
+    {% if page_obj and page_obj.paginator.num_pages > 1 %}
+    <nav aria-label="Document pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <!-- Previous Button -->
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">&laquo;</span>
+            </li>
+            {% endif %}
+
+            <!-- Page Numbers -->
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active" aria-current="page">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            <!-- Next Button -->
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">&raquo;</span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
     {% else %}
     <div class="text-center text-white-50 py-5">
         <i class="bi bi-inbox display-1 d-block mb-3"></i>

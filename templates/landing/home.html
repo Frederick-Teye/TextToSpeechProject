@@ -210,7 +210,8 @@
         }
 
         const audioFile = VOICE_AUDIO_FILES[voiceId];
-        const audioUrl = `/static_cdn/landing/audio/${audioFile}`;
+        let audioUrl = `landing/audio/${audioFile}`;
+        audioUrl ="{% static "" %}" + audioUrl;
 
         console.log('Attempting to play audio from:', audioUrl); // Debug log
         console.log('Selected voice:', voiceId);

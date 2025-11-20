@@ -17,35 +17,7 @@ ALLOWED_HOSTS = config(
 # Production Database (Heroku Postgres Add-on)
 DATABASES = {"default": dj_database_url.parse(config("DATABASE_URL"))}
 
-# === STATIC FILES (CSS, JS, Images) ===
-# PUBLIC - served directly from CloudFront, NO signing needed
-STATIC_URL = f"https://{config('STATIC_CLOUDFRONT_DOMAIN')}/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
 
-class StaticStorage(S3Boto3Storage):
-    """Storage for static files - served publicly from CloudFront"""
-    location = 'static'
-    default_acl = None  # Use CloudFront OAI instead
-    file_overwrite = False
-    custom_domain = config('STATIC_CLOUDFRONT_DOMAIN')
-    querystring_auth = False  # NO signing for static files
-
-STATICFILES_STORAGE = 'core.settings.production.StaticStorage'
-
-# === MEDIA FILES (User-Generated Audio) ===
-# PRIVATE - served via signed CloudFront URLs
-MEDIA_URL = f"https://{config('CLOUDFRONT_DOMAIN')}/media/"
-MEDIA_ROOT = BASE_DIR / "media"
-
-class MediaStorage(S3Boto3Storage):
-    """Storage for media files (audio) - requires signed URLs"""
-    location = 'media'
-    default_acl = None
-    file_overwrite = False
-    custom_domain = config('CLOUDFRONT_DOMAIN')
-    querystring_auth = False  # We handle signing separately
-
-DEFAULT_FILE_STORAGE = 'core.settings.production.MediaStorage'
 
 # === AWS S3 CONFIGURATION ===
 AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')

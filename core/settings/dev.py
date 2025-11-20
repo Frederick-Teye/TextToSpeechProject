@@ -18,17 +18,7 @@ DATABASES = {
     )
 }
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
 
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
-
-# Static on disk (fast local reloads)
-STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
 # Email settings for local development (console backend)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
@@ -60,10 +50,12 @@ ACCOUNT_PASSWORD_RESET_TIMEOUT = 3600  # 1 hour
 # === CLOUDFRONT CONFIGURATION (for testing) ===
 # In development, we use the same CloudFront domain as configured in .env
 # This allows testing CloudFront signed URLs locally
-CLOUDFRONT_DOMAIN = config('CLOUDFRONT_DOMAIN', default='d2e40gg2o2wus6.cloudfront.net')
-CLOUDFRONT_KEY_ID = config('CLOUDFRONT_KEY_ID', default='')
-CLOUDFRONT_PRIVATE_KEY = config('CLOUDFRONT_PRIVATE_KEY', default='')
+CLOUDFRONT_DOMAIN = config("CLOUDFRONT_DOMAIN", default="d2e40gg2o2wus6.cloudfront.net")
+CLOUDFRONT_KEY_ID = config("CLOUDFRONT_KEY_ID", default="")
+CLOUDFRONT_PRIVATE_KEY = config("CLOUDFRONT_PRIVATE_KEY", default="")
 CLOUDFRONT_EXPIRATION = 3600  # 1 hour
 
 # Static CloudFront (no signing needed)
-STATIC_CLOUDFRONT_DOMAIN = config('STATIC_CLOUDFRONT_DOMAIN', default='localhost:8000/static/')
+STATIC_CLOUDFRONT_DOMAIN = config(
+    "STATIC_CLOUDFRONT_DOMAIN", default="localhost:8000/static/"
+)

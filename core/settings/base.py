@@ -230,13 +230,21 @@ ENVIRONMENT = config("ENVIRONMENT", default="development")
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "/static/"
+STATIC_URL = f"https://{config('STATIC_CLOUDFRONT_DOMAIN')}/staticfiles/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "document_processing.storage_backends.StaticStorage",
+    },
+    "default": {
+        "BACKEND": "document_processing.storage_backends.MediaStorage",
+    },
+}
 
 # # Media files (user uploads)
 # MEDIA_URL = "/media/"

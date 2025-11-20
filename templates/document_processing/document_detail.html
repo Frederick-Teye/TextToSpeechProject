@@ -5,6 +5,12 @@
 
 {% block content %}
 
+<div style="display:none;" aria-hidden='true'>
+    <form>
+        {% csrf_token %}
+    </form>
+</div>
+
 <div class="container-fluid py-4"> <!-- Document Header -->
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-body">
@@ -243,23 +249,23 @@
             .then(data => {
                 // Update status badge
                 let badgeClass = 'bg-secondary';  // Changed to 'bg-' classes to match theme
-                if (data.status === 'Text Ready') {
+                if (data.status === 'COMPLETED') {
                     badgeClass = 'bg-success';
-                } else if (data.status === 'Processing Text') {
+                } else if (data.status === 'PROCESSING') {
                     badgeClass = 'bg-warning';
-                } else if (data.status === 'Failed') {
+                } else if (data.status === 'FAILED') {
                     badgeClass = 'bg-danger';
-                } else if (data.status === 'Pending') {  // Added for consistency
+                } else if (data.status === 'PENDING') {  // Added for consistency
                     badgeClass = 'bg-info';
                 }
 
                 statusBadge.innerHTML = `Status: <span class="badge rounded-pill ${badgeClass}">${data.status}</span>`;
 
-                if (data.status === "Text Ready") {
+                if (data.status === "COMPLETED") {
                     // Reload the page to fetch pages list
                     window.location.reload();
                 }
-                else if (data.status === "Failed") {  // Fixed: was "FAILED", now "Failed"
+                else if (data.status === "FAILED") {  // Fixed: was "FAILED", now "Failed"
                     pagesEl.innerHTML = `
                         <div class="alert alert-danger">
                             <i class="bi bi-x-circle"></i> 

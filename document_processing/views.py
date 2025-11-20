@@ -11,6 +11,7 @@ from django.http import JsonResponse
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils.translation import gettext as _
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django_ratelimit.decorators import ratelimit
 import markdown as md
 import nh3
@@ -37,11 +38,16 @@ class DocumentListView(LoginRequiredMixin, ListView):
     - Fetches all pages for each document in one query
     - Fetches all shares for each document in one query
     - Reduces database queries from 1 + N + N to just 3 queries
+    
+    Pagination:
+    - 25 documents per page for optimal performance
+    - Prevents overwhelming UI with hundreds of documents
     """
 
     model = Document
     template_name = "document_processing/document_list.html"
     context_object_name = "documents"
+    paginate_by = 24  # Show 24 documents per page
 
     def get_queryset(self):
         """
@@ -187,7 +193,7 @@ def document_upload(request):
 @document_access_required(param_name="pk", permission_level="view")
 def document_detail(request, pk, document):
     """
-    Display a document with all its pages.
+    Display a document with paginated pages.
 
     Args:
         request: HTTP request
@@ -195,8 +201,14 @@ def document_detail(request, pk, document):
         document: Document object (injected by decorator)
 
     Returns:
-        Rendered document detail page
+        Rendered document detail page with paginated pages
+        
+    Pagination:
+        - Shows 18 pages per screen
+        - Includes page navigation controls
+        - Optimizes performance for large documents (100+ pages)
     """
+    
     # Check if user can share (owner or has CAN_SHARE permission)
     sharing = DocumentSharing.objects.filter(
         document=document, shared_with=request.user
@@ -204,12 +216,32 @@ def document_detail(request, pk, document):
     can_share = document.user == request.user or (sharing and sharing.can_share())
 
     pages = []
+    page_obj = None
+    
     if document.status == TextStatus.COMPLETED:
-        pages = document.pages.all()
+        # Get all pages for this document
+        all_pages = document.pages.all().order_by('page_number')
+        
+        # Paginate pages (18 per page)
+        paginator = Paginator(all_pages, 18)
+        page_number = request.GET.get('page', 1)
+        
+        try:
+            page_obj = paginator.get_page(page_number)
+            pages = page_obj.object_list
+        except (EmptyPage, PageNotAnInteger):
+            page_obj = paginator.get_page(1)
+            pages = page_obj.object_list
+    
     return render(
         request,
         "document_processing/document_detail.html",
-        {"document": document, "pages": pages, "can_share": can_share},
+        {
+            "document": document,
+            "pages": pages,
+            "page_obj": page_obj,
+            "can_share": can_share,
+        },
     )
 
 

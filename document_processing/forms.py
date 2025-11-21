@@ -74,3 +74,63 @@ class DocumentUploadForm(forms.ModelForm):
 
         return cleaned
 
+
+class AddPageForm(forms.Form):
+    """
+    Form to add a new page to an existing document.
+    Allows either a text file upload or raw text input.
+    """
+
+    CONTENT_CHOICES = [
+        ("TEXT", "Raw Text"),
+        ("FILE", "Upload File (.md, .txt)"),
+    ]
+
+    content_type = forms.ChoiceField(
+        choices=CONTENT_CHOICES,
+        widget=forms.RadioSelect,
+        initial="TEXT",
+        label="Content Source",
+    )
+
+    text = forms.CharField(
+        required=False,
+        label="Page Content",
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "rows": 10,
+                "placeholder": "Enter markdown or plain text...",
+            }
+        ),
+        help_text="Enter the text for the new page.",
+    )
+
+    file = forms.FileField(
+        required=False,
+        label="Upload File",
+        help_text="Allowed: .md, .markdown, .txt files only.",
+        widget=forms.FileInput(attrs={"class": "form-control"}),
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        content_type = cleaned_data.get("content_type")
+        text = cleaned_data.get("text")
+        file = cleaned_data.get("file")
+
+        if content_type == "TEXT" and not text:
+            self.add_error("text", "Please enter text content.")
+
+        if content_type == "FILE":
+            if not file:
+                self.add_error("file", "Please upload a file.")
+            else:
+                # Validate extension
+                ext = file.name.lower().split(".")[-1]
+                if ext not in ["md", "markdown", "txt"]:
+                    self.add_error(
+                        "file", "Only Markdown (.md) and Text (.txt) files are allowed."
+                    )
+
+        return cleaned_data

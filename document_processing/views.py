@@ -1,6 +1,7 @@
 import logging
 import json
 from django.shortcuts import render, redirect, get_object_or_404
+from django.core.files.base import ContentFile
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -23,7 +24,7 @@ from core.decorators import (
 )
 from .forms import DocumentUploadForm
 from .models import SourceType, TextStatus, Document, DocumentPage
-from .utils import upload_to_s3, validate_markdown, sanitize_markdown
+from .utils import upload_to_s3, validate_markdown, sanitize_markdown, sanitize_filename
 from .tasks import parse_document_task
 from speech_processing.models import DocumentSharing
 
@@ -38,7 +39,7 @@ class DocumentListView(LoginRequiredMixin, ListView):
     - Fetches all pages for each document in one query
     - Fetches all shares for each document in one query
     - Reduces database queries from 1 + N + N to just 3 queries
-    
+
     Pagination:
     - 25 documents per page for optimal performance
     - Prevents overwhelming UI with hundreds of documents
@@ -126,9 +127,6 @@ def document_upload(request):
 
         if form.is_valid():
             try:
-                # This is to avoid error when what the user uploads is not raw text
-                raw_text = ""
-
                 # Start building the document (but don’t save just yet)
                 document = Document(
                     user=request.user,
@@ -150,18 +148,26 @@ def document_upload(request):
                     document.source_content = form.cleaned_data["url"]
 
                 elif stype == SourceType.TEXT:
-                    if len(form.cleaned_data["text"]) > 1024:
-                        document.source_content = form.cleaned_data["text"][:1024]
-                    else:
-                        document.source_content = form.cleaned_data["text"]
-                    raw_text = form.cleaned_data["text"]
+                    text_content = form.cleaned_data["text"]
+                    safe_title = (
+                        sanitize_filename(document.title)
+                        if document.title
+                        else "text_input"
+                    )
+                    file_name = f"{safe_title}.md"
+                    # Convert the string to a Django file object
+                    file_obj = ContentFile(text_content.encode("utf-8"))
+                    document.save()
+
+                    s3_path = upload_to_s3(file_obj, request.user.id, file_name)
+                    document.source_content = s3_path
 
                 # Final save after source_content is set
                 document.save()
 
                 # Schedule background parsing
                 transaction.on_commit(
-                    lambda: parse_document_task.delay(document.id, raw_text=raw_text)
+                    lambda: parse_document_task.delay(document.id)
                 )
 
                 messages.success(
@@ -202,13 +208,13 @@ def document_detail(request, pk, document):
 
     Returns:
         Rendered document detail page with paginated pages
-        
+
     Pagination:
         - Shows 18 pages per screen
         - Includes page navigation controls
         - Optimizes performance for large documents (100+ pages)
     """
-    
+
     # Check if user can share (owner or has CAN_SHARE permission)
     sharing = DocumentSharing.objects.filter(
         document=document, shared_with=request.user
@@ -217,22 +223,22 @@ def document_detail(request, pk, document):
 
     pages = []
     page_obj = None
-    
+
     if document.status == TextStatus.COMPLETED:
         # Get all pages for this document
-        all_pages = document.pages.all().order_by('page_number')
-        
+        all_pages = document.pages.all().order_by("page_number")
+
         # Paginate pages (18 per page)
         paginator = Paginator(all_pages, 18)
-        page_number = request.GET.get('page', 1)
-        
+        page_number = request.GET.get("page", 1)
+
         try:
             page_obj = paginator.get_page(page_number)
             pages = page_obj.object_list
         except (EmptyPage, PageNotAnInteger):
             page_obj = paginator.get_page(1)
             pages = page_obj.object_list
-    
+
     return render(
         request,
         "document_processing/document_detail.html",

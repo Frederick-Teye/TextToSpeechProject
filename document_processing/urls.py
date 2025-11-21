@@ -16,4 +16,7 @@ urlpatterns = [
     path("api/docs/<int:pk>/status/", views.document_status_api, name="status_api"),
     path("shared-with-me/", views.shared_with_me_view, name="shared_with_me"),
     path("<int:pk>/delete/", views.document_delete, name="document_delete"),
+    path(
+        "docs/<int:doc_id>/add-page/", views.add_document_page, name="add_document_page"
+    ),
 ]

@@ -25,7 +25,7 @@ from .models import Document, DocumentPage, TextStatus, SourceType
 from .utils import validate_markdown
 
 logger = logging.getLogger(__name__)
-MIN_CONTENT_LENGTH = 100
+MIN_CONTENT_LENGTH = 1
 
 
 def _process_pdf(buf: io.BytesIO) -> list[dict]:
@@ -128,7 +128,7 @@ def _process_url(url: str):
 
 # @ shared_task(bind=True)
 @app.task(bind=True)
-def parse_document_task(self, document_id, raw_text=""):
+def parse_document_task(self, document_id):
     logger.info(f"[{self.request.id}] Start processing Document {document_id}")
     try:
         doc = Document.objects.get(id=document_id)
@@ -146,11 +146,6 @@ def parse_document_task(self, document_id, raw_text=""):
         if stype == SourceType.URL:
             pages = _process_url(doc.source_content)
 
-        elif stype == SourceType.TEXT:
-            # Raw text is already Markdown-ish
-            raw = raw_text.strip()
-            pages = [{"page_number": 1, "markdown": raw}]
-
         else:  # FILE
             # Download from S3
             buf = io.BytesIO()
@@ -162,21 +157,35 @@ def parse_document_task(self, document_id, raw_text=""):
 
             # Dispatch by extension
             _, ext = os.path.splitext(doc.source_content.lower())
+
+            # Safety: If it was TEXT input, ensure we treat it as Markdown
+            # if stype == SourceType.TEXT and not ext:
+            #     ext = ".md"
+
             processors = {
                 ".pdf": _process_pdf,
                 ".docx": _process_docx,
                 ".md": _process_md,
                 ".markdown": _process_md,
+                ".txt": _process_md,
             }
+
             proc = processors.get(ext)
             if not proc:
-                raise NotImplementedError(f"No processor for '{ext}' files")
+                # Fallback for TEXT types if extension logic fails
+                if stype == SourceType.TEXT:
+                    proc = _process_md
+                else:
+                    raise NotImplementedError(f"No processor for '{ext}' files")
+
             pages = proc(buf)
 
         # 2) Smart check
         total_len = sum(len(p["markdown"]) for p in pages)
         if total_len < MIN_CONTENT_LENGTH:
-            raise ValueError("No readable text found")
+            raise ValueError(
+                f"No readable text found. (Got {total_len} chars, needed {MIN_CONTENT_LENGTH})"
+            )
 
         # 3) Validate markdown content before saving
         # This prevents injection attacks and suspicious patterns from being stored

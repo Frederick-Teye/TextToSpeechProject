@@ -58,6 +58,17 @@
                         <i class="bi bi-share me-1"></i>Share
                     </button>
                     {% endif %}
+                    <a href="{% url 'document_processing:document_list' %}" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-arrow-left me-1"></i>Back
+                    </a>
+
+                    {% if document.source_type == 'TEXT' or '.md' in document.source_content or '.txt' in document.source_content  or document.source_type == 'URL'%}
+                        {% if document.status == 'COMPLETED' %}
+                        <a href="{% url 'document_processing:add_document_page' document.id %}" class="btn btn-outline-success me-2">
+                            <i class="bi bi-plus-lg me-1"></i>Add Page
+                        </a>
+                        {% endif %}
+                    {% endif %}
                 </div>
             </div>
         </div>

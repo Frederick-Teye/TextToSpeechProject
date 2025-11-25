@@ -22,7 +22,7 @@ import pypandoc
 from markdownify import markdownify
 
 from .models import Document, DocumentPage, TextStatus, SourceType
-from .utils import validate_markdown
+from .utils import validate_markdown, fetch_url_as_markdown
 
 logger = logging.getLogger(__name__)
 MIN_CONTENT_LENGTH = 1
@@ -90,40 +90,7 @@ def _process_md(buf: io.BytesIO):
 
 
 def _process_url(url: str):
-    logger.info(f"→ URL: fetching and markdownifying {url}")
-    USER_AGENTS = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-        "Mozilla/5.0 (X11; Linux x86_64)",
-    ]
-
-    HEADERS = {
-        "User-Agent": random.choice(USER_AGENTS),
-        "Accept": "text/html",
-        "Referer": "https://google.com",
-        "Accept-Language": "en-US",
-    }
-
-    try:
-        # Pass the headers into your request
-        resp = requests.get(url, headers=HEADERS, timeout=10)
-
-        # This line will now only run if the status code is bad (e.g., 404, 500)
-        # It won't raise an error on a 200 OK
-        resp.raise_for_status()
-
-        md = markdownify(resp.text, heading_style="ATX")
-        return [{"page_number": 1, "markdown": md.strip()}]
-
-    except requests.exceptions.HTTPError as e:
-        # It's good practice to log the specific error
-        logger.error(f"HTTP Error fetching {url}: {e}")
-        # Re-raise the exception or return None/empty
-        raise e
-    except requests.exceptions.RequestException as e:
-        # Handle other network errors (like timeouts)
-        logger.error(f"Network Error fetching {url}: {e}")
-        raise e
+    return fetch_url_as_markdown(url)
 
 
 # @ shared_task(bind=True)

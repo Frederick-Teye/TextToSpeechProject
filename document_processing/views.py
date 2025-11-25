@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Count, Prefetch
+from django.db.models import Count, Prefetch, Max
 from django.http import JsonResponse
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -24,7 +24,7 @@ from core.decorators import (
 )
 from .forms import DocumentUploadForm, AddPageForm
 from .models import SourceType, TextStatus, Document, DocumentPage
-from .utils import upload_to_s3, validate_markdown, sanitize_markdown, sanitize_filename
+from .utils import upload_to_s3, validate_markdown, sanitize_markdown, sanitize_filename, fetch_url_as_markdown
 from .tasks import parse_document_task
 from speech_processing.models import DocumentSharing
 
@@ -166,9 +166,7 @@ def document_upload(request):
                 document.save()
 
                 # Schedule background parsing
-                transaction.on_commit(
-                    lambda: parse_document_task.delay(document.id)
-                )
+                transaction.on_commit(lambda: parse_document_task.delay(document.id))
 
                 messages.success(
                     request,
@@ -676,16 +674,19 @@ def add_document_page(request, doc_id):
     document = get_object_or_404(Document, pk=doc_id)
 
     # 1. Check Compatibility
-    # Check the source_content extension. 
+    # Check the source_content extension.
     # (Recall: TEXT inputs are now saved as .md, so they pass this check too)
     is_compatible = False
     if document.source_content:
         ext = document.source_content.lower()
-        if ext.endswith(('.md', '.markdown', '.txt')):
+        if ext.endswith((".md", ".markdown", ".txt")):
             is_compatible = True
-    
+
     # Also allow if it was legacy SourceType.TEXT (just in case)
-    if document.source_type == SourceType.TEXT:
+    if (
+        document.source_type == SourceType.TEXT
+        or document.source_type == SourceType.URL
+    ):
         is_compatible = True
 
     if not is_compatible:
@@ -696,38 +697,78 @@ def add_document_page(request, doc_id):
         form = AddPageForm(request.POST, request.FILES)
         if form.is_valid():
             content = ""
-            
+
             # 2. Extract Content
-            if form.cleaned_data['content_type'] == 'TEXT':
-                content = form.cleaned_data['text']
+            if form.cleaned_data["content_type"] == "TEXT":
+                content = form.cleaned_data["text"]
+            elif form.cleaned_data["content_type"] == "URL":
+                # FIX: fetch_url_as_markdown returns a LIST of dicts
+                try:
+                    url_data = fetch_url_as_markdown(form.cleaned_data["url"])
+                    if url_data and len(url_data) > 0:
+                        # Extract the string from the first page dictionary
+                        content = url_data[0]["markdown"]
+                    else:
+                        messages.error(
+                            request, "No content could be extracted from this URL."
+                        )
+                        return render(
+                            request,
+                            "document_processing/add_page.html",
+                            {"form": form, "document": document},
+                        )
+                except Exception as e:
+                    # Catch network errors from utils.py
+                    logger.error(f"URL Fetch failed: {e}")
+                    messages.error(
+                        request,
+                        "Failed to fetch URL. Please check the link and try again.",
+                    )
+                    return render(
+                        request,
+                        "document_processing/add_page.html",
+                        {"form": form, "document": document},
+                    )
             else:
                 # Read uploaded file content directly into memory
-                uploaded_file = request.FILES['file']
+                uploaded_file = request.FILES["file"]
                 try:
-                    content = uploaded_file.read().decode('utf-8')
+                    content = uploaded_file.read().decode("utf-8")
                 except UnicodeDecodeError:
-                    messages.error(request, "The uploaded file is not a valid text file.")
-                    return render(request, "document_processing/add_page.html", {"form": form, "document": document})
+                    messages.error(
+                        request, "The uploaded file is not a valid text file."
+                    )
+                    return render(
+                        request,
+                        "document_processing/add_page.html",
+                        {"form": form, "document": document},
+                    )
 
             # 3. Sanitize Content (Security)
             # Reuse your util functions to keep it safe
             is_valid, error_msg = validate_markdown(content)
             if not is_valid:
                 messages.error(request, f"Invalid content: {error_msg}")
-                return render(request, "document_processing/add_page.html", {"form": form, "document": document})
+                return render(
+                    request,
+                    "document_processing/add_page.html",
+                    {"form": form, "document": document},
+                )
 
             clean_markdown = nh3.clean(content)
 
             # 4. Calculate Next Page Number
             # Find the highest current page number and add 1
-            last_page = document.pages.aggregate(models.Max('page_number'))['page_number__max']
+            last_page = document.pages.aggregate(Max("page_number"))[
+                "page_number__max"
+            ]
             next_page_num = (last_page or 0) + 1
 
             # 5. Create Page
             DocumentPage.objects.create(
                 document=document,
                 page_number=next_page_num,
-                markdown_content=clean_markdown
+                markdown_content=clean_markdown,
             )
 
             messages.success(request, f"Page {next_page_num} added successfully.")
@@ -735,7 +776,8 @@ def add_document_page(request, doc_id):
     else:
         form = AddPageForm()
 
-    return render(request, "document_processing/add_page.html", {
-        "form": form,
-        "document": document
-    })
+    return render(
+        request,
+        "document_processing/add_page.html",
+        {"form": form, "document": document},
+    )

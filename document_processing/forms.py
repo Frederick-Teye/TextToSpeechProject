@@ -16,13 +16,13 @@ class DocumentUploadForm(forms.ModelForm):
     file = forms.FileField(
         required=False,
         label="Upload File",
-        help_text="Allowed: PDF, DOCX, or Markdown files. Max 10MB.",
+        help_text="Allowed: PDF, DOCX, .text or Markdown files. Max 10MB.",
     )
 
     url = forms.URLField(
         required=False,
         label="Webpage URL",
-        help_text="Enter a public link to the content you'd like to process.",
+        help_text="Enter a publicly accessible HTTPS link (e.g., https://www.example.com) to the page you want to process",
     )
 
     text = forms.CharField(
@@ -78,12 +78,13 @@ class DocumentUploadForm(forms.ModelForm):
 class AddPageForm(forms.Form):
     """
     Form to add a new page to an existing document.
-    Allows either a text file upload or raw text input.
+    Allows either a text file upload, raw text input or url input.
     """
 
     CONTENT_CHOICES = [
         ("TEXT", "Raw Text"),
         ("FILE", "Upload File (.md, .txt)"),
+        ("URL", "Paste a URL"),
     ]
 
     content_type = forms.ChoiceField(
@@ -113,11 +114,24 @@ class AddPageForm(forms.Form):
         widget=forms.FileInput(attrs={"class": "form-control"}),
     )
 
+    url = forms.URLField(
+        required=False,
+        label="Webpage URL",
+        help_text="Enter a publicly accessible HTTPS link (e.g., https://www.example.com) to the page you want to process",
+        widget=forms.URLInput(
+            attrs={
+                "placeholder": "URL eg. https://www.example.com",
+                "class": "form-control",
+            }
+        ),
+    )
+
     def clean(self):
         cleaned_data = super().clean()
         content_type = cleaned_data.get("content_type")
         text = cleaned_data.get("text")
         file = cleaned_data.get("file")
+        url = cleaned_data.get("url")
 
         if content_type == "TEXT" and not text:
             self.add_error("text", "Please enter text content.")
@@ -132,5 +146,8 @@ class AddPageForm(forms.Form):
                     self.add_error(
                         "file", "Only Markdown (.md) and Text (.txt) files are allowed."
                     )
+        if content_type == "URL":
+            if not url:
+                self.add_error("url", "Please enter a URL for this source type.")
 
         return cleaned_data
